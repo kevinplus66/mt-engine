@@ -31,7 +31,6 @@ M-Team 引擎 - 免费种子猎手 + 全能搜索引擎
 | 显示用户做种/下载状态 |
 | 下载进度环形显示 |
 | 分享率对比功能 |
-| 一键收藏/取消收藏 |
 | 支持中英文切换 |
 | 深色/浅色主题切换 |
 | 响应式设计（桌面/平板/手机）|
@@ -184,17 +183,18 @@ curl "http://localhost:5001/api/torrents?discount=FREE&mode=normal"
 POST /api/refresh
 ```
 
-### 收藏/取消收藏
+### 下载种子（免费猎手）
 
 ```
-POST /api/collection
+POST /api/download
 Content-Type: application/json
 
 {
-    "id": "torrent_id",
-    "make": true
+    "id": "torrent_id"
 }
 ```
+
+下载的种子会添加标签 `免费做种`
 
 ### 自动删除控制
 
@@ -387,9 +387,6 @@ A: 请检查 Token 是否正确，或尝试重新生成。
 ### Q: 如何修改刷新间隔？
 A: 修改 `.env` 文件中的 `REFRESH_INTERVAL` 值（单位：秒）。
 
-### Q: 收藏功能不工作？
-A: 收藏 API 需要完整的认证，某些 Token 可能没有此权限。
-
 ---
 
 ## 更新日志
@@ -515,7 +512,6 @@ MIT License
 | Show user seeding/leeching status |
 | Download progress ring display |
 | Share ratio comparison with rival |
-| One-click favorite/unfavorite |
 | Chinese/English language switch |
 | Dark/Light theme toggle |
 | Responsive design (Desktop/Tablet/Mobile) |
@@ -601,6 +597,9 @@ Open browser and visit: `http://localhost:5001`
 | `API_DELAY` | API request delay (seconds) | `1` |
 | `RIVAL_USER_ID` | Rival user ID for ratio comparison | - |
 | `PUSHPLUS_TOKEN` | PushPlus WeChat push token | - |
+| `QBITTORRENT_URL` | qBittorrent Web UI URL | `http://localhost:8080` |
+| `QBITTORRENT_USER` | qBittorrent Web UI username | `admin` |
+| `QBITTORRENT_PASSWORD` | qBittorrent Web UI password | `adminadmin` |
 
 ### Get API Token
 
@@ -621,6 +620,17 @@ Open browser and visit: `http://localhost:5001`
 1. Visit https://www.pushplus.plus/
 2. Login with WeChat (scan QR code)
 3. Copy the token from your dashboard
+
+### Configure qBittorrent Web UI
+
+1. Open qBittorrent
+2. Go to "Tools" → "Options" → "Web UI"
+3. Check "Enable the Web User Interface (Remote control)"
+4. Set port (default 8080)
+5. Set username and password
+6. Click "OK" to save
+
+**Note:** Auto-delete feature requires qBittorrent Web UI configuration. When free time remaining < 10 minutes or free status changes to non-free while download is incomplete, the system will automatically delete the torrent and files from qBittorrent. Auto-delete works independently of PushPlus - no push token required.
 
 ---
 
@@ -654,16 +664,86 @@ curl "http://localhost:5001/api/torrents?discount=FREE&mode=normal"
 POST /api/refresh
 ```
 
-### Favorite/Unfavorite
+### Download Torrent (Free Hunter)
 
 ```
-POST /api/collection
+POST /api/download
 Content-Type: application/json
 
 {
-    "id": "torrent_id",
-    "make": true
+    "id": "torrent_id"
 }
+```
+
+Downloaded torrents are tagged with `免费做种`
+
+### Auto-Delete Control
+
+**Get auto-delete status:**
+
+```
+GET /api/auto-delete/status
+```
+
+Response example:
+```json
+{
+    "enabled": false,
+    "qbittorrent_configured": true
+}
+```
+
+**Toggle auto-delete status:**
+
+```
+POST /api/auto-delete/toggle
+```
+
+Response example:
+```json
+{
+    "success": true,
+    "enabled": true,
+    "message": "自动删除已启用"
+}
+```
+
+### Search Engine
+
+```
+GET /search
+```
+Access Search Engine page
+
+**Search torrents:**
+
+```
+POST /api/search
+Content-Type: application/json
+
+{
+    "keyword": "search keyword",
+    "mode": "movie",
+    "page": 1
+}
+```
+
+**Download from Search Engine:**
+
+```
+POST /api/search/download
+Content-Type: application/json
+
+{
+    "id": "torrent_id"
+}
+```
+Downloaded torrents are tagged with `个人下载`
+
+**Get filter options:**
+
+```
+GET /api/filter-options
 ```
 
 ### Health Check
@@ -751,8 +831,13 @@ python -m uvicorn app.main:app --host 0.0.0.0 --port 5001 --reload
 MT-Engine/
 ├── app/
 │   ├── main.py              # Main application
+│   ├── static/
+│   │   ├── favicon.png      # Browser icon
+│   │   ├── seeder-logo.png  # Free Hunter logo
+│   │   └── search-logo.png  # Search Engine logo
 │   └── templates/
-│       └── index.html       # Frontend template
+│       ├── index.html       # Free Hunter page
+│       └── search.html      # Search Engine page
 ├── docker-compose.yml       # Docker Compose config
 ├── Dockerfile               # Docker build file
 ├── requirements.txt         # Python dependencies
@@ -782,9 +867,6 @@ A: Please check if the token is correct, or try regenerating it.
 
 ### Q: How to change refresh interval?
 A: Modify the `REFRESH_INTERVAL` value in `.env` file (unit: seconds).
-
-### Q: Favorite feature not working?
-A: The favorite API requires full authentication, some tokens may not have this permission.
 
 ---
 
@@ -889,4 +971,4 @@ Issues and Pull Requests are welcome!
 
 ---
 
-**Made with ❤️ for M-Team users**
+**Made with love for M-Team users**
