@@ -279,9 +279,9 @@ GET /health
 
 ```yaml
 services:
-  mt-free-hunter:
+  mt-engine:
     build: .
-    container_name: mt-free-hunter
+    container_name: mt-engine
     restart: unless-stopped
     ports:
       - "5001:5001"
@@ -760,9 +760,9 @@ GET /health
 
 ```yaml
 services:
-  mt-free-hunter:
+  mt-engine:
     build: .
-    container_name: mt-free-hunter
+    container_name: mt-engine
     restart: unless-stopped
     ports:
       - "5001:5001"
