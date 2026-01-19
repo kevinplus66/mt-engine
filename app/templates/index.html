@@ -51,6 +51,8 @@
             --shadow-md: 4px 4px 0px rgba(0,0,0,0.1);
             --shadow-lg: 8px 8px 0px rgba(0,0,0,0.1);
             --shadow-hover: 6px 6px 0px rgba(0,0,0,0.1);
+            
+            --hover-bg: rgba(0,0,0,0.05);
         }
 
         [data-theme="dark"] {
@@ -62,6 +64,8 @@
             --nt-text-tertiary: #555555;
             --nt-border: #333333;
             --nt-border-light: #222222;
+            
+            --hover-bg: rgba(255,255,255,0.1);
             
             /* Compatibility Mappings */
             --apple-bg: var(--nt-bg);
@@ -535,7 +539,7 @@
         th.sorted .sort-icon { opacity: 1; color: var(--nt-red); }
 
         td {
-            padding: 16px;
+            padding: 12px 16px;
             border-bottom: 1px dotted var(--nt-border-light);
             vertical-align: middle;
             font-size: 13px;
@@ -547,31 +551,22 @@
         tr.zebra-even td { background: transparent; }
         tr.zebra-odd td { background: transparent; }
         
-        tr:hover td {
-            background: var(--nt-text);
-            color: var(--nt-bg);
+        /* Desktop Hover Effects (Mouse Only) */
+        @media (hover: hover) {
+            tr:hover td {
+                background: var(--hover-bg);
+            }
         }
-        
-        /* Links invert on hover */
-        tr:hover .torrent-name a { color: var(--nt-bg); }
-        tr:hover .torrent-descr { color: rgba(var(--nt-bg), 0.7); }
-        tr:hover .badge { border-color: var(--nt-bg) !important; color: var(--nt-bg) !important; }
-        tr:hover .peer-info span { color: var(--nt-bg) !important; }
-        tr:hover .remaining-display { color: var(--nt-bg) !important; }
-        tr:hover .star-btn { color: var(--nt-bg) !important; }
-        tr:hover .download-btn { background: var(--nt-text) !important; color: var(--nt-bg) !important; border-color: var(--nt-bg) !important; }
-        tr:hover .download-btn.downloaded { background: var(--nt-red) !important; border-color: var(--nt-red) !important; color: #fff !important; }
 
         /* Column widths */
-        th:nth-child(1), td:nth-child(1) { width: 40%; }
+        th:nth-child(1), td:nth-child(1) { width: 54%; }
         th:nth-child(2), td:nth-child(2) { width: 8%; white-space: nowrap; } /* No wrap for size */
-        th:nth-child(3), td:nth-child(3) { width: 10%; }
-        th:nth-child(4), td:nth-child(4) { width: 8%; }
-        th:nth-child(5), td:nth-child(5) { width: 12%; }
-        th:nth-child(6), td:nth-child(6) { width: 10%; }
-        th:nth-child(7), td:nth-child(7) { width: 6%; }
+        th:nth-child(3), td:nth-child(3) { width: 10%; min-width: 110px; white-space: nowrap; }
+        th:nth-child(4), td:nth-child(4) { width: 12%; }
+        th:nth-child(5), td:nth-child(5) { width: 10%; }
+        th:nth-child(6), td:nth-child(6) { width: 6%; }
 
-        .torrent-name a {
+        .torrent-name .name-text {
             color: var(--nt-text);
             text-decoration: none;
             font-weight: 500;
@@ -595,9 +590,19 @@
         /* Peers */
         .peer-info {
             display: flex;
-            gap: 12px;
+            gap: 8px;
             font-family: var(--nt-font-mono);
+            white-space: nowrap;
+            font-size: 12px;
         }
+        
+        /* Stack vertically on smaller screens (tablet portrait) - REMOVED per user request */
+        /* @media (max-width: 1024px) {
+            .peer-info {
+                flex-direction: column;
+                gap: 2px;
+            }
+        } */
         
         .seeders { color: var(--nt-text); font-weight: 500; }
         .leechers { color: var(--nt-text-secondary); font-weight: 500; }
@@ -786,6 +791,10 @@
                 padding: 16px;
                 position: relative;
                 background: var(--nt-bg-secondary);
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 0;
+                align-items: center;
             }
             
             tr:hover td { background: transparent; color: inherit; }
@@ -806,28 +815,28 @@
                 padding: 4px 0;
             }
             
-            /* Mobile Title - Full Width + Padding for Star */
+            /* Mobile Title - Spans full width */
             td:first-child { 
+                grid-column: 1 / -1;
                 padding-bottom: 12px; 
                 border-bottom: 1px dotted var(--nt-border-light); 
                 margin-bottom: 12px; 
-                width: 100% !important;
+                width: auto !important;
                 padding-right: 40px; /* Space for star button */
             }
             
-            .mobile-meta-row {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 12px 16px; /* Row gap 12px, Column gap 16px */
-            }
-            
-            /* Metadata items */
-            td:nth-child(2), td:nth-child(3), td:nth-child(4), td:nth-child(5), td:nth-child(6) {
-                display: inline-block !important;
+            /* Metadata items - 1 cell each */
+            td:nth-child(2), td:nth-child(3), td:nth-child(4), td:nth-child(5) {
                 width: auto !important;
-                margin-right: 0; /* Handled by gap */
+                margin-right: 0;
                 padding: 0;
-                white-space: nowrap; /* Prevent internal wrapping */
+                white-space: nowrap;
+                margin-bottom: 0;
+                font-size: 11px;
+                text-align: center;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                display: block !important;
             }
             
             /* Star Button */
@@ -1226,7 +1235,6 @@
                                     <span class="peer-sort-separator">/</span>
                                     <span class="peer-sort-btn" onclick="sortTable('leechers')" title="按下载数排序">下载 <span class="sort-icon" data-sort="leechers">↕</span></span>
                                 </th>
-                                <th onclick="sortTable('discount')" data-i18n="colDiscount">优惠 <span class="sort-icon">↕</span></th>
                                 <th onclick="sortTable('remaining')" class="sorted" data-i18n="colRemaining">剩余时间 <span class="sort-icon">↓</span></th>
                                 <th onclick="sortTable('status')" data-i18n="colStatus">状态 <span class="sort-icon">↕</span></th>
                                 <th data-i18n="colDownload">下载</th>
@@ -1234,9 +1242,9 @@
                         </thead>
                         <tbody id="torrentBody">
                             {% for torrent in data.torrents %}
-                            <tr data-id="{{ torrent.id | e }}" data-name="{{ torrent.name | e }}" data-discount="{{ torrent.discount | e }}" data-size="{{ torrent.size }}" data-seeders="{{ torrent.seeders }}" data-leechers="{{ torrent.leechers }}" data-remaining="{{ torrent.remaining.hours }}" data-status="{{ torrent.user_status | e }}" data-mode="{{ torrent.mode | e }}">
+                            <tr data-id="{{ torrent.id | e }}" data-name="{{ torrent.name | e }}" data-size="{{ torrent.size }}" data-seeders="{{ torrent.seeders }}" data-leechers="{{ torrent.leechers }}" data-remaining="{{ torrent.remaining.hours }}" data-status="{{ torrent.user_status | e }}" data-mode="{{ torrent.mode | e }}">
                                 <td class="torrent-name">
-                                    <a href="{{ torrent.detail_url | e }}" target="_blank" rel="noopener noreferrer" title="{{ torrent.name | e }}">{{ torrent.name | e }}</a>
+                                    <span class="name-text" title="{{ torrent.name | e }}">{{ torrent.name | e }}</span>
                                     {% if torrent.small_descr %}
                                     <div class="torrent-descr">{{ torrent.small_descr | e }}</div>
                                     {% endif %}
@@ -1247,15 +1255,6 @@
                                         <span class="seeders">▲ {{ torrent.seeders }}</span>
                                         <span class="leechers">▼ {{ torrent.leechers }}</span>
                                     </div>
-                                </td>
-                                <td>
-                                    {% if torrent.discount == 'FREE' %}
-                                    <span class="badge badge-free">Free</span>
-                                    {% elif torrent.discount == '_2X_FREE' %}
-                                    <span class="badge badge-2xfree">2xFree</span>
-                                    {% else %}
-                                    <span class="badge">{{ torrent.discount_label.zh | e }}</span>
-                                    {% endif %}
                                 </td>
                                 <td>
                                     <span class="remaining-time status-{{ torrent.remaining.color }}">
@@ -1478,31 +1477,16 @@
 
             // Handle permanent free (Infinity)
             if (!isFinite(hours)) {
-                return lang === 'zh' ? '永久免费' : 'Permanent';
+                return '∞';
             }
 
-            const totalMinutes = Math.floor(hours * 60);
             const days = Math.floor(hours / 24);
             const remainingHours = Math.floor(hours % 24);
             const minutes = Math.floor((hours * 60) % 60);
+            
+            const pad = (n) => n.toString().padStart(2, '0');
 
-            if (lang === 'zh') {
-                if (days > 0) {
-                    return `${days}天${remainingHours}小时`;
-                } else if (hours >= 1) {
-                    return `${Math.floor(hours)}小时${minutes}分钟`;
-                } else {
-                    return `${totalMinutes}分钟`;
-                }
-            } else {
-                if (days > 0) {
-                    return `${days}d ${remainingHours}h`;
-                } else if (hours >= 1) {
-                    return `${Math.floor(hours)}h ${minutes}m`;
-                } else {
-                    return `${totalMinutes}m`;
-                }
-            }
+            return `${pad(days)}:${pad(remainingHours)}:${pad(minutes)}`;
         }
 
         function getRemainingColor(hours) {
@@ -1778,13 +1762,12 @@
                 let aVal, bVal;
                 switch (column) {
                     case 'name':
-                        aVal = a.querySelector('.torrent-name a').textContent.toLowerCase();
-                        bVal = b.querySelector('.torrent-name a').textContent.toLowerCase();
+                        aVal = a.querySelector('.torrent-name .name-text').textContent.toLowerCase();
+                        bVal = b.querySelector('.torrent-name .name-text').textContent.toLowerCase();
                         break;
                     case 'size': aVal = parseInt(a.dataset.size); bVal = parseInt(b.dataset.size); break;
                     case 'seeders': aVal = parseInt(a.dataset.seeders); bVal = parseInt(b.dataset.seeders); break;
                     case 'leechers': aVal = parseInt(a.dataset.leechers); bVal = parseInt(b.dataset.leechers); break;
-                    case 'discount': aVal = a.dataset.discount; bVal = b.dataset.discount; break;
                     case 'status':
                         const order = { 'seeding': 2, 'leeching': 1, 'none': 0 };
                         aVal = order[a.dataset.status] || 0;

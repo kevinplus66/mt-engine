@@ -3,7 +3,7 @@ MT-Engine - M-Team 免费种子猎手
 自动搜索当前所有 Free / 2xFree 种子
 """
 
-__version__ = "2.0.0"
+__version__ = "2.2.0"
 
 import os
 import re
@@ -1245,15 +1245,15 @@ async def toggle_collection(torrent_id: str, make: bool) -> Dict[str, Any]:
 def process_torrent(item: Dict, discount_type: str, torrent_mode: str = "normal") -> Dict:
     """处理单个种子数据"""
     torrent_info = item if "id" in item else item.get("torrent", item)
-    status_info = torrent_info.get("status", {})
+    status_info = torrent_info.get("status") or {}
 
     torrent_id = str(torrent_info.get("id", ""))
     name = torrent_info.get("name", "未知")
     small_descr = torrent_info.get("smallDescr", "")
-    size = int(torrent_info.get("size", 0))
+    size = _safe_int(torrent_info.get("size"))
 
-    seeders = int(status_info.get("seeders", 0))
-    leechers = int(status_info.get("leechers", 0))
+    seeders = _safe_int(status_info.get("seeders"))
+    leechers = _safe_int(status_info.get("leechers"))
 
     discount = status_info.get("discount", discount_type)
     discount_end_time = parse_datetime(status_info.get("discountEndTime"))
@@ -1511,6 +1511,15 @@ FILTER_OPTIONS = {
     ]
 }
 
+# ============ 质量标签映射 ============
+# 用于将 ID 转换为显示名称
+QUALITY_LABELS = {
+    "standards": {7: "8K", 6: "4K", 1: "1080p", 2: "1080i", 3: "720p", 5: "SD"},
+    "videoCodecs": {1: "H.264", 16: "H.265", 19: "AV1", 2: "VC-1", 4: "MPEG-2"},
+    "audioCodecs": {10: "Atmos", 11: "DTS-HD MA", 9: "TrueHD", 3: "DTS", 1: "FLAC"},
+    "sources": {8: "WEB-DL", 1: "Bluray", 4: "Remux", 5: "HDTV", 3: "DVD"}
+}
+
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request):
@@ -1708,20 +1717,29 @@ async def api_search(request: Request, data: SearchRequest):
             torrents = []
             for item in raw_data:
                 torrent_info = item if "id" in item else item.get("torrent", item)
-                status_info = torrent_info.get("status", {})
+                status_info = torrent_info.get("status") or {}
 
                 torrent_id = str(torrent_info.get("id", ""))
                 name = torrent_info.get("name", "未知")
                 small_descr = torrent_info.get("smallDescr", "")
-                size = int(torrent_info.get("size", 0))
+                size = _safe_int(torrent_info.get("size"))
 
-                seeders = int(status_info.get("seeders", 0))
-                leechers = int(status_info.get("leechers", 0))
+                seeders = _safe_int(status_info.get("seeders"))
+                leechers = _safe_int(status_info.get("leechers"))
 
                 discount = status_info.get("discount", "")
                 discount_end_time = status_info.get("discountEndTime")
 
                 created_date = torrent_info.get("createdDate", "")
+
+                # 提取质量元数据
+                team_name = torrent_info.get("teamName", "")
+                standard_id = _safe_int(torrent_info.get("standard"))
+                video_codec_id = _safe_int(torrent_info.get("videoCodec"))
+                audio_codec_id = _safe_int(torrent_info.get("audioCodec"))
+                source_id = _safe_int(torrent_info.get("source"))
+                times_completed = int(status_info.get("timesCompleted", 0))
+                tags = torrent_info.get("tags", "")
 
                 detail_url = f"{MT_SITE_URL}/detail/{torrent_id}"
 
@@ -1746,6 +1764,15 @@ async def api_search(request: Request, data: SearchRequest):
                     "created_date": created_date,
                     "detail_url": detail_url,
                     "user_status": user_status,
+                    "quality_metadata": {
+                        "standard": QUALITY_LABELS["standards"].get(standard_id, ""),
+                        "video_codec": QUALITY_LABELS["videoCodecs"].get(video_codec_id, ""),
+                        "audio_codec": QUALITY_LABELS["audioCodecs"].get(audio_codec_id, ""),
+                        "source": QUALITY_LABELS["sources"].get(source_id, ""),
+                        "team_name": team_name,
+                        "times_completed": times_completed,
+                        "tags": tags
+                    }
                 })
 
             return {

@@ -43,6 +43,8 @@
             --shadow-md: 4px 4px 0px rgba(0,0,0,0.1);
             --shadow-lg: 8px 8px 0px rgba(0,0,0,0.1);
             --shadow-hover: 6px 6px 0px rgba(0,0,0,0.1);
+            
+            --hover-bg: rgba(0,0,0,0.05);
         }
 
         [data-theme="dark"] {
@@ -54,6 +56,8 @@
             --nt-text-tertiary: #555555;
             --nt-border: #333333;
             --nt-border-light: #222222;
+            
+            --hover-bg: rgba(255,255,255,0.1);
 
             /* Compatibility Mappings */
             --apple-bg: var(--nt-bg);
@@ -479,29 +483,33 @@
 
         tr { transition: background 0.1s; }
 
-        tr:hover td {
-            background: var(--nt-text);
-            color: var(--nt-bg);
+        /* Desktop Hover Effects (Mouse Only) */
+        @media (hover: hover) and (min-width: 769px) {
+            tr:not(.detail-row):hover td {
+                background: var(--hover-bg);
+            }
+            /* Removed color inversions per user request */
         }
 
-        /* Links invert on hover */
-        tr:hover .torrent-name a { color: var(--nt-bg); }
-        tr:hover .torrent-descr { color: rgba(var(--nt-bg), 0.7); }
-        tr:hover .badge { border-color: var(--nt-bg) !important; color: var(--nt-bg) !important; }
-        tr:hover .peer-info span { color: var(--nt-bg) !important; }
-        tr:hover .download-btn { background: var(--nt-text) !important; color: var(--nt-bg) !important; border-color: var(--nt-bg) !important; }
-        tr:hover .download-btn.downloaded { background: var(--nt-red) !important; border-color: var(--nt-red) !important; color: #fff !important; }
-        tr:hover .detail-link { background: var(--nt-text) !important; color: var(--nt-bg) !important; border-color: var(--nt-bg) !important; }
+        /* Active/Expanded State (Touch Compatible) */
+        tr[aria-expanded="true"] td {
+            background: var(--nt-bg-secondary);
+            border-bottom: 1px solid var(--nt-border-light) !important;
+        }
 
         /* Column widths */
-        th:nth-child(1), td:nth-child(1) { width: 40%; }
-        th:nth-child(2), td:nth-child(2) { width: 10%; white-space: nowrap; }
-        th:nth-child(3), td:nth-child(3) { width: 12%; }
-        th:nth-child(4), td:nth-child(4) { width: 10%; }
-        th:nth-child(5), td:nth-child(5) { width: 15%; }
-        th:nth-child(6), td:nth-child(6) { width: 10%; }
+        th:nth-child(1), td:nth-child(1) { width: 40%; } /* Name - Expanded */
+        th:nth-child(2), td:nth-child(2) { width: 10%; white-space: nowrap; } /* Size */
+        th:nth-child(3), td:nth-child(3) { width: 12%; } /* Peers */
+        th:nth-child(4), td:nth-child(4) { width: 10%; } /* Discount */
+        th:nth-child(5), td:nth-child(5) { width: 15%; } /* Date */
+        th:nth-child(6), td:nth-child(6) { width: 13%; } /* Actions */
 
-        .torrent-name a {
+        tbody tr:not(.detail-row) {
+            cursor: pointer;
+        }
+
+        .torrent-name .name-text {
             color: var(--nt-text);
             text-decoration: none;
             font-weight: 500;
@@ -608,6 +616,72 @@
             color: var(--nt-bg);
         }
 
+        /* ============ Expandable Row Details ============ */
+        .expand-cell {
+            width: 3%;
+            text-align: center;
+            padding: 8px 4px !important;
+        }
+
+        .expand-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            color: var(--nt-text-secondary);
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+
+        .expand-btn:hover {
+            color: var(--nt-text);
+        }
+
+        .detail-row {
+            background: var(--nt-bg-secondary);
+        }
+
+        .detail-content {
+            padding: 12px 16px;
+            border-left: 3px solid var(--nt-text);
+        }
+
+        .quality-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .quality-tags-row, .metadata-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .label {
+            font-weight: 500;
+            color: var(--nt-text-secondary);
+            font-family: var(--nt-font-body);
+        }
+
+        .tag-quality {
+            display: inline-block;
+            padding: 3px 8px;
+            font-size: 11px;
+            border: 1px solid var(--nt-border-light);
+            background: var(--nt-bg-secondary);
+            color: var(--nt-text);
+            border-radius: 0;
+            font-family: var(--nt-font-mono);
+        }
+
+        .metadata-row span {
+            color: var(--nt-text-secondary);
+            font-size: 13px;
+            font-family: var(--nt-font-body);
+        }
+
         /* Loading Indicator */
         .loading-more {
             text-align: center;
@@ -624,6 +698,105 @@
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin: 0 auto 8px;
+        }
+
+        /* ============ Data Dashboard (Expanded View) ============ */
+        .viz-dashboard {
+            font-family: var(--nt-font-mono);
+            padding: 8px 0;
+        }
+
+        .viz-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        .viz-box {
+            background: var(--nt-bg);
+            border: 1px dotted var(--nt-border);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+            height: 100%;
+            justify-content: center;
+        }
+
+        .viz-label {
+            font-size: 10px;
+            color: var(--nt-text-secondary);
+            text-transform: uppercase;
+            font-family: var(--nt-font-dot);
+        }
+
+        .viz-value {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .viz-stats {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        /* Peer Bar */
+        .peer-bar-container {
+            width: 100%;
+        }
+
+        .peer-bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            margin-bottom: 6px;
+            font-family: var(--nt-font-dot);
+        }
+
+        .peer-bar {
+            height: 8px;
+            background: var(--nt-border-light);
+            display: flex;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .pb-seed { background: var(--nt-text); height: 100%; transition: width 0.5s ease; }
+        .pb-leech { background: var(--nt-red); height: 100%; transition: width 0.5s ease; }
+
+        /* Meta List (Team, Tags) */
+        .meta-list {
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .meta-item { display: flex; gap: 8px; align-items: baseline; }
+        .meta-icon { opacity: 0.5; font-size: 10px; }
+
+        /* Mobile Swipe Feedback */
+        tr.swipe-active {
+            transition: transform 0.1s linear, background 0.2s;
+            position: relative;
+            z-index: 10;
+        }
+
+        tr.swipe-trigger-download {
+            background: rgba(46, 204, 113, 0.2) !important; /* Soft Green */
+            border-color: #2ecc71 !important;
+        }
+
+        /* Mobile Dashboard Layout */
+        @media (max-width: 768px) {
+            .viz-dashboard { padding: 0; width: 100%; }
+            .viz-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 4px; }
+            .viz-box { padding: 6px 4px; min-height: 48px; }
+            .viz-label { font-size: 9px; }
+            .viz-value { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         }
 
         /* Mobile Filter Bar - Hidden on Desktop */
@@ -691,7 +864,8 @@
             }
 
             /* Mobile Title - Full Width + Padding for Actions */
-            td:first-child {
+            td:nth-child(1) {
+                /* Torrent name */
                 padding-bottom: 12px;
                 border-bottom: 1px dotted var(--nt-border-light);
                 margin-bottom: 12px;
@@ -709,18 +883,37 @@
             td:nth-child(2), td:nth-child(3), td:nth-child(4), td:nth-child(5) {
                 display: inline-block !important;
                 width: auto !important;
-                margin-right: 0;
+                margin-right: 12px;
                 padding: 0;
                 white-space: nowrap;
+                color: var(--nt-text-secondary);
+                font-size: 12px;
             }
 
             /* Actions */
-            td:last-child {
+            td:nth-child(6) {
                 position: absolute;
                 top: 16px;
                 right: 16px;
                 padding: 0;
                 width: auto !important;
+            }
+
+            /* Expandable row details on mobile */
+            .detail-row {
+                border: 1px solid var(--nt-border);
+                margin-top: -16px;
+                margin-bottom: 16px;
+                padding: 12px 16px;
+            }
+
+            .detail-content {
+                padding: 8px 12px;
+                border-left: none; /* Remove border on mobile to save space */
+            }
+
+            .quality-tags-row, .metadata-row {
+                font-size: 12px;
             }
 
             .torrent-name a {
@@ -841,43 +1034,266 @@
         .empty-state-icon { font-size: 64px; opacity: 0.2; filter: grayscale(100%); display: block; margin-bottom: 24px; }
         .empty-state-text { color: var(--nt-text-secondary); font-family: var(--nt-font-dot); }
 
-        /* Toast */
-        .toast {
-            position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
-            padding: 12px 24px; background: var(--nt-text); color: var(--nt-bg);
-            font-family: var(--nt-font-dot); font-size: 12px;
-            z-index: 9999;
-            box-shadow: var(--shadow-md);
-        }
-        .toast.error { background: var(--nt-red); color: #FFF; }
-
-        /* Loading Progress Bar */
-        .loading-bar { position: absolute; top: 0; left: 0; height: 2px; background: var(--nt-red); width: 0; opacity: 0; transition: opacity 0.2s; z-index: 10; }
-        .loading-bar.active { opacity: 1; animation: loading-progress 1.5s ease-in-out infinite; }
-        @keyframes loading-progress { 0% { width: 0; left: 0; } 50% { width: 70%; left: 0; } 100% { width: 0; left: 100%; } }
-
         /* Initial State */
         .initial-state {
             text-align: center;
             padding: 80px 20px;
+            opacity: 0.6;
         }
 
         .initial-state-icon {
-            font-size: 80px;
-            opacity: 0.3;
+            font-size: 48px;
             margin-bottom: 24px;
+            opacity: 0.5;
+            filter: grayscale(100%);
         }
 
         .initial-state-title {
-            font-size: 18px;
+            font-size: 24px;
             font-family: var(--nt-font-dot);
             margin-bottom: 12px;
             color: var(--nt-text);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        
+        .initial-state-title::after {
+            content: '_';
+            animation: blink 1s step-end infinite;
         }
 
         .initial-state-text {
             color: var(--nt-text-secondary);
-            font-size: 14px;
+            font-size: 12px;
+            font-family: var(--nt-font-mono);
+            text-transform: uppercase;
+        }
+
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* ============ Skeleton Loading ============ */
+        .skeleton-row td {
+            pointer-events: none;
+        }
+        .skeleton-box {
+            height: 16px;
+            background: linear-gradient(90deg, var(--nt-bg) 25%, var(--nt-border-light) 50%, var(--nt-bg) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 2px;
+            opacity: 0.3;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* ============ Glitch Effect ============ */
+        @keyframes glitch-skew {
+            0% { transform: skew(0deg); }
+            20% { transform: skew(-2deg); }
+            40% { transform: skew(2deg); }
+            60% { transform: skew(-1deg); }
+            80% { transform: skew(1deg); }
+            100% { transform: skew(0deg); }
+        }
+        .glitch-hover:hover {
+            animation: glitch-skew 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+            color: var(--nt-red);
+        }
+
+        /* ============ Dynamic Island Toast ============ */
+        .toast {
+            position: fixed; 
+            top: 20px; 
+            left: 50%; 
+            transform: translateX(-50%) translateY(-100%);
+            padding: 12px 24px; 
+            background: rgba(0, 0, 0, 0.9); 
+            color: #fff;
+            font-family: var(--nt-font-mono); 
+            font-size: 13px;
+            z-index: 9999;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            width: auto;
+            min-width: 200px;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .toast.active {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        .toast.success { border-color: #2ecc71; color: #2ecc71; }
+        .toast.error { border-color: var(--nt-red); color: var(--nt-red); }
+
+        /* ============ Pull to Refresh ============ */
+        .ptr-element {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: translateY(-100%);
+            font-family: var(--nt-font-dot);
+            color: var(--nt-text-secondary);
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+        .ptr-icon {
+            transition: transform 0.2s;
+        }
+        .ptr-rotate {
+            transform: rotate(180deg);
+        }
+
+        /* Mobile Responsive Overrides */
+        @media (max-width: 768px) {
+            .navbar-content { padding: 0 16px; height: 56px; }
+            .container { padding: 0 16px; }
+            .filter-card { display: none; }
+
+            /* Logo */
+            .logo-switcher { gap: 8px; }
+            .logo-icon { height: 20px; }
+
+            /* Navbar Stats & Actions */
+            .nav-right { gap: 12px; }
+            .nav-stats { gap: 12px; }
+
+            /* Hide all stats on mobile to prevent banner overflow */
+            .nav-stats { display: none; }
+            .nav-divider { display: none; }
+
+            .nav-actions { gap: 8px; }
+            .nav-btn { padding: 0 8px; height: 28px; font-size: 12px; }
+
+            /* Show mobile filter bar only on mobile */
+            .mobile-filter-bar { display: flex; gap: 12px; margin-bottom: 20px; }
+
+            .filter-toggle-btn {
+                background: transparent;
+                border: 1px solid var(--nt-border);
+                width: 48px; height: 48px;
+                display: flex; align-items: center; justify-content: center;
+                border-radius: 0;
+                color: var(--nt-text);
+                font-size: 20px;
+            }
+
+            .filter-toggle-btn.has-filters { background: var(--nt-text); color: var(--nt-bg); }
+
+            table, thead, tbody, th, td, tr { display: block; }
+            thead { display: none; }
+
+            tr {
+                border: 1px solid var(--nt-border);
+                margin-bottom: 16px;
+                padding: 16px;
+                position: relative;
+                background: var(--nt-bg-secondary);
+            }
+
+            tr:hover td { background: transparent; color: inherit; }
+            tr:hover .torrent-name a { color: var(--nt-text); }
+            tr:hover .torrent-descr { color: var(--nt-text-secondary); }
+            tr:hover .badge { border-color: var(--nt-border) !important; color: var(--nt-text) !important; }
+            tr:hover .download-btn { background: transparent !important; color: var(--nt-text) !important; border-color: var(--nt-border) !important; }
+            tr:hover .download-btn.downloaded { background: var(--nt-red) !important; border-color: var(--nt-red) !important; color: #fff !important; }
+            tr:hover .detail-link { background: transparent !important; color: var(--nt-text) !important; border-color: var(--nt-border) !important; }
+            tr:hover .peer-info span { color: inherit !important; }
+
+            td {
+                border: none;
+                padding: 4px 0;
+            }
+
+            /* Mobile Title - Full Width + Padding for Actions */
+            td:nth-child(1) {
+                /* Torrent name */
+                padding-bottom: 12px;
+                border-bottom: 1px dotted var(--nt-border-light);
+                margin-bottom: 12px;
+                width: 100% !important;
+                padding-right: 80px; /* Space for action buttons */
+            }
+
+            .mobile-meta-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 12px 16px;
+            }
+
+            /* Metadata items */
+            td:nth-child(2), td:nth-child(3), td:nth-child(4), td:nth-child(5) {
+                display: inline-block !important;
+                width: auto !important;
+                margin-right: 12px;
+                padding: 0;
+                white-space: nowrap;
+                color: var(--nt-text-secondary);
+                font-size: 12px;
+            }
+
+            /* Actions */
+            td:nth-child(6) {
+                position: absolute;
+                top: 16px;
+                right: 16px;
+                padding: 0;
+                width: auto !important;
+            }
+
+            /* Expandable row details on mobile */
+            .detail-row {
+                border: 1px solid var(--nt-border);
+                margin-top: -16px;
+                margin-bottom: 16px;
+                padding: 12px 16px;
+            }
+
+            .detail-content {
+                padding: 8px 12px;
+                border-left: none; /* Remove border on mobile to save space */
+            }
+
+            .quality-tags-row, .metadata-row {
+                font-size: 12px;
+            }
+
+            .torrent-name a {
+                white-space: normal;
+                line-height: 1.4;
+                font-size: 16px;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+
+            .torrent-descr {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 100%;
+                display: block;
+            }
+
+            /* Dashboard Mobile */
+            .viz-dashboard { grid-template-columns: 1fr; gap: 16px; }
+            .viz-grid { gap: 8px; }
+            .viz-box { padding: 8px; }
+            .viz-value { font-size: 12px; }
         }
     </style>
 </head>
@@ -980,7 +1396,11 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="main-content">
+    <main class="main-content" id="mainContent">
+        <div id="ptr" class="ptr-element">
+            <span class="ptr-icon">↓</span>
+            <span class="ptr-text">Pull to refresh</span>
+        </div>
         <div class="container">
             <!-- Desktop Filter Card -->
             <div class="filter-card">
@@ -1086,7 +1506,7 @@
                 <!-- Initial State -->
                 <div class="initial-state" id="initialState">
                     <div class="initial-state-icon">🔍</div>
-                    <div class="initial-state-title" data-i18n="initialTitle">开始搜索</div>
+                    <div class="initial-state-title glitch-hover" data-i18n="initialTitle">开始搜索</div>
                     <div class="initial-state-text" data-i18n="initialText">输入关键词并点击搜索按钮</div>
                 </div>
 
@@ -1168,7 +1588,12 @@
                 statRatio: '分享率',
                 statUpload: '上传',
                 statDownload: '下载',
-                rivalRatio: '对手分享率'
+                rivalRatio: '对手分享率',
+                metaQuality: '质量',
+                metaTeam: '制作组',
+                metaCompleted: '完成',
+                metaTags: '标签',
+                metaTimes: '次'
             },
             'en': {
                 searchBtn: 'Search',
@@ -1217,7 +1642,12 @@
                 statRatio: 'Ratio',
                 statUpload: 'Upload',
                 statDownload: 'Download',
-                rivalRatio: 'Rival Ratio'
+                rivalRatio: 'Rival Ratio',
+                metaQuality: 'Quality',
+                metaTeam: 'Team',
+                metaCompleted: 'Completed',
+                metaTags: 'Tags',
+                metaTimes: 'times'
             }
         };
 
@@ -1377,8 +1807,8 @@
 
                 switch (column) {
                     case 'name':
-                        aVal = a.querySelector('.torrent-name a').textContent.toLowerCase();
-                        bVal = b.querySelector('.torrent-name a').textContent.toLowerCase();
+                        aVal = a.querySelector('.torrent-name .name-text').textContent.toLowerCase();
+                        bVal = b.querySelector('.torrent-name .name-text').textContent.toLowerCase();
                         break;
                     case 'size':
                         aVal = parseInt(a.dataset.size || 0);
@@ -1480,6 +1910,8 @@
             isLoading = true;
 
             if (!append) {
+                // Show Skeleton for initial search
+                document.getElementById('resultsBody').innerHTML = renderSkeleton(10);
                 document.getElementById('loadingBar').classList.add('active');
             } else {
                 document.getElementById('loadingMore').style.display = 'block';
@@ -1508,6 +1940,11 @@
                 });
 
                 const result = await response.json();
+                
+                // Clear skeleton if it was initial load
+                if (!append) {
+                    document.getElementById('resultsBody').innerHTML = '';
+                }
 
                 if (result.success) {
                     totalResults = result.total;
@@ -1533,6 +1970,51 @@
             }
         }
 
+        function renderSkeleton(count) {
+            let html = '';
+            for (let i = 0; i < count; i++) {
+                html += `
+                    <tr class="skeleton-row">
+                        <td><div class="skeleton-box" style="width: 80%"></div></td>
+                        <td><div class="skeleton-box" style="width: 60%"></div></td>
+                        <td><div class="skeleton-box" style="width: 40%"></div></td>
+                        <td><div class="skeleton-box" style="width: 50%"></div></td>
+                        <td><div class="skeleton-box" style="width: 70%"></div></td>
+                        <td><div class="skeleton-box" style="width: 30%"></div></td>
+                    </tr>
+                `;
+            }
+            return html;
+        }
+
+        // ============ Toast ============
+        function showToast(message, type = 'success') {
+            // Remove existing toasts
+            const existing = document.querySelectorAll('.toast');
+            existing.forEach(t => t.remove());
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = type === 'success' ? '✅ ' + message : '⚠️ ' + message;
+            
+            document.body.appendChild(toast);
+            
+            // Trigger animation
+            requestAnimationFrame(() => {
+                toast.classList.add('active');
+            });
+            
+            // Haptic
+            if (navigator.vibrate) {
+                navigator.vibrate(type === 'success' ? 50 : [50, 50, 50]);
+            }
+
+            setTimeout(() => {
+                toast.classList.remove('active');
+                setTimeout(() => toast.remove(), 400);
+            }, 2500);
+        }
+
         function appendResults(torrents) {
             const tbody = document.getElementById('resultsBody');
 
@@ -1548,7 +2030,7 @@
                 let dateDisplay = '';
                 if (torrent.created_date) {
                     const date = new Date(torrent.created_date);
-                    dateDisplay = date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+                    dateDisplay = date.toLocaleDateString('en-US', { year: '2-digit', month: '2-digit', day: '2-digit' });
                 }
 
                 // Discount badge
@@ -1568,9 +2050,11 @@
                 const downloadBtnClass = isDownloading ? 'download-btn downloaded' : 'download-btn';
                 const downloadBtnDisabled = isDownloading ? 'disabled' : '';
 
+                tr.onclick = (e) => toggleRowDetails(e, torrent.id);
+                
                 tr.innerHTML = `
                     <td class="torrent-name">
-                        <a href="${torrent.detail_url}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(torrent.name)}">${escapeHtml(torrent.name)}</a>
+                        <span class="name-text" title="${escapeHtml(torrent.name)}">${escapeHtml(torrent.name)}</span>
                         ${torrent.small_descr ? `<div class="torrent-descr">${escapeHtml(torrent.small_descr)}</div>` : ''}
                     </td>
                     <td>${torrent.size_display}</td>
@@ -1601,6 +2085,20 @@
                 `;
 
                 tbody.appendChild(tr);
+
+                // Create detail row
+                const detailRow = document.createElement('tr');
+                detailRow.className = 'detail-row';
+                detailRow.id = `detail-${torrent.id}`;
+                detailRow.style.display = 'none';
+                detailRow.innerHTML = `
+                    <td colspan="6">
+                        <div class="detail-content">
+                            ${renderQualityMetadata(torrent)}
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(detailRow);
             });
 
             // Update count
@@ -1614,9 +2112,108 @@
             return div.innerHTML;
         }
 
+        // ============ Expandable Row Details ============
+        function toggleRowDetails(e, torrentId) {
+            // Prevent expansion when clicking on interactive elements
+            if (e.target.closest('a') || e.target.closest('button') || e.target.closest('.download-btn')) {
+                return;
+            }
+
+            const detailRow = document.getElementById(`detail-${torrentId}`);
+            const tr = e.currentTarget;
+            const isOpening = detailRow.style.display === 'none';
+
+            if (isOpening) {
+                // Auto-collapse others
+                const expandedRows = document.querySelectorAll('tr[aria-expanded="true"]');
+                expandedRows.forEach(row => {
+                    row.setAttribute('aria-expanded', 'false');
+                    const rowId = row.dataset.id;
+                    const dRow = document.getElementById(`detail-${rowId}`);
+                    if (dRow) dRow.style.display = 'none';
+                });
+
+                // Open current
+                detailRow.style.display = '';
+                tr.setAttribute('aria-expanded', 'true');
+            } else {
+                // Close current
+                detailRow.style.display = 'none';
+                tr.setAttribute('aria-expanded', 'false');
+            }
+        }
+
+        function renderQualityMetadata(torrent) {
+            if (!torrent || !torrent.quality_metadata) return '';
+            
+            const m = torrent.quality_metadata;
+            const t = TRANSLATIONS[currentLang];
+            const val = (v) => v ? escapeHtml(v) : '-';
+
+            // Get discount label safely
+            let discountText = '-';
+            if (torrent.discount_label) {
+                discountText = currentLang === 'zh' ? torrent.discount_label.zh : torrent.discount_label.en;
+            } else {
+                discountText = torrent.discount || '-';
+            }
+
+            return `
+                <div class="viz-dashboard">
+                    <div class="viz-grid">
+                        <div class="viz-box">
+                            <span class="viz-label">${t.resolution || 'RES'}</span>
+                            <span class="viz-value">${val(m.standard)}</span>
+                        </div>
+                        <div class="viz-box">
+                            <span class="viz-label">${t.videoFormat || 'CODEC'}</span>
+                            <span class="viz-value">${val(m.video_codec)}</span>
+                        </div>
+                        <div class="viz-box">
+                            <span class="viz-label">${t.audioFormat || 'AUDIO'}</span>
+                            <span class="viz-value">${val(m.audio_codec)}</span>
+                        </div>
+                        <div class="viz-box">
+                            <span class="viz-label">${t.source || 'SRC'}</span>
+                            <span class="viz-value">${val(m.source)}</span>
+                        </div>
+                        
+                        <div class="viz-box">
+                            <span class="viz-label">${t.colSize || 'SIZE'}</span>
+                            <span class="viz-value">${torrent.size_display}</span>
+                        </div>
+                        <div class="viz-box">
+                            <span class="viz-label">${t.metaTeam || 'GRP'}</span>
+                            <span class="viz-value">${val(m.team_name)}</span>
+                        </div>
+                        <div class="viz-box">
+                            <span class="viz-label">${t.metaTags || 'TAG'}</span>
+                            <span class="viz-value" style="font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${val(m.tags)}</span>
+                        </div>
+                        <div class="viz-box">
+                            <span class="viz-label">${t.colDiscount || 'PROMO'}</span>
+                            <span class="viz-value">${discountText}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         // ============ Download ============
         async function downloadTorrent(torrentId) {
-            const btn = event.target.closest('.download-btn');
+            // Find the button associated with this torrent
+            // If called from swipe, event might not be the button click
+            let btn;
+            if (event && event.target && event.target.closest) {
+                btn = event.target.closest('.download-btn');
+            }
+            
+            // If not found (e.g. swipe), try to find it in DOM
+            if (!btn) {
+                const row = document.querySelector(`tr[data-id="${torrentId}"]`);
+                if (row) btn = row.querySelector('.download-btn');
+            }
+
             if (!btn || btn.disabled || btn.classList.contains('loading')) return;
 
             btn.classList.add('loading');
@@ -1633,6 +2230,8 @@
                     showToast(result.message || TRANSLATIONS[currentLang].downloadSuccess, 'success');
                     btn.classList.add('downloaded');
                     btn.disabled = true;
+                    // Haptic success
+                    if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
                 } else {
                     const errorMsg = result.error && TRANSLATIONS[currentLang].errors[result.error]
                         ? TRANSLATIONS[currentLang].errors[result.error]
@@ -1735,12 +2334,92 @@
             });
         }
 
+        // ============ Pull to Refresh ============
+        function initPullToRefresh() {
+            const ptr = document.getElementById('ptr');
+            const main = document.getElementById('mainContent'); // We added ID to main
+            const icon = ptr.querySelector('.ptr-icon');
+            const text = ptr.querySelector('.ptr-text');
+            
+            let startY = 0;
+            let currentY = 0;
+            let isDragging = false;
+            const THRESHOLD = 70;
+
+            window.addEventListener('touchstart', (e) => {
+                if (window.scrollY === 0) {
+                    startY = e.touches[0].clientY;
+                    isDragging = true;
+                }
+            }, { passive: true });
+
+            window.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                
+                const y = e.touches[0].clientY;
+                const delta = y - startY;
+
+                // Only allow pulling down
+                if (delta > 0 && window.scrollY === 0) {
+                    // Elastic resistance
+                    currentY = delta * 0.4;
+                    
+                    // Cap at some point
+                    if (currentY > 100) currentY = 100 + (currentY - 100) * 0.2;
+
+                    ptr.style.transform = `translateY(${currentY - 60}px)`; // -60 is height of ptr
+                    // main.style.transform = `translateY(${currentY}px)`; // Optional: move content too
+
+                    if (currentY > THRESHOLD) {
+                        icon.classList.add('ptr-rotate');
+                        text.textContent = 'Release to refresh';
+                    } else {
+                        icon.classList.remove('ptr-rotate');
+                        text.textContent = 'Pull to refresh';
+                    }
+                } else {
+                    isDragging = false; // Cancel if scrolled up
+                }
+            }, { passive: true });
+
+            window.addEventListener('touchend', () => {
+                if (!isDragging) return;
+                isDragging = false;
+
+                if (currentY > THRESHOLD) {
+                    // Refreshing
+                    ptr.style.transform = 'translateY(0)'; // Keep visible
+                    text.textContent = 'Refreshing...';
+                    icon.style.display = 'none'; // Hide arrow, maybe show spinner?
+                    
+                    // Execute Search
+                    executeSearch().then(() => {
+                        setTimeout(() => {
+                            resetPtr();
+                        }, 500);
+                    });
+                } else {
+                    resetPtr();
+                }
+            });
+
+            function resetPtr() {
+                ptr.style.transform = '';
+                // main.style.transform = '';
+                currentY = 0;
+                icon.classList.remove('ptr-rotate');
+                icon.style.display = '';
+                text.textContent = 'Pull to refresh';
+            }
+        }
+
         // ============ Initialize ============
         document.addEventListener('DOMContentLoaded', function() {
             setTheme(currentTheme);
             setLanguage(currentLang);
             setupKeyboardShortcuts();
             updateResetButtonVisibility();
+            initPullToRefresh(); // Init PTR
 
             // Auto-focus search input on desktop
             if (window.innerWidth > 768) {

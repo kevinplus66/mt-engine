@@ -1,6 +1,6 @@
 # M-Team Engine (MT 引擎)
 
-![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)
+![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
 ![Docker](https://img.shields.io/badge/docker-ready-blue.svg)
@@ -23,7 +23,8 @@ M-Team 引擎 - 免费种子猎手 + 全能搜索引擎
 |------|
 | **免费猎手** - 自动搜索 Free/2xFree 种子 |
 | **搜索引擎** - 电影/电视剧/成人内容搜索 |
-| 高级筛选（分辨率/视频编码/音频编码） |
+| 高级筛选（分辨率/视频编码/音频编码/来源） |
+| 可展开行显示质量元数据（分辨率、编码、音频、来源、制作组） |
 | 一键下载到 qBittorrent（带标签分类） |
 | 支持普通区和成人区 |
 | 剩余时间倒计时显示 |
@@ -33,6 +34,7 @@ M-Team 引擎 - 免费种子猎手 + 全能搜索引擎
 | 分享率对比功能 |
 | 支持中英文切换 |
 | 深色/浅色主题切换 |
+| Nothing OS 设计系统（极简工业风格） |
 | 响应式设计（桌面/平板/手机）|
 | 自动定时刷新 |
 | Docker 一键部署 |
@@ -391,6 +393,21 @@ A: 修改 `.env` 文件中的 `REFRESH_INTERVAL` 值（单位：秒）。
 
 ## 更新日志
 
+### v2.2.0 (2026-01)
+- 全新 Nothing OS 设计系统（极简工业风格）
+- 三层字体体系：DotGothic16（标题）、Roboto Mono（数据）、Inter（正文）
+- 新增来源筛选（Web-DL, Bluray, Remux, HDTV, DVD）
+- 搜索引擎：可展开行显示质量元数据（分辨率、编码、音频、来源、制作组）
+- 优化 qBittorrent 会话缓存（30分钟有效期，减少登录开销）
+- 改进移动端响应式设计（卡片布局优化）
+- 优化悬停效果（仅鼠标设备，触摸设备优化）
+- 新增质量标签显示系统
+- Logo 切换器（免费猎手 ⇄ 搜索引擎）
+- 工业风格切换开关（自动删除功能）
+- 状态点动画（脉冲效果）
+- 筛选重置按钮（智能显示）
+- 筛选计数徽章
+
 ### v2.1.0 (2026-01)
 - 修复搜索引擎页面搜索后加载圈一直转的问题（移除未实现的 sortSelect 引用）
 - 修复移动端导航栏过长溢出问题（隐藏统计信息）
@@ -504,7 +521,8 @@ MIT License
 |---------|
 | **Free Hunter** - Auto-search Free/2xFree torrents |
 | **Search Engine** - Movie/TV/Adult content search |
-| Advanced filters (Resolution/Video Codec/Audio Codec) |
+| Advanced filters (Resolution/Video Codec/Audio Codec/Source) |
+| Expandable row details showing quality metadata (resolution, codecs, audio, source, team) |
 | One-click download to qBittorrent (with tag classification) |
 | Support Normal and Adult sections |
 | Remaining time countdown display |
@@ -514,6 +532,7 @@ MIT License
 | Share ratio comparison with rival |
 | Chinese/English language switch |
 | Dark/Light theme toggle |
+| Nothing OS Design System (minimalist industrial style) |
 | Responsive design (Desktop/Tablet/Mobile) |
 | Auto scheduled refresh |
 | Docker one-click deployment |
@@ -871,6 +890,21 @@ A: Modify the `REFRESH_INTERVAL` value in `.env` file (unit: seconds).
 ---
 
 ## Changelog
+
+### v2.2.0 (2026-01)
+- New Nothing OS Design System (minimalist industrial style)
+- Three-tier font hierarchy: DotGothic16 (headers), Roboto Mono (data), Inter (body)
+- Added source filter (Web-DL, Bluray, Remux, HDTV, DVD)
+- Search Engine: Expandable row details showing quality metadata (resolution, codecs, audio, source, team)
+- Optimized qBittorrent session caching (30-minute TTL, reduced login overhead)
+- Improved mobile responsive design (optimized card layout)
+- Optimized hover effects (mouse devices only, touch-optimized)
+- New quality tag display system
+- Logo switcher (Free Hunter ⇄ Search Engine)
+- Industrial-style toggle switch (auto-delete feature)
+- Status dot animations (pulse effect)
+- Filter reset button (smart visibility)
+- Filter count badge
 
 ### v2.1.0 (2026-01)
 - Fix search page infinite loading spinner (removed unused sortSelect references)
