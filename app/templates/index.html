@@ -1,0 +1,2255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M team 做种助手</title>
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <link rel="apple-touch-icon" href="/static/favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Roboto+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* ============ Nothing OS Design System ============ */
+        :root {
+            /* Nothing Colors - Light */
+            --nt-bg: #EAEAEA;
+            --nt-bg-secondary: #FFFFFF;
+            --nt-text: #000000;
+            --nt-text-secondary: #666666;
+            --nt-text-tertiary: #999999;
+            --nt-border: #000000;
+            --nt-border-light: #CCCCCC;
+            --nt-red: #D71921;
+            
+            /* Fonts */
+            --nt-font-dot: 'DotGothic16', sans-serif;
+            --nt-font-mono: 'Roboto Mono', monospace;
+            --nt-font-body: 'Inter', sans-serif;
+
+            /* Compatibility Mappings */
+            --apple-bg: var(--nt-bg);
+            --apple-bg-secondary: var(--nt-bg-secondary);
+            --apple-bg-tertiary: #F5F5F5;
+            --apple-text: var(--nt-text);
+            --apple-text-secondary: var(--nt-text-secondary);
+            --apple-text-tertiary: var(--nt-text-tertiary);
+            --apple-link: var(--nt-text);
+            --apple-link-hover: var(--nt-red);
+            --apple-border: var(--nt-border);
+            --apple-border-light: var(--nt-border-light);
+            --apple-blue: var(--nt-text);
+            --apple-green: var(--nt-text);
+            --apple-orange: var(--nt-text);
+            --apple-red: var(--nt-red);
+            --apple-yellow: var(--nt-text);
+            --apple-purple: var(--nt-text);
+            --apple-pink: var(--nt-red);
+            --apple-teal: var(--nt-text);
+            
+            --btn-primary-text: #FFFFFF;
+            
+            --shadow-sm: none;
+            --shadow-md: 4px 4px 0px rgba(0,0,0,0.1);
+            --shadow-lg: 8px 8px 0px rgba(0,0,0,0.1);
+            --shadow-hover: 6px 6px 0px rgba(0,0,0,0.1);
+        }
+
+        [data-theme="dark"] {
+            /* Nothing Colors - Dark */
+            --nt-bg: #000000;
+            --nt-bg-secondary: #111111;
+            --nt-text: #FFFFFF;
+            --nt-text-secondary: #AAAAAA;
+            --nt-text-tertiary: #555555;
+            --nt-border: #333333;
+            --nt-border-light: #222222;
+            
+            /* Compatibility Mappings */
+            --apple-bg: var(--nt-bg);
+            --apple-bg-secondary: var(--nt-bg-secondary);
+            --apple-bg-tertiary: #1A1A1A;
+            --apple-text: var(--nt-text);
+            --apple-text-secondary: var(--nt-text-secondary);
+            --apple-text-tertiary: var(--nt-text-tertiary);
+            --apple-link: var(--nt-text);
+            --apple-link-hover: var(--nt-red);
+            --apple-border: var(--nt-border);
+            --apple-border-light: var(--nt-border-light);
+            --apple-blue: var(--nt-text);
+            --apple-blue-light: var(--nt-text-secondary);
+            --apple-blue-dark: var(--nt-text);
+            --apple-green: var(--nt-text);
+            --apple-orange: var(--nt-text);
+            
+            --btn-primary-text: #000000;
+            
+            --shadow-sm: none;
+            --shadow-md: 4px 4px 0px rgba(255,255,255,0.1);
+            --shadow-lg: 8px 8px 0px rgba(255,255,255,0.1);
+            --shadow-hover: 6px 6px 0px rgba(255,255,255,0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--nt-font-body);
+            background: var(--nt-bg);
+            color: var(--nt-text);
+            min-height: 100vh;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        body.drawer-open { overflow: hidden; }
+        
+        /* Typography */
+        h1, h2, h3, h4, h5, h6, 
+        .logo-text, 
+        .badge, 
+        .drawer-title, 
+        th, 
+        .pill, 
+        .nav-btn,
+        .filter-label,
+        .filter-dropdown-label,
+        .drawer-section-title,
+        .search-btn,
+        .drawer-apply-btn,
+        .drawer-reset-btn,
+        .reset-filters-btn,
+        .refresh-btn-subtle,
+        .empty-state-cta-btn,
+        button {
+            font-family: var(--nt-font-dot);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .nav-stat-value, 
+        td, 
+        .remaining-time,
+        .search-input,
+        select,
+        .total-count,
+        .footer {
+            font-family: var(--nt-font-mono);
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Navbar */
+        .navbar {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px dotted var(--nt-border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        [data-theme="light"] .navbar {
+             background: rgba(234, 234, 234, 0.9);
+        }
+
+        .navbar-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo-icon {
+            height: 20px;
+            width: auto;
+            display: block;
+        }
+        
+        [data-theme="dark"] .logo-icon {
+            filter: invert(1);
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .nav-stats {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .nav-stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            opacity: 0.8;
+            color: var(--nt-text);
+        }
+        
+        .nav-stat-label { color: var(--nt-text-secondary); }
+
+        .nav-stat-value {
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .nav-stat-value.ratio { color: var(--nt-red); }
+        .nav-stat-value.upload { color: var(--nt-text); }
+        .nav-stat-value.download { color: var(--nt-text); }
+        
+        .nav-divider {
+            width: 1px;
+            height: 24px;
+            background: var(--nt-border);
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: 1px solid var(--nt-border);
+            color: var(--nt-text);
+            cursor: pointer;
+            padding: 0 12px;
+            height: 32px;
+            border-radius: 0;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-btn:hover {
+            background: var(--nt-text);
+            color: var(--nt-bg);
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 32px 0;
+        }
+
+        /* Filter Card */
+        .filter-card {
+            background: var(--nt-bg-secondary);
+            border: 1px solid var(--nt-border);
+            border-radius: 0;
+            padding: 24px;
+            margin-bottom: 32px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .search-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .search-input {
+            flex: 1;
+            height: 48px;
+            padding: 0 16px;
+            border: 1px solid var(--nt-border);
+            border-radius: 0;
+            font-size: 14px;
+            background: transparent;
+            color: var(--nt-text);
+        }
+
+        .search-input:focus {
+            outline: 2px solid var(--nt-red);
+            border-color: transparent;
+        }
+        
+        .search-input::placeholder { color: var(--nt-text-secondary); }
+
+        .search-btn {
+            height: 48px;
+            padding: 0 24px;
+            background: var(--nt-red);
+            color: #FFFFFF;
+            border: none;
+            border-radius: 0;
+            font-size: 14px;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+        
+        .search-btn:active { transform: scale(0.98); }
+        
+        .reset-filters-btn {
+            height: 48px;
+            border-radius: 0;
+            border: 1px dotted var(--nt-border);
+            background: transparent;
+            color: var(--nt-text-secondary);
+            padding: 0 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .reset-filters-btn.visible { opacity: 1; pointer-events: auto; }
+        
+        .reset-filters-btn:hover {
+            border-style: solid;
+            color: var(--nt-text);
+            background: var(--nt-bg);
+        }
+
+        .filter-dropdowns {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .filter-dropdown { display: flex; flex-direction: column; gap: 8px; }
+        
+        .filter-dropdown-label, .filter-label {
+            display: block;
+            font-size: 12px;
+            color: var(--nt-text-secondary);
+        }
+
+        .filter-select {
+            width: 100%;
+            height: 48px;
+            background: transparent;
+            border: 1px solid var(--nt-border);
+            border-radius: 0;
+            padding: 0 16px;
+            font-size: 14px;
+            color: var(--nt-text);
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888888' d='M6 9L2 4h8z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+        }
+        
+        .filter-select:focus {
+            outline: 2px solid var(--nt-red);
+            border-color: transparent;
+        }
+
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+        }
+        
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .filter-pills {
+            display: flex;
+            gap: 8px;
+        }
+
+        .pill {
+            height: 36px;
+            padding: 0 16px;
+            background: transparent;
+            border: 1px solid var(--nt-border);
+            color: var(--nt-text-secondary);
+            border-radius: 0;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pill:hover {
+            border-color: var(--nt-text);
+            color: var(--nt-text);
+        }
+
+        .pill.active {
+            background: var(--nt-text);
+            color: var(--nt-bg);
+            border-color: var(--nt-text);
+        }
+
+        /* Toggle Switch - Industrial */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+        }
+        
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: transparent;
+            border: 1px solid var(--nt-border);
+            transition: .2s;
+            border-radius: 0;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: var(--nt-text-secondary);
+            transition: .2s;
+            border-radius: 0;
+        }
+        
+        input:checked + .toggle-slider {
+            border-color: var(--nt-red);
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+            background-color: var(--nt-red);
+        }
+        
+        .toggle-label {
+            font-size: 13px;
+            color: var(--nt-text-secondary);
+            font-family: var(--nt-font-mono);
+        }
+
+        /* Table Card */
+        .table-card {
+            background: var(--nt-bg-secondary);
+            border: 1px solid var(--nt-border);
+            border-radius: 0;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .table-container { overflow-x: auto; }
+        
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .results-info {
+            font-family: var(--nt-font-dot);
+            font-size: 14px;
+            color: var(--nt-text-secondary);
+        }
+        
+        .filter-count-badge {
+            background: var(--nt-red);
+            color: #FFF;
+            padding: 2px 6px;
+            font-size: 10px;
+            border-radius: 0;
+            margin-left: 8px;
+            display: inline-block;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .filter-count-badge.visible { opacity: 1; }
+        
+        .refresh-btn-subtle {
+            background: transparent;
+            color: var(--nt-text-secondary);
+            border: 1px dotted var(--nt-border);
+            padding: 8px 16px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .refresh-btn-subtle:hover {
+            border-style: solid;
+            color: var(--nt-text);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        th {
+            text-align: left;
+            padding: 16px;
+            font-size: 12px;
+            color: var(--nt-text-secondary);
+            background: var(--nt-bg);
+            border-bottom: 2px solid var(--nt-border);
+            cursor: pointer;
+            white-space: nowrap;
+            user-select: none;
+        }
+        
+        th:hover {
+            color: var(--nt-text);
+        }
+        
+        th .sort-icon { margin-left: 4px; opacity: 0.5; }
+        th.sorted .sort-icon { opacity: 1; color: var(--nt-red); }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px dotted var(--nt-border-light);
+            vertical-align: middle;
+            font-size: 13px;
+        }
+
+        tr { transition: background 0.1s; }
+        
+        /* Disable Zebra for Nothing style */
+        tr.zebra-even td { background: transparent; }
+        tr.zebra-odd td { background: transparent; }
+        
+        tr:hover td {
+            background: var(--nt-text);
+            color: var(--nt-bg);
+        }
+        
+        /* Links invert on hover */
+        tr:hover .torrent-name a { color: var(--nt-bg); }
+        tr:hover .torrent-descr { color: rgba(var(--nt-bg), 0.7); }
+        tr:hover .badge { border-color: var(--nt-bg) !important; color: var(--nt-bg) !important; }
+        tr:hover .peer-info span { color: var(--nt-bg) !important; }
+        tr:hover .remaining-display { color: var(--nt-bg) !important; }
+        tr:hover .star-btn { color: var(--nt-bg) !important; }
+        tr:hover .download-btn { background: var(--nt-text) !important; color: var(--nt-bg) !important; border-color: var(--nt-bg) !important; }
+        tr:hover .download-btn.downloaded { background: var(--nt-red) !important; border-color: var(--nt-red) !important; color: #fff !important; }
+
+        /* Column widths */
+        th:nth-child(1), td:nth-child(1) { width: 40%; }
+        th:nth-child(2), td:nth-child(2) { width: 8%; white-space: nowrap; } /* No wrap for size */
+        th:nth-child(3), td:nth-child(3) { width: 10%; }
+        th:nth-child(4), td:nth-child(4) { width: 8%; }
+        th:nth-child(5), td:nth-child(5) { width: 12%; }
+        th:nth-child(6), td:nth-child(6) { width: 10%; }
+        th:nth-child(7), td:nth-child(7) { width: 6%; }
+
+        .torrent-name a {
+            color: var(--nt-text);
+            text-decoration: none;
+            font-weight: 500;
+            font-family: var(--nt-font-body);
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .torrent-descr {
+            color: var(--nt-text-secondary);
+            font-size: 11px;
+            font-family: var(--nt-font-mono);
+            margin-top: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Peers */
+        .peer-info {
+            display: flex;
+            gap: 12px;
+            font-family: var(--nt-font-mono);
+        }
+        
+        .seeders { color: var(--nt-text); font-weight: 500; }
+        .leechers { color: var(--nt-text-secondary); font-weight: 500; }
+        
+        .peer-sort-btn { cursor: pointer; }
+        .peer-sort-btn.sorted { color: var(--nt-red); }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 0;
+            font-size: 11px;
+            border: 1px solid var(--nt-border);
+            background: transparent;
+            color: var(--nt-text);
+            text-align: center;
+            min-width: 60px;
+        }
+        
+        .badge-free, .badge-2xfree {
+            border-style: dotted;
+            border-color: var(--nt-text);
+            box-shadow: none;
+        }
+        
+        .badge-seeding {
+            background: var(--nt-text);
+            color: var(--nt-bg);
+            border-color: var(--nt-text);
+            box-shadow: none;
+        }
+        
+        .badge-leeching {
+            border-color: var(--nt-red);
+            color: var(--nt-red);
+            box-shadow: none;
+        }
+        
+        .badge-none {
+            border-color: var(--nt-border-light);
+            color: var(--nt-text-tertiary);
+        }
+
+        /* Status Dot */
+        .remaining-time { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+        
+        .status-dot {
+            border-radius: 0;
+            width: 8px;
+            height: 8px;
+        }
+        
+        .status-dot.green { background: var(--nt-text); }
+        .status-dot.yellow { background: var(--nt-text-secondary); }
+        .status-dot.orange { background: var(--nt-text-secondary); border: 1px solid var(--nt-red); }
+        .status-dot.red { background: var(--nt-red); animation: pulse-urgent 1s steps(2) infinite; }
+        
+        @keyframes pulse-urgent { 0% {opacity: 1;} 50% {opacity: 0.3;} }
+
+        /* Progress Ring */
+        .progress-ring { display: inline-block; width: 12px; height: 12px; vertical-align: middle; margin-left: 4px; }
+        .progress-ring svg { transform: rotate(-90deg); display: block; }
+        .progress-ring .bg { stroke: var(--nt-border-light); fill: none; stroke-width: 2; }
+        .progress-ring .progress { stroke: var(--nt-red); fill: none; stroke-width: 2; }
+        
+        /* Download Button */
+        .download-btn {
+            background: transparent;
+            border: 1px solid var(--nt-border);
+            color: var(--nt-text);
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .download-btn:hover:not(:disabled) {
+            background: var(--nt-text);
+            color: var(--nt-bg);
+        }
+
+        .download-btn.loading {
+            opacity: 0.5;
+            cursor: wait;
+        }
+
+        .download-btn.downloaded,
+        .download-btn:disabled {
+            background: var(--nt-red);
+            border-color: var(--nt-red);
+            color: #fff;
+            cursor: default;
+        }
+
+        /* Logo Switcher */
+        .logo-switcher {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-link {
+            opacity: 0.35;
+            filter: grayscale(100%);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-link:hover {
+            opacity: 0.6;
+        }
+
+        .logo-link.active {
+            opacity: 1;
+            filter: none;
+        }
+
+        [data-theme="dark"] .logo-link .logo-icon {
+            filter: invert(1);
+        }
+
+        [data-theme="dark"] .logo-link:not(.active) .logo-icon {
+            filter: invert(1) grayscale(100%);
+        }
+
+        /* Mobile Filter Bar - Hidden on Desktop */
+        .mobile-filter-bar { display: none; }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .navbar-content { padding: 0 16px; height: 56px; }
+            .container { padding: 0 16px; }
+            .filter-card { display: none; }
+
+            /* Logo */
+            .logo-switcher { gap: 8px; }
+            .logo-icon { height: 20px; }
+
+            /* Logo & Title */
+            .logo { gap: 8px; }
+            .logo-text { 
+                font-size: 14px; 
+                white-space: nowrap; 
+                overflow: hidden; 
+                text-overflow: ellipsis; 
+                max-width: 140px;
+            }
+            
+            /* Navbar Stats & Actions */
+            .nav-right { gap: 12px; }
+            .nav-stats { gap: 12px; }
+            
+            /* Hide all stats on mobile to match search page */
+            .nav-stats { display: none; }
+            .nav-divider { display: none; }
+            
+            .nav-actions { gap: 8px; }
+            .nav-btn { padding: 0 8px; height: 28px; font-size: 12px; }
+
+            /* Show mobile filter bar only on mobile */
+            .mobile-filter-bar { display: flex; gap: 12px; margin-bottom: 20px; }
+            
+            .filter-toggle-btn {
+                background: transparent;
+                border: 1px solid var(--nt-border);
+                width: 48px; height: 48px;
+                display: flex; align-items: center; justify-content: center;
+                border-radius: 0;
+                color: var(--nt-text);
+                font-size: 20px;
+            }
+            
+            .filter-toggle-btn.has-filters { background: var(--nt-text); color: var(--nt-bg); }
+            
+            table, thead, tbody, th, td, tr { display: block; }
+            thead { display: none; }
+            
+            tr {
+                border: 1px solid var(--nt-border);
+                margin-bottom: 16px;
+                padding: 16px;
+                position: relative;
+                background: var(--nt-bg-secondary);
+            }
+            
+            tr:hover td { background: transparent; color: inherit; }
+            tr:hover .torrent-name a { color: var(--nt-text); }
+            tr:hover .torrent-descr { color: var(--nt-text-secondary); }
+            tr:hover .badge { border-color: var(--nt-border) !important; color: var(--nt-text) !important; }
+            tr:hover .badge-free, tr:hover .badge-2xfree { border-style: dotted; }
+            tr:hover .badge-seeding { background: var(--nt-text); color: var(--nt-bg) !important; }
+            tr:hover .badge-leeching { border-color: var(--nt-red) !important; color: var(--nt-red) !important; }
+            tr:hover .badge-none { border-color: var(--nt-border-light) !important; color: var(--nt-text-tertiary) !important; }
+            tr:hover .peer-info span { color: inherit !important; }
+            tr:hover .remaining-display { color: inherit !important; }
+            tr:hover .star-btn { color: var(--nt-text-secondary) !important; }
+            tr:hover .star-btn.collected { color: var(--nt-red) !important; }
+            
+            td {
+                border: none;
+                padding: 4px 0;
+            }
+            
+            /* Mobile Title - Full Width + Padding for Star */
+            td:first-child { 
+                padding-bottom: 12px; 
+                border-bottom: 1px dotted var(--nt-border-light); 
+                margin-bottom: 12px; 
+                width: 100% !important;
+                padding-right: 40px; /* Space for star button */
+            }
+            
+            .mobile-meta-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 12px 16px; /* Row gap 12px, Column gap 16px */
+            }
+            
+            /* Metadata items */
+            td:nth-child(2), td:nth-child(3), td:nth-child(4), td:nth-child(5), td:nth-child(6) {
+                display: inline-block !important;
+                width: auto !important;
+                margin-right: 0; /* Handled by gap */
+                padding: 0;
+                white-space: nowrap; /* Prevent internal wrapping */
+            }
+            
+            /* Star Button */
+            td:last-child {
+                position: absolute;
+                top: 16px;
+                right: 16px;
+                padding: 0;
+                width: auto !important;
+            }
+            
+            .torrent-name a { 
+                white-space: normal; 
+                line-height: 1.4; 
+                font-size: 16px;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+
+            .torrent-descr {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 100%;
+                display: block;
+            }
+        }
+        
+        /* Drawer */
+        .drawer-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            opacity: 0; visibility: hidden;
+            transition: 0.3s;
+        }
+        
+        .drawer-overlay.active { opacity: 1; visibility: visible; }
+        
+        .filter-drawer {
+            position: fixed; left: 0; right: 0; bottom: 0;
+            background: var(--nt-bg-secondary);
+            border-top: 1px solid var(--nt-border);
+            z-index: 1001;
+            transform: translateY(100%);
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 0 24px 32px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        
+        .filter-drawer.active { transform: translateY(0); }
+        
+        .drawer-handle { padding: 12px 0; display: flex; justify-content: center; }
+        .drawer-handle-bar { width: 40px; height: 4px; background: var(--nt-border-light); }
+        
+        .drawer-header { display: flex; justify-content: space-between; padding-bottom: 24px; border-bottom: 1px dotted var(--nt-border); margin-bottom: 24px; }
+        .drawer-title { font-size: 16px; }
+        .drawer-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--nt-text); }
+        
+        .drawer-section { margin-bottom: 24px; }
+        .drawer-select { width: 100%; height: 48px; background: transparent; border: 1px solid var(--nt-border); border-radius: 0; padding: 0 16px; font-family: var(--nt-font-mono); color: var(--nt-text); }
+        .drawer-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+        
+        .drawer-apply-btn {
+            width: 100%; height: 56px;
+            background: var(--nt-red);
+            color: #FFF;
+            border: none;
+            border-radius: 0;
+            font-size: 16px;
+            margin-top: 16px;
+            cursor: pointer;
+        }
+        
+        .drawer-reset-btn {
+            width: 100%; height: 48px;
+            background: transparent;
+            border: 1px solid var(--nt-border);
+            color: var(--nt-text);
+            border-radius: 0;
+            margin-bottom: 12px;
+            cursor: pointer;
+        }
+        
+        /* Footer */
+        .footer {
+            border-top: 1px dotted var(--nt-border);
+            padding: 48px 0;
+            text-align: center;
+            font-size: 11px;
+            color: var(--nt-text-secondary);
+            margin-top: 48px;
+        }
+        
+        /* Back to top */
+        .back-to-top {
+            position: fixed; bottom: 32px; right: 32px;
+            width: 48px; height: 48px;
+            background: var(--nt-text);
+            color: var(--nt-bg);
+            border: 1px solid var(--nt-border);
+            border-radius: 0;
+            cursor: pointer;
+            font-size: 20px;
+            opacity: 0; visibility: hidden;
+            transition: 0.3s;
+            z-index: 900;
+        }
+        
+        .back-to-top.visible { opacity: 1; visibility: visible; }
+        
+        /* Tablet */
+        @media (min-width: 769px) and (max-width: 1200px) {
+            .container { padding: 0 24px; }
+            table { min-width: 1000px; }
+            .table-container { overflow-x: auto; }
+            .nav-stat-label { display: none; }
+        }
+        
+        /* Empty State */
+        .empty-state { text-align: center; padding: 64px 0; }
+        .empty-state-icon { font-size: 64px; opacity: 0.2; filter: grayscale(100%); display: block; margin-bottom: 24px; }
+        .empty-state-cta-btn { margin-top: 24px; height: 48px; padding: 0 32px; border: none; cursor: pointer; }
+        
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
+            padding: 12px 24px; background: var(--nt-text); color: var(--nt-bg);
+            font-family: var(--nt-font-dot); font-size: 12px;
+            z-index: 9999;
+            box-shadow: var(--shadow-md);
+        }
+        .toast.error { background: var(--nt-red); color: #FFF; }
+        
+        /* Loading */
+        .loading-overlay { position: fixed; inset: 0; background: var(--nt-bg); z-index: 10000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.3s; }
+        .loading-overlay.active { opacity: 1; pointer-events: all; }
+        .loading-spinner { width: 40px; height: 40px; border: 2px solid var(--nt-border-light); border-top-color: var(--nt-red); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to {transform: rotate(360deg);} }
+        
+        /* Error Banner */
+        .error-banner {
+            border: 1px solid var(--nt-red);
+            color: var(--nt-red);
+            padding: 16px;
+            margin-bottom: 24px;
+            font-family: var(--nt-font-mono);
+            font-size: 12px;
+            display: flex; gap: 12px; align-items: center;
+        }
+    </style>
+</head>
+<body data-theme="dark">
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Drawer Overlay -->
+    <div class="drawer-overlay" id="drawerOverlay" onclick="closeFilterDrawer()"></div>
+
+    <!-- Filter Drawer (Mobile) -->
+    <div class="filter-drawer" id="filterDrawer">
+        <div class="drawer-handle">
+            <div class="drawer-handle-bar"></div>
+        </div>
+        <div class="drawer-header">
+            <span class="drawer-title" data-i18n="filterTitle">筛选条件</span>
+            <button class="drawer-close" onclick="closeFilterDrawer()">✕</button>
+        </div>
+
+        <div class="drawer-section">
+            <div class="drawer-section-title" data-i18n="filterSize">大小</div>
+            <select class="drawer-select" id="drawerSizeFilter">
+                <option value="all" data-i18n="filterAll">全部</option>
+                <option value="small">< 10 GB</option>
+                <option value="medium">10 - 50 GB</option>
+                <option value="large">50 - 100 GB</option>
+                <option value="xlarge">> 100 GB</option>
+            </select>
+        </div>
+
+        <div class="drawer-section">
+            <div class="drawer-section-title" data-i18n="filterSeeders">做种</div>
+            <select class="drawer-select" id="drawerSeederFilter">
+                <option value="all" data-i18n="filterAll">全部</option>
+                <option value="hot">> 10</option>
+                <option value="normal">5 - 10</option>
+                <option value="rare">1 - 5</option>
+                <option value="dead">0</option>
+            </select>
+        </div>
+
+        <div class="drawer-section">
+            <div class="drawer-section-title" data-i18n="filterRemaining">剩余时间</div>
+            <select class="drawer-select" id="drawerRemainingFilter">
+                <option value="all" data-i18n="filterAll">全部</option>
+                <option value="critical">< 1小时</option>
+                <option value="danger">1-2小时</option>
+                <option value="warning">2-6小时</option>
+                <option value="safe">6-24小时</option>
+                <option value="plenty">> 24小时</option>
+            </select>
+        </div>
+
+        <div class="drawer-section">
+            <div class="drawer-section-title" data-i18n="filterStatus">状态</div>
+            <div class="drawer-pills">
+                <button class="pill drawer-status-btn active" data-status="all" onclick="setDrawerStatus('all', this)" data-i18n="filterAll">全部</button>
+                <button class="pill drawer-status-btn" data-status="leeching" onclick="setDrawerStatus('leeching', this)" data-i18n="filterLeeching">下载中</button>
+                <button class="pill drawer-status-btn" data-status="seeding" onclick="setDrawerStatus('seeding', this)" data-i18n="filterSeeding">做种中</button>
+            </div>
+        </div>
+
+        <div class="drawer-section">
+            <div class="drawer-section-title" data-i18n="filterMode">频道</div>
+            <div class="drawer-pills">
+                <button class="pill drawer-mode-btn active" data-mode="all" onclick="setDrawerMode('all', this)" data-i18n="filterAll">全部</button>
+                <button class="pill drawer-mode-btn" data-mode="normal" onclick="setDrawerMode('normal', this)" data-i18n="filterNormal">综合</button>
+                <button class="pill drawer-mode-btn" data-mode="adult" onclick="setDrawerMode('adult', this)" data-i18n="filterAdult">成人</button>
+            </div>
+        </div>
+
+        <div class="drawer-section">
+            <div class="drawer-section-title" data-i18n="autoDelete">自动删除</div>
+            <div class="toggle-container">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="drawerAutoDeleteToggle" onchange="toggleAutoDeleteFromDrawer()">
+                    <span class="toggle-slider"></span>
+                </label>
+                <span class="toggle-label" style="margin-left: 8px;" data-i18n="autoDeleteDesc">免费变节时删除未完成下载</span>
+            </div>
+        </div>
+
+        <button class="drawer-reset-btn" onclick="resetAllFiltersFromDrawer()" data-i18n="resetFilters">重置</button>
+        <button class="drawer-apply-btn" onclick="applyDrawerFilters()" data-i18n="applyFilters">应用筛选</button>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <div class="logo-switcher">
+                <a href="/" class="logo-link active" title="Free Hunter">
+                    <img src="/static/seeder-logo.png" alt="Free Hunter" class="logo-icon">
+                </a>
+                <a href="/search" class="logo-link" title="Search Engine">
+                    <img src="/static/search-logo.png" alt="Search Engine" class="logo-icon">
+                </a>
+            </div>
+            <div class="nav-right">
+                <div class="nav-stats">
+                    <div class="nav-stat">
+                        <span class="nav-stat-icon">📊</span>
+                        <span class="nav-stat-label" data-i18n="statRatio">分享率</span>
+                        <span class="nav-stat-value ratio">{% if user_profile.share_ratio > 9999 %}∞{% else %}{{ "%.2f"|format(user_profile.share_ratio) }}{% endif %}</span>
+                    </div>
+                    <div class="nav-stat secondary">
+                        <span class="nav-stat-icon">↑</span>
+                        <span class="nav-stat-label" data-i18n="statUpload">上传</span>
+                        <span class="nav-stat-value upload">{{ user_profile.uploaded_display }}</span>
+                    </div>
+                    <div class="nav-stat secondary">
+                        <span class="nav-stat-icon">↓</span>
+                        <span class="nav-stat-label" data-i18n="statDownload">下载</span>
+                        <span class="nav-stat-value download">{{ user_profile.downloaded_display }}</span>
+                    </div>
+                </div>
+                <div class="nav-divider"></div>
+                <div class="nav-actions">
+                    <button class="nav-btn" id="themeToggle" onclick="toggleTheme()">
+                        <span id="themeIcon">☀️</span>
+                    </button>
+                    <button class="nav-btn" id="langToggle" onclick="toggleLanguage()">EN</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <!-- Desktop Filter Card -->
+            <div class="filter-card">
+                <!-- Search Row -->
+                <div class="search-row">
+                    <input type="text" class="search-input" id="searchInput" placeholder="搜索种子名称..." data-placeholder-zh="搜索种子名称..." data-placeholder-en="Search torrents...">
+                    <button class="search-btn" onclick="applyFilters()" data-i18n="searchBtn">搜索</button>
+                    <button class="reset-filters-btn" id="resetFiltersBtn" onclick="resetAllFilters()" data-i18n="resetFilters">重置</button>
+                </div>
+
+                <!-- Dropdown Grid -->
+                <div class="filter-dropdowns">
+                    <div class="filter-dropdown">
+                        <span class="filter-dropdown-label" data-i18n="filterSize">大小</span>
+                        <select class="filter-select" id="sizeFilter" onchange="applyFilters()">
+                            <option value="all" data-i18n="filterAll">全部</option>
+                            <option value="small">< 10 GB</option>
+                            <option value="medium">10 - 50 GB</option>
+                            <option value="large">50 - 100 GB</option>
+                            <option value="xlarge">> 100 GB</option>
+                        </select>
+                    </div>
+                    <div class="filter-dropdown">
+                        <span class="filter-dropdown-label" data-i18n="filterSeeders">做种</span>
+                        <select class="filter-select" id="seederFilter" onchange="applyFilters()">
+                            <option value="all" data-i18n="filterAll">全部</option>
+                            <option value="hot">> 10</option>
+                            <option value="normal">5 - 10</option>
+                            <option value="rare">1 - 5</option>
+                            <option value="dead">0</option>
+                        </select>
+                    </div>
+                    <div class="filter-dropdown">
+                        <span class="filter-dropdown-label" data-i18n="filterRemaining">剩余时间</span>
+                        <select class="filter-select" id="remainingFilter" onchange="applyFilters()">
+                            <option value="all" data-i18n="filterAll">全部</option>
+                            <option value="critical">< 1小时</option>
+                            <option value="danger">1-2小时</option>
+                            <option value="warning">2-6小时</option>
+                            <option value="safe">6-24小时</option>
+                            <option value="plenty">> 24小时</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Button Groups -->
+                <div class="filter-buttons">
+                    <div class="filter-group">
+                        <span class="filter-label" data-i18n="filterStatus">状态</span>
+                        <div class="filter-pills">
+                            <button class="pill status-filter-btn active" data-status="all" onclick="filterByStatus('all', this)" data-i18n="filterAll">全部</button>
+                            <button class="pill status-filter-btn" data-status="leeching" onclick="filterByStatus('leeching', this)" data-i18n="filterLeeching">下载中</button>
+                            <button class="pill status-filter-btn" data-status="seeding" onclick="filterByStatus('seeding', this)" data-i18n="filterSeeding">做种中</button>
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <span class="filter-label" data-i18n="filterMode">频道</span>
+                        <div class="filter-pills">
+                            <button class="pill mode-filter-btn active" data-mode="all" onclick="filterByMode('all', this)" data-i18n="filterAll">全部</button>
+                            <button class="pill mode-filter-btn" data-mode="normal" onclick="filterByMode('normal', this)" data-i18n="filterNormal">综合</button>
+                            <button class="pill mode-filter-btn" data-mode="adult" onclick="filterByMode('adult', this)" data-i18n="filterAdult">成人</button>
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <span class="filter-label" data-i18n="autoDelete">自动删除</span>
+                        <div class="toggle-container" style="margin-left: 0;">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="autoDeleteToggle" onchange="toggleAutoDelete()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile Filter Bar -->
+            <div class="mobile-filter-bar">
+                <input type="text" class="search-input" id="mobileSearchInput" placeholder="搜索种子名称..." data-placeholder-zh="搜索种子名称..." data-placeholder-en="Search torrents...">
+                <button class="filter-toggle-btn" id="filterToggleBtn" onclick="openFilterDrawer()">
+                    <span>⚙️</span>
+                    <span class="filter-badge-dot"></span>
+                </button>
+            </div>
+
+            {% if data.error %}
+            <div class="error-banner">
+                <span>⚠️</span>
+                <span>{{ data.error | e }}</span>
+            </div>
+            {% endif %}
+
+            <!-- Action Bar -->
+            <div class="action-bar">
+                <div class="results-info">
+                    <span data-i18n="showing">显示</span> <strong id="filteredCount">{{ data.total if data.total is defined else 0 }}</strong> <span data-i18n="results">个结果</span>
+                    <span class="filter-count-badge" id="filterCountBadge"></span>
+                </div>
+                <button class="refresh-btn-subtle" onclick="manualRefresh()" id="refreshBtn" data-i18n="refresh">刷新数据</button>
+            </div>
+
+            <!-- Table -->
+            {% if data.torrents %}
+            <div class="table-card">
+                <div class="table-container">
+                    <table id="torrentTable">
+                        <thead>
+                            <tr>
+                                <th onclick="sortTable('name')" data-i18n="colName">种子名称 <span class="sort-icon">↕</span></th>
+                                <th onclick="sortTable('size')" data-i18n="colSize">大小 <span class="sort-icon">↕</span></th>
+                                <th class="peers-header">
+                                    <span class="peer-sort-btn" onclick="sortTable('seeders')" title="按做种数排序">做种 <span class="sort-icon" data-sort="seeders">↕</span></span>
+                                    <span class="peer-sort-separator">/</span>
+                                    <span class="peer-sort-btn" onclick="sortTable('leechers')" title="按下载数排序">下载 <span class="sort-icon" data-sort="leechers">↕</span></span>
+                                </th>
+                                <th onclick="sortTable('discount')" data-i18n="colDiscount">优惠 <span class="sort-icon">↕</span></th>
+                                <th onclick="sortTable('remaining')" class="sorted" data-i18n="colRemaining">剩余时间 <span class="sort-icon">↓</span></th>
+                                <th onclick="sortTable('status')" data-i18n="colStatus">状态 <span class="sort-icon">↕</span></th>
+                                <th data-i18n="colDownload">下载</th>
+                            </tr>
+                        </thead>
+                        <tbody id="torrentBody">
+                            {% for torrent in data.torrents %}
+                            <tr data-id="{{ torrent.id | e }}" data-name="{{ torrent.name | e }}" data-discount="{{ torrent.discount | e }}" data-size="{{ torrent.size }}" data-seeders="{{ torrent.seeders }}" data-leechers="{{ torrent.leechers }}" data-remaining="{{ torrent.remaining.hours }}" data-status="{{ torrent.user_status | e }}" data-mode="{{ torrent.mode | e }}">
+                                <td class="torrent-name">
+                                    <a href="{{ torrent.detail_url | e }}" target="_blank" rel="noopener noreferrer" title="{{ torrent.name | e }}">{{ torrent.name | e }}</a>
+                                    {% if torrent.small_descr %}
+                                    <div class="torrent-descr">{{ torrent.small_descr | e }}</div>
+                                    {% endif %}
+                                </td>
+                                <td>{{ torrent.size_display | e }}</td>
+                                <td>
+                                    <div class="peer-info">
+                                        <span class="seeders">▲ {{ torrent.seeders }}</span>
+                                        <span class="leechers">▼ {{ torrent.leechers }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if torrent.discount == 'FREE' %}
+                                    <span class="badge badge-free">Free</span>
+                                    {% elif torrent.discount == '_2X_FREE' %}
+                                    <span class="badge badge-2xfree">2xFree</span>
+                                    {% else %}
+                                    <span class="badge">{{ torrent.discount_label.zh | e }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="remaining-time status-{{ torrent.remaining.color }}">
+                                        <span class="status-dot {{ torrent.remaining.color }}"></span>
+                                        <span class="remaining-display" data-zh="{{ torrent.remaining.display | e }}" data-en="{{ torrent.remaining.display_en | e }}">{{ torrent.remaining.display | e }}</span>
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if torrent.user_status == 'seeding' %}
+                                    <span class="badge badge-seeding" data-status-zh="做种中" data-status-en="Seeding">做种中</span>
+                                    {% elif torrent.user_status == 'leeching' %}
+                                    <span class="badge badge-leeching" data-status-zh="下载中" data-status-en="DL">下载中<span class="progress-ring" title="{{ torrent.user_progress|round(0)|int }}%"><svg width="12" height="12" viewBox="0 0 16 16"><circle class="bg" cx="8" cy="8" r="6"></circle><circle class="progress" cx="8" cy="8" r="6" stroke-dasharray="37.7" stroke-dashoffset="{{ 37.7 - (37.7 * torrent.user_progress / 100) }}"></circle></svg></span></span>
+                                    {% else %}
+                                    <span class="badge badge-none" data-status-zh="未下载" data-status-en="Not DL">未下载</span>
+                                    {% endif %}
+                                </td>
+                                <td class="actions-cell">
+                                    <button class="download-btn {% if torrent.user_status == 'seeding' or torrent.user_status == 'leeching' %}downloaded{% endif %}"
+                                            onclick="downloadTorrent('{{ torrent.id | e }}')"
+                                            {% if torrent.user_status == 'seeding' or torrent.user_status == 'leeching' %}disabled{% endif %}
+                                            title="{% if torrent.user_status == 'seeding' %}已在做种{% elif torrent.user_status == 'leeching' %}下载中{% else %}下载到 qBittorrent{% endif %}">
+                                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                            <path d="M8 12l-4-4h2.5V3h3v5H12L8 12z"/>
+                                            <path d="M2 13v1h12v-1H2z"/>
+                                        </svg>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+            <div class="table-card">
+                <div class="empty-state">
+                    <div class="empty-state-animation">
+                        <div class="empty-state-circle"></div>
+                        <div class="empty-state-circle"></div>
+                        <div class="empty-state-circle"></div>
+                        <span class="empty-state-floating-icon">📭</span>
+                    </div>
+                    <p data-i18n="emptyState">暂无免费种子</p>
+                    <p style="margin-top: 8px; font-size: 14px;" data-i18n="checkConfig">请检查 MT_TOKEN 配置是否正确</p>
+                    <div class="empty-state-cta">
+                        <button class="empty-state-cta-btn" onclick="manualRefresh()" data-i18n="refresh">刷新数据</button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <!-- Back to Top Button -->
+    <button class="back-to-top" id="backToTop" onclick="scrollToTop()" title="Back to top">
+        ↑
+    </button>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>MT-Engine · <span data-i18n="autoRefresh">自动刷新间隔</span> {{ refresh_interval // 60 }} <span data-i18n="minutes">分钟</span> · <span data-i18n="lastRefresh">上次刷新</span> {{ data.last_update if data.last_update else '-' }}</p>
+            <p style="margin-top: 8px; font-size: 13px; color: var(--apple-text-secondary);">
+                <span data-i18n="rivalRatio">对手分享率</span>: <span style="color: var(--apple-orange); font-weight: 600;">{% if rival_profile.share_ratio > 9999 %}∞{% else %}{{ "%.2f"|format(rival_profile.share_ratio) }}{% endif %}</span>
+                ·
+                <span data-i18n="ratioDiff">差距</span>:
+                {% set diff = user_profile.share_ratio - rival_profile.share_ratio %}
+                {% if diff > 0 %}
+                <span style="color: var(--apple-green); font-weight: 600;">+{{ "%.2f"|format(diff) }}</span>
+                {% elif diff < 0 %}
+                <span style="color: var(--apple-red); font-weight: 600;">{{ "%.2f"|format(diff) }}</span>
+                {% else %}
+                <span style="color: var(--apple-text-tertiary); font-weight: 600;">0.00</span>
+                {% endif %}
+            </p>
+            <p style="margin-top: 8px; font-size: 11px; color: var(--nt-text-secondary);">v2.1.0</p>
+        </div>
+    </footer>
+
+    <script>
+        // ============ Translations ============
+        const TRANSLATIONS = {
+            'zh': {
+                subtitle: 'MTEAM 做种助手',
+                total: '总计',
+                refresh: '刷新数据',
+                refreshing: '刷新中...',
+                lastUpdate: '上次更新',
+                lastRefresh: '上次刷新',
+                noData: '尚未获取数据',
+                nextRefresh: '下次刷新',
+                filterType: '类型',
+                filterSize: '大小',
+                filterSeeders: '做种',
+                filterRemaining: '剩余时间',
+                filterAll: '全部',
+                showing: '显示',
+                results: '个结果',
+                colDownload: '下载',
+                colName: '种子名称',
+                colSize: '大小',
+                colPeers: '做种/下载',
+                colDiscount: '优惠',
+                colStatus: '状态',
+                colRemaining: '剩余时间',
+                emptyState: '暂无免费种子',
+                checkConfig: '请检查 MT_TOKEN 配置是否正确',
+                autoRefresh: '自动刷新间隔',
+                minutes: '分钟',
+                refreshFailed: '刷新失败',
+                filterStatus: '状态',
+                filterLeeching: '下载中',
+                filterSeeding: '做种中',
+                filterMode: '频道',
+                filterNormal: '综合',
+                filterAdult: '成人',
+                downloadSuccess: '已添加到下载队列',
+                downloadFailed: '下载失败',
+                downloadAlready: '已在下载/做种中',
+                errors: {
+                    qb_not_configured: 'qBittorrent 未配置',
+                    download_link_failed: '获取下载链接失败',
+                    qb_connection_failed: 'qBittorrent 连接失败',
+                    add_torrent_failed: '添加种子失败'
+                },
+                statRatio: '分享率',
+                statUpload: '上传',
+                statDownload: '下载',
+                rivalRatio: '对手分享率',
+                ratioDiff: '差距',
+                filterTitle: '筛选条件',
+                applyFilters: '应用筛选',
+                searchBtn: '搜索',
+                autoDelete: '自动删除',
+                autoDeleteDesc: '免费变节时删除未完成下载',
+                autoDeleteEnabled: '自动删除已启用',
+                autoDeleteDisabled: '自动删除已禁用',
+                autoDeleteError: '切换失败，请检查配置',
+                resetFilters: '重置',
+                filtersActive: '个筛选'
+            },
+            'en': {
+                subtitle: 'MTEAM SEEDER',
+                total: 'Total',
+                refresh: 'Refresh',
+                refreshing: 'Refreshing...',
+                lastUpdate: 'Last update',
+                lastRefresh: 'Last refresh',
+                noData: 'No data yet',
+                nextRefresh: 'Next refresh',
+                filterType: 'Type',
+                filterSize: 'Size',
+                filterSeeders: 'Seeders',
+                filterRemaining: 'Time Left',
+                filterAll: 'All',
+                showing: 'Showing',
+                results: 'results',
+                colDownload: 'DL',
+                colName: 'Torrent Name',
+                colSize: 'Size',
+                colPeers: 'S/L',
+                colDiscount: 'Discount',
+                colStatus: 'Status',
+                colRemaining: 'Remaining',
+                emptyState: 'No free torrents',
+                checkConfig: 'Please check if MT_TOKEN is configured',
+                autoRefresh: 'Auto refresh interval',
+                minutes: 'min',
+                refreshFailed: 'Refresh failed',
+                filterStatus: 'Status',
+                filterLeeching: 'Leeching',
+                filterSeeding: 'Seeding',
+                filterMode: 'Channel',
+                filterNormal: 'Normal',
+                filterAdult: 'Adult',
+                downloadSuccess: 'Added to download queue',
+                downloadFailed: 'Download failed',
+                downloadAlready: 'Already downloading/seeding',
+                errors: {
+                    qb_not_configured: 'qBittorrent not configured',
+                    download_link_failed: 'Failed to get download link',
+                    qb_connection_failed: 'qBittorrent connection failed',
+                    add_torrent_failed: 'Failed to add torrent'
+                },
+                statRatio: 'Ratio',
+                statUpload: 'Upload',
+                statDownload: 'Download',
+                rivalRatio: 'Rival Ratio',
+                ratioDiff: 'Gap',
+                filterTitle: 'Filters',
+                applyFilters: 'Apply Filters',
+                searchBtn: 'Search',
+                autoDelete: 'Auto Delete',
+                autoDeleteDesc: 'Delete incomplete when free ends',
+                autoDeleteEnabled: 'Auto-delete enabled',
+                autoDeleteDisabled: 'Auto-delete disabled',
+                autoDeleteError: 'Toggle failed, please check config',
+                resetFilters: 'Reset',
+                filtersActive: 'filters'
+            }
+        };
+
+        // ============ State ============
+        let currentLang = localStorage.getItem('language') || 'zh';
+        let currentTheme = localStorage.getItem('theme') || 'dark';
+        let currentDiscount = 'all';
+        let currentStatus = 'all';
+        let currentMode = 'all';
+        let currentSort = { column: 'remaining', direction: 'asc' };
+        let drawerStatus = 'all';
+        let drawerMode = 'all';
+        const REFRESH_INTERVAL = {{ refresh_interval }} * 1000;
+        const PAGE_LOAD_TIME = Date.now();
+
+        // ============ Remaining Time Countdown ============
+        function formatRemainingTime(hours, lang) {
+            if (hours <= 0) {
+                return lang === 'zh' ? '已结束' : 'Ended';
+            }
+
+            // Handle permanent free (Infinity)
+            if (!isFinite(hours)) {
+                return lang === 'zh' ? '永久免费' : 'Permanent';
+            }
+
+            const totalMinutes = Math.floor(hours * 60);
+            const days = Math.floor(hours / 24);
+            const remainingHours = Math.floor(hours % 24);
+            const minutes = Math.floor((hours * 60) % 60);
+
+            if (lang === 'zh') {
+                if (days > 0) {
+                    return `${days}天${remainingHours}小时`;
+                } else if (hours >= 1) {
+                    return `${Math.floor(hours)}小时${minutes}分钟`;
+                } else {
+                    return `${totalMinutes}分钟`;
+                }
+            } else {
+                if (days > 0) {
+                    return `${days}d ${remainingHours}h`;
+                } else if (hours >= 1) {
+                    return `${Math.floor(hours)}h ${minutes}m`;
+                } else {
+                    return `${totalMinutes}m`;
+                }
+            }
+        }
+
+        function getRemainingColor(hours) {
+            if (hours < 1) return 'red';
+            if (hours < 2) return 'orange';
+            if (hours < 6) return 'yellow';
+            return 'green';
+        }
+
+        function updateAllRemainingTimes() {
+            const elapsedMs = Date.now() - PAGE_LOAD_TIME;
+            const elapsedHours = elapsedMs / (1000 * 60 * 60);
+
+            document.querySelectorAll('#torrentBody tr').forEach(row => {
+                // Use original hours stored at page load (data-original-remaining)
+                // Fall back to data-remaining if original not yet set
+                if (!row.dataset.originalRemaining) {
+                    row.dataset.originalRemaining = row.dataset.remaining;
+                }
+                const originalHours = parseFloat(row.dataset.originalRemaining);
+                const currentHours = Math.max(0, originalHours - elapsedHours);
+
+                // Update data attribute for filtering (current remaining)
+                row.dataset.remaining = currentHours.toString();
+
+                // Update display
+                const displayEl = row.querySelector('.remaining-display');
+                if (displayEl) {
+                    const zhText = formatRemainingTime(currentHours, 'zh');
+                    const enText = formatRemainingTime(currentHours, 'en');
+                    displayEl.dataset.zh = zhText;
+                    displayEl.dataset.en = enText;
+                    displayEl.textContent = currentLang === 'zh' ? zhText : enText;
+                }
+
+                // Update status dot color
+                const remainingTimeEl = row.querySelector('.remaining-time');
+                const statusDot = row.querySelector('.status-dot');
+                if (remainingTimeEl && statusDot) {
+                    const newColor = getRemainingColor(currentHours);
+                    // Remove old color classes
+                    remainingTimeEl.className = remainingTimeEl.className.replace(/status-(green|yellow|orange|red)/g, '').trim();
+                    statusDot.className = statusDot.className.replace(/green|yellow|orange|red/g, '').trim();
+                    // Add new color classes
+                    remainingTimeEl.classList.add(`status-${newColor}`);
+                    statusDot.classList.add(newColor);
+                }
+            });
+        }
+
+        // Update remaining times every second
+        setInterval(updateAllRemainingTimes, 1000);
+
+        // ============ Theme ============
+        function setTheme(theme) {
+            document.body.setAttribute('data-theme', theme);
+            document.getElementById('themeIcon').textContent = theme === 'dark' ? '☀️' : '🌙';
+            localStorage.setItem('theme', theme);
+            currentTheme = theme;
+        }
+
+        function toggleTheme() {
+            setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        }
+
+        // ============ Language ============
+        function setLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('language', lang);
+            document.getElementById('langToggle').textContent = lang === 'zh' ? 'EN' : '中文';
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (TRANSLATIONS[lang][key]) el.textContent = TRANSLATIONS[lang][key];
+            });
+
+            document.querySelectorAll('.remaining-display').forEach(el => {
+                el.textContent = lang === 'zh' ? el.dataset.zh : el.dataset.en;
+            });
+
+            document.querySelectorAll('.badge[data-status-zh]').forEach(el => {
+                const progressRing = el.querySelector('.progress-ring');
+                const statusText = lang === 'zh' ? el.dataset.statusZh : el.dataset.statusEn;
+                if (progressRing) {
+                    el.innerHTML = '';
+                    el.appendChild(document.createTextNode(statusText));
+                    el.appendChild(progressRing);
+                } else {
+                    el.textContent = statusText;
+                }
+            });
+
+            // Update search placeholders
+            document.querySelectorAll('.search-input').forEach(el => {
+                el.placeholder = lang === 'zh' ? el.dataset.placeholderZh : el.dataset.placeholderEn;
+            });
+        }
+
+        function toggleLanguage() {
+            document.getElementById('loadingOverlay').classList.add('active');
+            localStorage.setItem('language', currentLang === 'zh' ? 'en' : 'zh');
+            setTimeout(() => location.reload(), 150);
+        }
+
+        // ============ Drawer ============
+        function openFilterDrawer() {
+            document.getElementById('drawerOverlay').classList.add('active');
+            document.getElementById('filterDrawer').classList.add('active');
+            document.body.classList.add('drawer-open');
+        }
+
+        function closeFilterDrawer() {
+            document.getElementById('drawerOverlay').classList.remove('active');
+            document.getElementById('filterDrawer').classList.remove('active');
+            document.body.classList.remove('drawer-open');
+        }
+
+        function setDrawerStatus(status, btn) {
+            drawerStatus = status;
+            document.querySelectorAll('.drawer-status-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        function setDrawerMode(mode, btn) {
+            drawerMode = mode;
+            document.querySelectorAll('.drawer-mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        function applyDrawerFilters() {
+            // Sync drawer values to desktop filters
+            document.getElementById('sizeFilter').value = document.getElementById('drawerSizeFilter').value;
+            document.getElementById('seederFilter').value = document.getElementById('drawerSeederFilter').value;
+            document.getElementById('remainingFilter').value = document.getElementById('drawerRemainingFilter').value;
+
+            currentStatus = drawerStatus;
+            currentMode = drawerMode;
+
+            // Sync mobile search to desktop
+            const mobileSearch = document.getElementById('mobileSearchInput').value;
+            document.getElementById('searchInput').value = mobileSearch;
+
+            // Update desktop button states
+            document.querySelectorAll('.status-filter-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.status === currentStatus);
+            });
+            document.querySelectorAll('.mode-filter-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.mode === currentMode);
+            });
+
+            // Apply and close
+            applyFilters();
+            closeFilterDrawer();
+
+            // Update filter button indicator
+            updateFilterButtonState();
+        }
+
+        function updateFilterButtonState() {
+            const hasFilters =
+                document.getElementById('sizeFilter').value !== 'all' ||
+                document.getElementById('seederFilter').value !== 'all' ||
+                document.getElementById('remainingFilter').value !== 'all' ||
+                currentStatus !== 'all' ||
+                currentMode !== 'all';
+
+            document.getElementById('filterToggleBtn').classList.toggle('has-filters', hasFilters);
+        }
+
+        // ============ Filters ============
+        function filterByStatus(status, btn) {
+            currentStatus = status;
+            document.querySelectorAll('.status-filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            applyFilters();
+        }
+
+        function filterByMode(mode, btn) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            applyFilters();
+        }
+
+        function updateZebraStriping() {
+            const rows = document.querySelectorAll('#torrentBody tr');
+            let visibleIndex = 0;
+
+            rows.forEach(row => {
+                if (row.style.display !== 'none') {
+                    row.classList.remove('zebra-even', 'zebra-odd');
+                    row.classList.add(visibleIndex % 2 === 0 ? 'zebra-even' : 'zebra-odd');
+                    visibleIndex++;
+                }
+            });
+        }
+
+        function applyFilters() {
+            const sizeFilter = document.getElementById('sizeFilter').value;
+            const seederFilter = document.getElementById('seederFilter').value;
+            const remainingFilter = document.getElementById('remainingFilter').value;
+            const searchTerm = (document.getElementById('searchInput').value || document.getElementById('mobileSearchInput').value || '').toLowerCase();
+            const rows = document.querySelectorAll('#torrentBody tr');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                let show = true;
+                const size = parseInt(row.dataset.size);
+                const seeders = parseInt(row.dataset.seeders);
+                const remaining = parseFloat(row.dataset.remaining);
+                const name = (row.dataset.name || '').toLowerCase();
+                const GB = 1024 * 1024 * 1024;
+
+                // Search filter
+                if (searchTerm && !name.includes(searchTerm)) show = false;
+
+                if (show && currentDiscount !== 'all' && row.dataset.discount !== currentDiscount) show = false;
+                if (show && currentStatus !== 'all' && row.dataset.status !== currentStatus) show = false;
+                if (show && currentMode !== 'all' && row.dataset.mode !== currentMode) show = false;
+
+                if (show && sizeFilter !== 'all') {
+                    switch (sizeFilter) {
+                        case 'small': show = size < 10 * GB; break;
+                        case 'medium': show = size >= 10 * GB && size < 50 * GB; break;
+                        case 'large': show = size >= 50 * GB && size < 100 * GB; break;
+                        case 'xlarge': show = size >= 100 * GB; break;
+                    }
+                }
+
+                if (show && seederFilter !== 'all') {
+                    switch (seederFilter) {
+                        case 'hot': show = seeders > 10; break;
+                        case 'normal': show = seeders >= 5 && seeders <= 10; break;
+                        case 'rare': show = seeders >= 1 && seeders < 5; break;
+                        case 'dead': show = seeders === 0; break;
+                    }
+                }
+
+                if (show && remainingFilter !== 'all') {
+                    switch (remainingFilter) {
+                        case 'critical': show = remaining < 1; break;
+                        case 'danger': show = remaining >= 1 && remaining < 2; break;
+                        case 'warning': show = remaining >= 2 && remaining < 6; break;
+                        case 'safe': show = remaining >= 6 && remaining < 24; break;
+                        case 'plenty': show = remaining >= 24; break;
+                    }
+                }
+
+                row.style.display = show ? '' : 'none';
+                if (show) visibleCount++;
+            });
+
+            document.getElementById('filteredCount').textContent = visibleCount;
+            updateFilterButtonState();
+            updateFilterCountBadge();
+            saveFiltersToLocalStorage();
+            updateZebraStriping();
+        }
+
+        // ============ Sort ============
+        function sortTable(column) {
+            const tbody = document.getElementById('torrentBody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+
+            if (currentSort.column === column) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.column = column;
+                currentSort.direction = 'asc';
+            }
+
+            rows.sort((a, b) => {
+                let aVal, bVal;
+                switch (column) {
+                    case 'name':
+                        aVal = a.querySelector('.torrent-name a').textContent.toLowerCase();
+                        bVal = b.querySelector('.torrent-name a').textContent.toLowerCase();
+                        break;
+                    case 'size': aVal = parseInt(a.dataset.size); bVal = parseInt(b.dataset.size); break;
+                    case 'seeders': aVal = parseInt(a.dataset.seeders); bVal = parseInt(b.dataset.seeders); break;
+                    case 'leechers': aVal = parseInt(a.dataset.leechers); bVal = parseInt(b.dataset.leechers); break;
+                    case 'discount': aVal = a.dataset.discount; bVal = b.dataset.discount; break;
+                    case 'status':
+                        const order = { 'seeding': 2, 'leeching': 1, 'none': 0 };
+                        aVal = order[a.dataset.status] || 0;
+                        bVal = order[b.dataset.status] || 0;
+                        break;
+                    case 'remaining': aVal = parseFloat(a.dataset.remaining); bVal = parseFloat(b.dataset.remaining); break;
+                }
+                if (typeof aVal === 'string') return currentSort.direction === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+                return currentSort.direction === 'asc' ? aVal - bVal : bVal - aVal;
+            });
+
+            rows.forEach(row => tbody.appendChild(row));
+            updateZebraStriping();
+
+            // Reset all sort indicators
+            document.querySelectorAll('th').forEach(th => th.classList.remove('sorted'));
+            document.querySelectorAll('th .sort-icon').forEach(icon => {
+                icon.textContent = '↕';
+            });
+
+            // Reset peer sort buttons
+            document.querySelectorAll('.peer-sort-btn').forEach(btn => {
+                btn.classList.remove('sorted');
+                btn.querySelector('.sort-icon').textContent = '↕';
+            });
+
+            // Update the correct sort indicator
+            if (column === 'seeders' || column === 'leechers') {
+                // Handle peer column sorting
+                const peerBtn = document.querySelector(`.peer-sort-btn .sort-icon[data-sort="${column}"]`);
+                if (peerBtn) {
+                    peerBtn.parentElement.classList.add('sorted');
+                    peerBtn.textContent = currentSort.direction === 'asc' ? '↑' : '↓';
+                }
+            } else {
+                // Handle regular column sorting
+                const sortedTh = document.querySelector(`th[onclick="sortTable('${column}')"]`);
+                if (sortedTh) {
+                    sortedTh.classList.add('sorted');
+                    sortedTh.querySelector('.sort-icon').textContent = currentSort.direction === 'asc' ? '↑' : '↓';
+                }
+            }
+        }
+
+        // ============ Refresh ============
+        async function manualRefresh() {
+            const btn = document.getElementById('refreshBtn');
+            btn.disabled = true;
+            btn.textContent = TRANSLATIONS[currentLang].refreshing;
+            try {
+                await fetch('/api/refresh', { method: 'POST' });
+                document.getElementById('loadingOverlay').classList.add('active');
+                setTimeout(() => location.reload(), 150);
+            } catch (e) {
+                btn.disabled = false;
+                btn.textContent = TRANSLATIONS[currentLang].refresh;
+                showToast(TRANSLATIONS[currentLang].refreshFailed, 'error');
+            }
+        }
+
+        // ============ Download ============
+        async function downloadTorrent(torrentId) {
+            const btn = event.target.closest('.download-btn');
+            if (!btn || btn.disabled || btn.classList.contains('loading')) return;
+
+            btn.classList.add('loading');
+
+            try {
+                const response = await fetch('/api/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: torrentId })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(result.message || TRANSLATIONS[currentLang].downloadSuccess, 'success');
+                    btn.classList.add('downloaded');
+                    btn.disabled = true;
+                } else {
+                    const errorMsg = result.error && TRANSLATIONS[currentLang].errors[result.error]
+                        ? TRANSLATIONS[currentLang].errors[result.error]
+                        : (result.message || TRANSLATIONS[currentLang].downloadFailed);
+                    showToast(errorMsg, 'error');
+                }
+            } catch (e) {
+                showToast(TRANSLATIONS[currentLang].downloadFailed, 'error');
+            } finally {
+                btn.classList.remove('loading');
+            }
+        }
+
+        // ============ Auto Delete ============
+        async function loadAutoDeleteStatus() {
+            // Load auto-delete status from backend and sync both toggles
+            try {
+                const response = await fetch('/api/auto-delete/status');
+                const result = await response.json();
+                const desktopToggle = document.getElementById('autoDeleteToggle');
+                const drawerToggle = document.getElementById('drawerAutoDeleteToggle');
+
+                if (desktopToggle) {
+                    desktopToggle.checked = result.enabled || false;
+                    desktopToggle.disabled = !result.qbittorrent_configured;
+                }
+                if (drawerToggle) {
+                    drawerToggle.checked = result.enabled || false;
+                    drawerToggle.disabled = !result.qbittorrent_configured;
+                }
+            } catch (e) {
+                console.error('Failed to load auto-delete status:', e);
+            }
+        }
+
+        function syncAutoDeleteToggles(enabled, disabled) {
+            // Sync both toggle states
+            const desktopToggle = document.getElementById('autoDeleteToggle');
+            const drawerToggle = document.getElementById('drawerAutoDeleteToggle');
+            if (desktopToggle) {
+                desktopToggle.checked = enabled;
+                if (disabled !== undefined) desktopToggle.disabled = disabled;
+            }
+            if (drawerToggle) {
+                drawerToggle.checked = enabled;
+                if (disabled !== undefined) drawerToggle.disabled = disabled;
+            }
+        }
+
+        async function toggleAutoDelete() {
+            // Toggle auto-delete feature (called from desktop filter bar)
+            const toggle = document.getElementById('autoDeleteToggle');
+            const originalState = !toggle.checked; // State before change
+
+            try {
+                const response = await fetch('/api/auto-delete/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    syncAutoDeleteToggles(result.enabled);
+                    const message = result.enabled ?
+                        TRANSLATIONS[currentLang].autoDeleteEnabled :
+                        TRANSLATIONS[currentLang].autoDeleteDisabled;
+                    showToast(message, 'success');
+                } else {
+                    // Revert toggle state on failure
+                    syncAutoDeleteToggles(originalState);
+                    showToast(result.message || TRANSLATIONS[currentLang].autoDeleteError, 'error');
+                }
+            } catch (e) {
+                // Revert toggle state on error
+                syncAutoDeleteToggles(originalState);
+                showToast(TRANSLATIONS[currentLang].autoDeleteError, 'error');
+            }
+        }
+
+        async function toggleAutoDeleteFromDrawer() {
+            // Toggle auto-delete feature (called from mobile drawer)
+            const toggle = document.getElementById('drawerAutoDeleteToggle');
+            const originalState = !toggle.checked; // State before change
+
+            try {
+                const response = await fetch('/api/auto-delete/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    syncAutoDeleteToggles(result.enabled);
+                    const message = result.enabled ?
+                        TRANSLATIONS[currentLang].autoDeleteEnabled :
+                        TRANSLATIONS[currentLang].autoDeleteDisabled;
+                    showToast(message, 'success');
+                } else {
+                    // Revert toggle state on failure
+                    syncAutoDeleteToggles(originalState);
+                    showToast(result.message || TRANSLATIONS[currentLang].autoDeleteError, 'error');
+                }
+            } catch (e) {
+                // Revert toggle state on error
+                syncAutoDeleteToggles(originalState);
+                showToast(TRANSLATIONS[currentLang].autoDeleteError, 'error');
+            }
+        }
+
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'toastOut 0.3s ease forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
+        }
+
+        // ============ Back to Top ============
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        window.addEventListener('scroll', function() {
+            const backToTopBtn = document.getElementById('backToTop');
+            if (window.scrollY > 300) {
+                backToTopBtn.classList.add('visible');
+            } else {
+                backToTopBtn.classList.remove('visible');
+            }
+        });
+
+        // ============ Search on Enter ============
+        document.addEventListener('DOMContentLoaded', function() {
+            setTheme(currentTheme);
+            setLanguage(currentLang);
+
+            // Load auto-delete status
+            loadAutoDeleteStatus();
+
+            // Load saved filters
+            loadFiltersFromLocalStorage();
+
+            // Initialize zebra striping
+            updateZebraStriping();
+
+            // Setup keyboard shortcuts
+            setupKeyboardShortcuts();
+
+            // Initialize filter count badge
+            updateFilterCountBadge();
+
+            // Search on Enter key
+            document.getElementById('searchInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') applyFilters();
+            });
+            document.getElementById('mobileSearchInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    document.getElementById('searchInput').value = this.value;
+                    applyFilters();
+                }
+            });
+        });
+
+        // Auto refresh
+        setTimeout(() => location.reload(), REFRESH_INTERVAL);
+
+        // ============ Filter Count Badge ============
+        function updateFilterCountBadge() {
+            const filterCount = getActiveFilterCount();
+            const badge = document.getElementById('filterCountBadge');
+            if (badge) {
+                if (filterCount > 0) {
+                    badge.textContent = `${filterCount} ${TRANSLATIONS[currentLang].filtersActive}`;
+                    badge.classList.add('visible');
+                } else {
+                    badge.classList.remove('visible');
+                }
+            }
+
+            // Update reset button visibility
+            const resetBtn = document.getElementById('resetFiltersBtn');
+            if (resetBtn) {
+                if (filterCount > 0) {
+                    resetBtn.classList.add('visible');
+                } else {
+                    resetBtn.classList.remove('visible');
+                }
+            }
+        }
+
+        function getActiveFilterCount() {
+            let count = 0;
+            if (document.getElementById('sizeFilter').value !== 'all') count++;
+            if (document.getElementById('seederFilter').value !== 'all') count++;
+            if (document.getElementById('remainingFilter').value !== 'all') count++;
+            if (currentStatus !== 'all') count++;
+            if (currentMode !== 'all') count++;
+            if (document.getElementById('searchInput').value.trim() !== '') count++;
+            return count;
+        }
+
+        // ============ Reset Filters ============
+        function resetAllFilters() {
+            // Reset dropdowns
+            document.getElementById('sizeFilter').value = 'all';
+            document.getElementById('seederFilter').value = 'all';
+            document.getElementById('remainingFilter').value = 'all';
+
+            // Reset search
+            document.getElementById('searchInput').value = '';
+            document.getElementById('mobileSearchInput').value = '';
+
+            // Reset status
+            currentStatus = 'all';
+            document.querySelectorAll('.status-filter-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.status === 'all');
+            });
+
+            // Reset mode
+            currentMode = 'all';
+            document.querySelectorAll('.mode-filter-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.mode === 'all');
+            });
+
+            // Apply filters
+            applyFilters();
+        }
+
+        function resetAllFiltersFromDrawer() {
+            // Reset drawer dropdowns
+            document.getElementById('drawerSizeFilter').value = 'all';
+            document.getElementById('drawerSeederFilter').value = 'all';
+            document.getElementById('drawerRemainingFilter').value = 'all';
+
+            // Reset drawer status
+            drawerStatus = 'all';
+            document.querySelectorAll('.drawer-status-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.status === 'all');
+            });
+
+            // Reset drawer mode
+            drawerMode = 'all';
+            document.querySelectorAll('.drawer-mode-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.mode === 'all');
+            });
+
+            // Reset mobile search
+            document.getElementById('mobileSearchInput').value = '';
+
+            // Apply
+            applyDrawerFilters();
+        }
+
+        // ============ Filter Persistence ============
+        function saveFiltersToLocalStorage() {
+            const filters = {
+                size: document.getElementById('sizeFilter').value,
+                seeder: document.getElementById('seederFilter').value,
+                remaining: document.getElementById('remainingFilter').value,
+                status: currentStatus,
+                mode: currentMode,
+                search: document.getElementById('searchInput').value
+            };
+            localStorage.setItem('mt-free-hunter-filters', JSON.stringify(filters));
+        }
+
+        function loadFiltersFromLocalStorage() {
+            try {
+                const saved = localStorage.getItem('mt-free-hunter-filters');
+                if (saved) {
+                    const filters = JSON.parse(saved);
+
+                    // Restore dropdowns
+                    if (filters.size) document.getElementById('sizeFilter').value = filters.size;
+                    if (filters.seeder) document.getElementById('seederFilter').value = filters.seeder;
+                    if (filters.remaining) document.getElementById('remainingFilter').value = filters.remaining;
+
+                    // Restore search
+                    if (filters.search) {
+                        document.getElementById('searchInput').value = filters.search;
+                        document.getElementById('mobileSearchInput').value = filters.search;
+                    }
+
+                    // Restore status
+                    if (filters.status) {
+                        currentStatus = filters.status;
+                        document.querySelectorAll('.status-filter-btn').forEach(b => {
+                            b.classList.toggle('active', b.dataset.status === filters.status);
+                        });
+                    }
+
+                    // Restore mode
+                    if (filters.mode) {
+                        currentMode = filters.mode;
+                        document.querySelectorAll('.mode-filter-btn').forEach(b => {
+                            b.classList.toggle('active', b.dataset.mode === filters.mode);
+                        });
+                    }
+
+                    // Sync to drawer
+                    if (filters.size) document.getElementById('drawerSizeFilter').value = filters.size;
+                    if (filters.seeder) document.getElementById('drawerSeederFilter').value = filters.seeder;
+                    if (filters.remaining) document.getElementById('drawerRemainingFilter').value = filters.remaining;
+                    if (filters.status) {
+                        drawerStatus = filters.status;
+                        document.querySelectorAll('.drawer-status-btn').forEach(b => {
+                            b.classList.toggle('active', b.dataset.status === filters.status);
+                        });
+                    }
+                    if (filters.mode) {
+                        drawerMode = filters.mode;
+                        document.querySelectorAll('.drawer-mode-btn').forEach(b => {
+                            b.classList.toggle('active', b.dataset.mode === filters.mode);
+                        });
+                    }
+
+                    // Apply filters
+                    applyFilters();
+                }
+            } catch (e) {
+                console.error('Failed to load filters from localStorage:', e);
+            }
+        }
+
+        // ============ Keyboard Shortcuts ============
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', function(e) {
+                // Ignore if user is typing in an input
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+                    // Allow Escape to clear search
+                    if (e.key === 'Escape') {
+                        e.target.blur();
+                        if (e.target.classList.contains('search-input')) {
+                            e.target.value = '';
+                            document.getElementById('searchInput').value = '';
+                            document.getElementById('mobileSearchInput').value = '';
+                            applyFilters();
+                        }
+                    }
+                    return;
+                }
+
+                // / - Focus search
+                if (e.key === '/') {
+                    e.preventDefault();
+                    const searchInput = document.getElementById('searchInput');
+                    if (searchInput && window.innerWidth > 768) {
+                        searchInput.focus();
+                    } else {
+                        document.getElementById('mobileSearchInput').focus();
+                    }
+                }
+
+                // R - Refresh
+                if (e.key === 'r' || e.key === 'R') {
+                    e.preventDefault();
+                    manualRefresh();
+                }
+
+                // T - Toggle theme
+                if (e.key === 't' || e.key === 'T') {
+                    e.preventDefault();
+                    toggleTheme();
+                }
+
+                // C - Clear filters
+                if (e.key === 'c' || e.key === 'C') {
+                    e.preventDefault();
+                    resetAllFilters();
+                }
+
+                // Escape - Close drawer
+                if (e.key === 'Escape') {
+                    const drawer = document.getElementById('filterDrawer');
+                    if (drawer && drawer.classList.contains('active')) {
+                        closeFilterDrawer();
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
