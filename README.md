@@ -1,6 +1,6 @@
 # M-Team Engine (MT 引擎)
 
-![Version](https://img.shields.io/badge/version-2.3.0-blue.svg)
+![Version](https://img.shields.io/badge/version-2.3.1-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
 ![Docker](https://img.shields.io/badge/docker-ready-blue.svg)
@@ -393,6 +393,12 @@ A: 修改 `.env` 文件中的 `REFRESH_INTERVAL` 值（单位：秒）。
 ---
 
 ## 更新日志
+
+### v2.3.1 (2026-01)
+- 简化 qBittorrent URL 配置文档
+- 默认 URL 改为 `192.168.x.x:8080` 占位符
+- 移除 `host.docker.internal` 相关说明
+- 明确说明 Docker 环境下必须使用 NAS 实际 IP
 
 ### v2.3.0 (2026-01)
 - 完善 qBittorrent 配置文档
@@ -897,6 +903,12 @@ A: Modify the `REFRESH_INTERVAL` value in `.env` file (unit: seconds).
 ---
 
 ## Changelog
+
+### v2.3.1 (2026-01)
+- Simplified qBittorrent URL configuration for Docker users
+- Changed default URL from `localhost:8080` to `192.168.x.x:8080` placeholder
+- Removed `host.docker.internal` references to simplify setup
+- Added clear warning that `localhost` won't work in Docker environment
 
 ### v2.3.0 (2026-01)
 - Improved qBittorrent configuration documentation
