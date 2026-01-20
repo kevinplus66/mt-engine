@@ -1,6 +1,6 @@
 # M-Team Engine (MT 引擎)
 
-![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)
+![Version](https://img.shields.io/badge/version-2.3.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
 ![Docker](https://img.shields.io/badge/docker-ready-blue.svg)
@@ -392,6 +392,11 @@ A: 修改 `.env` 文件中的 `REFRESH_INTERVAL` 值（单位：秒）。
 ---
 
 ## 更新日志
+
+### v2.3.0 (2026-01)
+- 完善 qBittorrent 配置文档
+- `docker-compose.yml` 添加 qBittorrent 环境变量
+- `安装指南.md` 添加 qBittorrent 配置说明和 Docker 网络配置提示
 
 ### v2.2.0 (2026-01)
 - 全新 Nothing OS 设计系统（极简工业风格）
@@ -890,6 +895,11 @@ A: Modify the `REFRESH_INTERVAL` value in `.env` file (unit: seconds).
 ---
 
 ## Changelog
+
+### v2.3.0 (2026-01)
+- Improved qBittorrent configuration documentation
+- Added qBittorrent environment variables to `docker-compose.yml`
+- Added qBittorrent setup instructions to installation guide with Docker network tips
 
 ### v2.2.0 (2026-01)
 - New Nothing OS Design System (minimalist industrial style)

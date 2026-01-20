@@ -3,7 +3,7 @@ MT-Engine - M-Team 免费种子猎手
 自动搜索当前所有 Free / 2xFree 种子
 """
 
-__version__ = "2.2.0"
+__version__ = "2.3.0"
 
 import os
 import re
