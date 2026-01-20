@@ -89,8 +89,9 @@ RIVAL_USER_ID=
 # PushPlus Token（可选，用于微信推送预警）
 PUSHPLUS_TOKEN=
 
-# qBittorrent Web UI 配置（可选，用于自动删除功能）
-QBITTORRENT_URL=http://localhost:8080
+# qBittorrent Web UI 配置（可选，用于一键下载和自动删除）
+# ⚠️ Docker 环境必须使用 NAS 的实际 IP，不能用 localhost
+QBITTORRENT_URL=http://192.168.x.x:8080
 QBITTORRENT_USER=admin
 QBITTORRENT_PASSWORD=adminadmin
 ```
@@ -118,7 +119,7 @@ docker-compose up -d
 | `API_DELAY` | API 请求间隔（秒） | `1` |
 | `RIVAL_USER_ID` | 对手用户ID，用于分享率对比 | - |
 | `PUSHPLUS_TOKEN` | PushPlus 微信推送 Token | - |
-| `QBITTORRENT_URL` | qBittorrent Web UI 地址 | `http://localhost:8080` |
+| `QBITTORRENT_URL` | qBittorrent Web UI 地址 | `http://192.168.x.x:8080` (需填写 NAS IP) |
 | `QBITTORRENT_USER` | qBittorrent Web UI 用户名 | `admin` |
 | `QBITTORRENT_PASSWORD` | qBittorrent Web UI 密码 | `adminadmin` |
 
@@ -592,8 +593,9 @@ RIVAL_USER_ID=
 # PushPlus Token (Optional, for WeChat push notifications)
 PUSHPLUS_TOKEN=
 
-# qBittorrent Web UI Configuration (Optional, for auto-delete feature)
-QBITTORRENT_URL=http://localhost:8080
+# qBittorrent Web UI Configuration (Optional, for one-click download and auto-delete)
+# ⚠️ In Docker, you MUST use your NAS's actual IP, NOT localhost
+QBITTORRENT_URL=http://192.168.x.x:8080
 QBITTORRENT_USER=admin
 QBITTORRENT_PASSWORD=adminadmin
 ```
@@ -621,7 +623,7 @@ Open browser and visit: `http://localhost:5001`
 | `API_DELAY` | API request delay (seconds) | `1` |
 | `RIVAL_USER_ID` | Rival user ID for ratio comparison | - |
 | `PUSHPLUS_TOKEN` | PushPlus WeChat push token | - |
-| `QBITTORRENT_URL` | qBittorrent Web UI URL | `http://localhost:8080` |
+| `QBITTORRENT_URL` | qBittorrent Web UI URL | `http://192.168.x.x:8080` (use NAS IP) |
 | `QBITTORRENT_USER` | qBittorrent Web UI username | `admin` |
 | `QBITTORRENT_PASSWORD` | qBittorrent Web UI password | `adminadmin` |
 
