@@ -736,6 +736,75 @@
             font-weight: 500;
         }
 
+        /* Label badges */
+        .label-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            margin: 1px 2px;
+            background: var(--nt-text);
+            color: var(--nt-bg);
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .viz-labels {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            line-height: 1.4;
+        }
+
+        /* External links */
+        .external-link {
+            color: var(--nt-text);
+            text-decoration: underline;
+            text-decoration-style: dotted;
+        }
+
+        .external-link:hover {
+            color: var(--nt-primary);
+        }
+
+        /* Media link buttons (IMDB, Douban) */
+        .media-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px 12px;
+            border: 1px dotted var(--nt-border);
+            background: transparent;
+            color: var(--nt-text);
+            font-family: var(--nt-font-dot);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
+
+        .media-link:hover {
+            border-style: solid;
+        }
+
+        .media-link.imdb:hover {
+            background: #F5C518;
+            color: #000;
+            border-color: #F5C518;
+        }
+
+        .media-link.douban:hover {
+            background: #00B51D;
+            color: #fff;
+            border-color: #00B51D;
+        }
+
+        .media-link-disabled {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
         .viz-stats {
             display: flex;
             flex-direction: column;
@@ -1534,7 +1603,7 @@
     <footer class="footer">
         <div class="container">
             <p>MT-Engine · Search Engine</p>
-            <p style="margin-top: 8px; font-size: 11px; color: var(--nt-text-secondary);">v2.3.1</p>
+            <p style="margin-top: 8px; font-size: 11px; color: var(--nt-text-secondary);">v2.4.1</p>
         </div>
     </footer>
 
@@ -1593,7 +1662,10 @@
                 metaTeam: '制作组',
                 metaCompleted: '完成',
                 metaTags: '标签',
-                metaTimes: '次'
+                metaTimes: '次',
+                labels: '标签',
+                douban: '豆瓣',
+                country: '国家'
             },
             'en': {
                 searchBtn: 'Search',
@@ -1647,9 +1719,75 @@
                 metaTeam: 'Team',
                 metaCompleted: 'Completed',
                 metaTags: 'Tags',
-                metaTimes: 'times'
+                metaTimes: 'times',
+                labels: 'Labels',
+                douban: 'Douban',
+                country: 'Country'
             }
         };
+
+        // ============ Country Translations (English to Chinese) ============
+        const COUNTRY_TRANSLATIONS = {
+            // Asia
+            'China': '中国', 'Mainland China': '中国大陆', 'Hong Kong': '香港', 'Taiwan': '台湾',
+            'Japan': '日本', 'South Korea': '韩国', 'Korea': '韩国', 'North Korea': '朝鲜',
+            'Thailand': '泰国', 'Vietnam': '越南', 'Singapore': '新加坡', 'Malaysia': '马来西亚',
+            'Indonesia': '印度尼西亚', 'Philippines': '菲律宾', 'India': '印度', 'Pakistan': '巴基斯坦',
+            'Bangladesh': '孟加拉国', 'Sri Lanka': '斯里兰卡', 'Nepal': '尼泊尔', 'Myanmar': '缅甸',
+            'Cambodia': '柬埔寨', 'Laos': '老挝', 'Mongolia': '蒙古', 'Kazakhstan': '哈萨克斯坦',
+            'Uzbekistan': '乌兹别克斯坦', 'Turkmenistan': '土库曼斯坦', 'Kyrgyzstan': '吉尔吉斯斯坦',
+            'Tajikistan': '塔吉克斯坦', 'Afghanistan': '阿富汗', 'Iran': '伊朗', 'Iraq': '伊拉克',
+            'Saudi Arabia': '沙特阿拉伯', 'United Arab Emirates': '阿联酋', 'UAE': '阿联酋',
+            'Israel': '以色列', 'Turkey': '土耳其', 'Lebanon': '黎巴嫩', 'Jordan': '约旦',
+            'Kuwait': '科威特', 'Qatar': '卡塔尔', 'Bahrain': '巴林', 'Oman': '阿曼', 'Yemen': '也门',
+            'Syria': '叙利亚', 'Palestine': '巴勒斯坦',
+            // Europe
+            'United Kingdom': '英国', 'UK': '英国', 'England': '英国', 'France': '法国',
+            'Germany': '德国', 'Italy': '意大利', 'Spain': '西班牙', 'Portugal': '葡萄牙',
+            'Netherlands': '荷兰', 'Belgium': '比利时', 'Switzerland': '瑞士', 'Austria': '奥地利',
+            'Sweden': '瑞典', 'Norway': '挪威', 'Denmark': '丹麦', 'Finland': '芬兰',
+            'Iceland': '冰岛', 'Ireland': '爱尔兰', 'Poland': '波兰', 'Czech Republic': '捷克',
+            'Czechia': '捷克', 'Hungary': '匈牙利', 'Romania': '罗马尼亚', 'Bulgaria': '保加利亚',
+            'Greece': '希腊', 'Croatia': '克罗地亚', 'Serbia': '塞尔维亚', 'Slovenia': '斯洛文尼亚',
+            'Slovakia': '斯洛伐克', 'Ukraine': '乌克兰', 'Russia': '俄罗斯', 'Belarus': '白俄罗斯',
+            'Lithuania': '立陶宛', 'Latvia': '拉脱维亚', 'Estonia': '爱沙尼亚', 'Moldova': '摩尔多瓦',
+            'Albania': '阿尔巴尼亚', 'North Macedonia': '北马其顿', 'Montenegro': '黑山',
+            'Bosnia and Herzegovina': '波黑', 'Kosovo': '科索沃', 'Luxembourg': '卢森堡',
+            'Malta': '马耳他', 'Cyprus': '塞浦路斯', 'Monaco': '摩纳哥', 'Liechtenstein': '列支敦士登',
+            'Andorra': '安道尔', 'San Marino': '圣马力诺', 'Vatican': '梵蒂冈',
+            // Americas
+            'United States': '美国', 'United States of America': '美国', 'USA': '美国', 'US': '美国', 'America': '美国',
+            'Canada': '加拿大', 'Mexico': '墨西哥', 'Brazil': '巴西', 'Argentina': '阿根廷',
+            'Chile': '智利', 'Colombia': '哥伦比亚', 'Peru': '秘鲁', 'Venezuela': '委内瑞拉',
+            'Ecuador': '厄瓜多尔', 'Bolivia': '玻利维亚', 'Paraguay': '巴拉圭', 'Uruguay': '乌拉圭',
+            'Cuba': '古巴', 'Dominican Republic': '多米尼加', 'Puerto Rico': '波多黎各',
+            'Jamaica': '牙买加', 'Haiti': '海地', 'Costa Rica': '哥斯达黎加', 'Panama': '巴拿马',
+            'Guatemala': '危地马拉', 'Honduras': '洪都拉斯', 'El Salvador': '萨尔瓦多',
+            'Nicaragua': '尼加拉瓜', 'Bahamas': '巴哈马', 'Trinidad and Tobago': '特立尼达和多巴哥',
+            // Oceania
+            'Australia': '澳大利亚', 'New Zealand': '新西兰', 'Fiji': '斐济',
+            'Papua New Guinea': '巴布亚新几内亚', 'Samoa': '萨摩亚', 'Tonga': '汤加',
+            // Africa
+            'South Africa': '南非', 'Egypt': '埃及', 'Morocco': '摩洛哥', 'Algeria': '阿尔及利亚',
+            'Tunisia': '突尼斯', 'Libya': '利比亚', 'Sudan': '苏丹', 'Ethiopia': '埃塞俄比亚',
+            'Kenya': '肯尼亚', 'Nigeria': '尼日利亚', 'Ghana': '加纳', 'Tanzania': '坦桑尼亚',
+            'Uganda': '乌干达', 'Zimbabwe': '津巴布韦', 'Zambia': '赞比亚', 'Botswana': '博茨瓦纳',
+            'Namibia': '纳米比亚', 'Mozambique': '莫桑比克', 'Angola': '安哥拉', 'Senegal': '塞内加尔',
+            'Ivory Coast': '科特迪瓦', 'Cameroon': '喀麦隆', 'Congo': '刚果',
+            'Democratic Republic of the Congo': '刚果民主共和国', 'Rwanda': '卢旺达',
+            // Special
+            'International': '国际', 'Unknown': '未知', 'Other': '其他', 'Multiple': '多国'
+        };
+
+        // Translate country name based on current language
+        function translateCountry(countryStr) {
+            if (!countryStr) return '-';
+            if (currentLang !== 'zh') return escapeHtml(countryStr);
+            // Handle multiple countries (comma-separated)
+            const countries = countryStr.split(',').map(c => c.trim());
+            const translated = countries.map(c => COUNTRY_TRANSLATIONS[c] || c);
+            return escapeHtml(translated.join(', '));
+        }
 
         // ============ State ============
         let currentLang = localStorage.getItem('language') || 'zh';
@@ -2145,54 +2283,82 @@
 
         function renderQualityMetadata(torrent) {
             if (!torrent || !torrent.quality_metadata) return '';
-            
+
             const m = torrent.quality_metadata;
             const t = TRANSLATIONS[currentLang];
             const val = (v) => v ? escapeHtml(v) : '-';
 
-            // Get discount label safely
-            let discountText = '-';
-            if (torrent.discount_label) {
-                discountText = currentLang === 'zh' ? torrent.discount_label.zh : torrent.discount_label.en;
-            } else {
-                discountText = torrent.discount || '-';
+            // 处理系统标签 - 小徽章样式
+            let labelsHtml = '-';
+            if (m.labels_new && m.labels_new.length > 0) {
+                labelsHtml = m.labels_new.map(label =>
+                    `<span class="label-badge">${escapeHtml(label)}</span>`
+                ).join(' ');
+            }
+
+            // 处理 IMDB 链接
+            let imdbHtml = '<span class="media-link media-link-disabled">IMDb</span>';
+            if (m.imdb) {
+                const imdbUrl = m.imdb.startsWith('http') ? m.imdb : `https://www.imdb.com/title/${m.imdb}`;
+                imdbHtml = `<a href="${imdbUrl}" target="_blank" class="media-link imdb">IMDb</a>`;
+            }
+
+            // 处理豆瓣链接
+            let doubanHtml = '<span class="media-link media-link-disabled">豆瓣</span>';
+            if (m.douban) {
+                const doubanUrl = m.douban.startsWith('http') ? m.douban : `https://movie.douban.com/subject/${m.douban}`;
+                doubanHtml = `<a href="${doubanUrl}" target="_blank" class="media-link douban">豆瓣</a>`;
             }
 
             return `
                 <div class="viz-dashboard">
                     <div class="viz-grid">
+                        <!-- 1. 分辨率 -->
                         <div class="viz-box">
                             <span class="viz-label">${t.resolution || 'RES'}</span>
                             <span class="viz-value">${val(m.standard)}</span>
                         </div>
-                        <div class="viz-box">
-                            <span class="viz-label">${t.videoFormat || 'CODEC'}</span>
-                            <span class="viz-value">${val(m.video_codec)}</span>
-                        </div>
-                        <div class="viz-box">
-                            <span class="viz-label">${t.audioFormat || 'AUDIO'}</span>
-                            <span class="viz-value">${val(m.audio_codec)}</span>
-                        </div>
+
+                        <!-- 2. 来源 -->
                         <div class="viz-box">
                             <span class="viz-label">${t.source || 'SRC'}</span>
                             <span class="viz-value">${val(m.source)}</span>
                         </div>
-                        
+
+                        <!-- 3. 系统标签 -->
                         <div class="viz-box">
-                            <span class="viz-label">${t.colSize || 'SIZE'}</span>
-                            <span class="viz-value">${torrent.size_display}</span>
+                            <span class="viz-label">${t.labels || 'LABELS'}</span>
+                            <span class="viz-value viz-labels">${labelsHtml}</span>
                         </div>
+
+                        <!-- 4. 视频编码 -->
                         <div class="viz-box">
-                            <span class="viz-label">${t.metaTeam || 'GRP'}</span>
-                            <span class="viz-value">${val(m.team_name)}</span>
+                            <span class="viz-label">${t.videoFormat || 'CODEC'}</span>
+                            <span class="viz-value">${val(m.video_codec)}</span>
                         </div>
+
+                        <!-- 5. 音频编码 -->
                         <div class="viz-box">
-                            <span class="viz-label">${t.metaTags || 'TAG'}</span>
-                            <span class="viz-value" style="font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${val(m.tags)}</span>
+                            <span class="viz-label">${t.audioFormat || 'AUDIO'}</span>
+                            <span class="viz-value">${val(m.audio_codec)}</span>
                         </div>
+
+                        <!-- 6. IMDB -->
                         <div class="viz-box">
-                            <span class="viz-label">${t.colDiscount || 'PROMO'}</span>
-                            <span class="viz-value">${discountText}</span>
+                            <span class="viz-label">IMDB</span>
+                            <span class="viz-value">${imdbHtml}</span>
+                        </div>
+
+                        <!-- 7. 豆瓣 -->
+                        <div class="viz-box">
+                            <span class="viz-label">${t.douban || 'DOUBAN'}</span>
+                            <span class="viz-value">${doubanHtml}</span>
+                        </div>
+
+                        <!-- 8. 国家 -->
+                        <div class="viz-box">
+                            <span class="viz-label">${t.country || 'COUNTRY'}</span>
+                            <span class="viz-value">${translateCountry(m.country)}</span>
                         </div>
                     </div>
                 </div>

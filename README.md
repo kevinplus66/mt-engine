@@ -1,6 +1,6 @@
 # M-Team Engine (MT 引擎)
 
-![Version](https://img.shields.io/badge/version-2.3.1-blue.svg)
+![Version](https://img.shields.io/badge/version-2.4.1-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
 ![Docker](https://img.shields.io/badge/docker-ready-blue.svg)

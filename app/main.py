@@ -3,7 +3,7 @@ MT-Engine - M-Team 免费种子猎手
 自动搜索当前所有 Free / 2xFree 种子
 """
 
-__version__ = "2.3.1"
+__version__ = "2.4.1"
 
 import os
 import re
@@ -1382,11 +1382,45 @@ async def background_refresh():
         await asyncio.sleep(sleep_time)
 
 
+async def fetch_country_list() -> Dict[int, str]:
+    """获取国家列表并返回ID到名称的映射"""
+    if not MT_TOKEN:
+        return {}
+
+    try:
+        client = await get_http_client()
+        response = await client.post(
+            f"{MT_API_BASE}/system/countryList",
+            headers={"x-api-key": MT_TOKEN},
+            timeout=10
+        )
+        result = response.json()
+
+        # M-Team API返回code可能是0, "0", 或"SUCCESS"
+        code = result.get("code")
+        if code in (0, "0", "SUCCESS"):
+            countries = {}
+            for country in result.get("data", []):
+                countries[int(country["id"])] = country.get("name", "")
+            logger.info(f"成功获取 {len(countries)} 个国家")
+            return countries
+        else:
+            logger.error(f"获取国家列表失败: code={code}, message={result.get('message')}")
+            return {}
+    except Exception as e:
+        logger.error(f"获取国家列表异常: {e}")
+        return {}
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
-    global http_client
+    global http_client, COUNTRY_LABELS
     http_client = httpx.AsyncClient(timeout=30.0)
+
+    # 加载国家列表
+    COUNTRY_LABELS = await fetch_country_list()
+    logger.info(f"已加载 {len(COUNTRY_LABELS)} 个国家映射")
 
     await fetch_all_free_torrents()
     task = asyncio.create_task(background_refresh())
@@ -1407,7 +1441,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MT-Engine",
     description="M-Team 免费种子猎手",
-    version="1.0.0",
+    version="2.4.1",
     lifespan=lifespan,
     docs_url=None,  # Disable Swagger UI in production
     redoc_url=None  # Disable ReDoc in production
@@ -1519,6 +1553,9 @@ QUALITY_LABELS = {
     "audioCodecs": {10: "Atmos", 11: "DTS-HD MA", 9: "TrueHD", 3: "DTS", 1: "FLAC"},
     "sources": {8: "WEB-DL", 1: "Bluray", 4: "Remux", 5: "HDTV", 3: "DVD"}
 }
+
+# 国家映射（ID到名称）
+COUNTRY_LABELS = {}
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -1741,6 +1778,27 @@ async def api_search(request: Request, data: SearchRequest):
                 times_completed = int(status_info.get("timesCompleted", 0))
                 tags = torrent_info.get("tags", "")
 
+                # 新字段
+                labels_new = torrent_info.get("labelsNew", [])
+                imdb = torrent_info.get("imdb", "")
+                douban = torrent_info.get("douban", "")
+                countries = torrent_info.get("countries", "")
+
+                # 处理国家字段（ID转名称）
+                country_name = ""
+                if countries:
+                    # countries 可能是: 单个ID字符串 "1", 逗号分隔 "1,2,3", 整数, 或数组
+                    if isinstance(countries, str):
+                        # 处理逗号分隔的字符串 "1,2,3"
+                        country_ids = [cid.strip() for cid in countries.split(",") if cid.strip().isdigit()]
+                        country_names = [COUNTRY_LABELS.get(int(cid), "") for cid in country_ids]
+                        country_name = ", ".join(filter(None, country_names))
+                    elif isinstance(countries, int):
+                        country_name = COUNTRY_LABELS.get(countries, "")
+                    elif isinstance(countries, list):
+                        country_names = [COUNTRY_LABELS.get(int(cid), "") for cid in countries if str(cid).isdigit()]
+                        country_name = ", ".join(filter(None, country_names))
+
                 detail_url = f"{MT_SITE_URL}/detail/{torrent_id}"
 
                 # 用户状态
@@ -1771,7 +1829,11 @@ async def api_search(request: Request, data: SearchRequest):
                         "source": QUALITY_LABELS["sources"].get(source_id, ""),
                         "team_name": team_name,
                         "times_completed": times_completed,
-                        "tags": tags
+                        "tags": tags,
+                        "labels_new": labels_new,
+                        "imdb": imdb,
+                        "douban": douban,
+                        "country": country_name
                     }
                 })
 
