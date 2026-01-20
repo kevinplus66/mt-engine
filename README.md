@@ -394,6 +394,22 @@ A: 修改 `.env` 文件中的 `REFRESH_INTERVAL` 值（单位：秒）。
 
 ## 更新日志
 
+### v2.4.1 (2026-01)
+- 修复：修复国家字段类型不匹配导致国家显示为空的问题
+- UI：搜索引擎新增 120+ 国家名称的中文翻译
+- UI：改进 IMDB/豆瓣链接展示（品牌色药丸按钮，黄/绿悬停效果）
+
+### v2.4.0 (2026-01)
+- 搜索引擎：全新设计种子详情展开，新增 8 个元数据字段
+  - 分辨率、来源、系统标签（中字/HDR/DoVi 等徽章）
+  - 视频编码、音频编码
+  - IMDB 链接（可点击）、豆瓣链接（可点击）
+  - 国家（从 ID 映射为可读名称）
+- 后端：新增国家列表 API，支持 165 个国家映射
+- 后端：修复 M-Team API 响应码处理（支持 "SUCCESS" 字符串）
+- UI：系统标签新增高对比度徽章样式
+- UI：外部链接新增虚线下划线样式
+
 ### v2.3.1 (2026-01)
 - 简化 qBittorrent URL 配置文档
 - 默认 URL 改为 `192.168.x.x:8080` 占位符
@@ -903,6 +919,22 @@ A: Modify the `REFRESH_INTERVAL` value in `.env` file (unit: seconds).
 ---
 
 ## Changelog
+
+### v2.4.1 (2026-01)
+- Bug Fix: Fixed country field type mismatch causing empty country display
+- UI: Added Chinese translations for 120+ country names in Search Engine
+- UI: Improved IMDB/Douban link presentation with branded pill buttons (yellow/green hover)
+
+### v2.4.0 (2026-01)
+- Search Engine: Completely redesigned torrent detail expansion with 8 new metadata fields
+  - Resolution, Source, System Labels (badges for 中字/HDR/DoVi/etc)
+  - Video Codec, Audio Codec
+  - IMDB link (clickable), Douban link (clickable)
+  - Country (mapped from ID to readable name)
+- Backend: Added country list API integration with 165 country mappings
+- Backend: Fixed M-Team API response code handling (supports "SUCCESS" string)
+- UI: New badge styling for system labels with high contrast
+- UI: External link styling with dotted underlines
 
 ### v2.3.1 (2026-01)
 - Simplified qBittorrent URL configuration for Docker users
