@@ -141,6 +141,14 @@ rival_profile: Dict[str, Any] = {
     "downloaded_display": "0 B"
 }
 
+# 缓存时间戳
+_last_user_status_refresh: Optional[datetime] = None  # 用户状态 (1小时)
+_last_categories_refresh: Optional[datetime] = None   # 分类列表 (24小时)
+
+# 缓存间隔常量
+USER_STATUS_CACHE_HOURS = 1   # 用户状态缓存1小时
+CATEGORIES_CACHE_HOURS = 24   # 分类列表缓存24小时
+
 # 历史免费种子ID追踪（用于检测"变节"- 免费变收费）
 known_free_torrent_ids: set = set()
 
@@ -1319,7 +1327,7 @@ def process_torrent(item: Dict, discount_type: str, torrent_mode: str = "normal"
 
 async def fetch_all_free_torrents() -> Dict[str, Any]:
     """获取所有免费种子"""
-    global cached_data
+    global cached_data, _last_user_status_refresh, _last_categories_refresh
 
     if not MT_TOKEN:
         cached_data["error"] = "未配置 MT_TOKEN 环境变量"
@@ -1327,14 +1335,28 @@ async def fetch_all_free_torrents() -> Dict[str, Any]:
 
     logger.info("开始搜索免费种子")
 
-    # 顺序获取用户状态（避免触发 M-Team API 速率限制）
-    await fetch_user_torrent_status()
-    await asyncio.sleep(API_DELAY)
-    await fetch_user_collection()
-    await asyncio.sleep(API_DELAY)
-    await fetch_user_profile()
-    await asyncio.sleep(API_DELAY)
-    await fetch_rival_profile()
+    now = datetime.now(BEIJING_TZ)
+
+    # 检查用户状态是否需要刷新 (1小时)
+    should_refresh_user_status = (
+        _last_user_status_refresh is None or
+        (now - _last_user_status_refresh).total_seconds() > USER_STATUS_CACHE_HOURS * 3600
+    )
+
+    if should_refresh_user_status:
+        # 顺序获取用户状态（避免触发 M-Team API 速率限制）
+        await fetch_user_torrent_status()
+        await asyncio.sleep(API_DELAY)
+        await fetch_user_collection()
+        await asyncio.sleep(API_DELAY)
+        await fetch_user_profile()
+        await asyncio.sleep(API_DELAY)
+        await fetch_rival_profile()
+        _last_user_status_refresh = now
+        logger.info("✓ 用户状态已刷新 (1小时缓存)")
+    else:
+        elapsed_minutes = int((now - _last_user_status_refresh).total_seconds() / 60)
+        logger.info(f"→ 用户状态使用缓存 (已过 {elapsed_minutes} 分钟)")
 
     all_torrents = []
     seen_ids = set()
@@ -1359,8 +1381,20 @@ async def fetch_all_free_torrents() -> Dict[str, Any]:
     # 按剩余时间排序
     all_torrents.sort(key=lambda t: t["remaining"]["hours"])
 
-    # 获取类别列表
-    categories = await fetch_categories()
+    # 检查分类列表是否需要刷新 (24小时)
+    should_refresh_categories = (
+        _last_categories_refresh is None or
+        (now - _last_categories_refresh).total_seconds() > CATEGORIES_CACHE_HOURS * 3600
+    )
+
+    if should_refresh_categories:
+        categories = await fetch_categories()
+        _last_categories_refresh = now
+        logger.info("✓ 分类列表已刷新 (24小时缓存)")
+    else:
+        categories = cached_data.get("categories", [])
+        elapsed_hours = int((now - _last_categories_refresh).total_seconds() / 3600)
+        logger.info(f"→ 分类列表使用缓存 (已过 {elapsed_hours} 小时)")
 
     # 统计
     free_count = sum(1 for t in all_torrents if t["discount"] == "FREE")
