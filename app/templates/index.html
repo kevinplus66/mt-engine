@@ -1680,29 +1680,6 @@
             opacity: 1;
         }
 
-        /* ============ Pull to Refresh ============ */
-        .ptr-element {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transform: translateY(-100%);
-            font-family: var(--nt-font-dot);
-            color: var(--nt-text-secondary);
-            font-size: 12px;
-            transition: transform 0.2s;
-        }
-        .ptr-icon {
-            transition: transform 0.2s;
-        }
-        .ptr-rotate {
-            transform: rotate(180deg);
-        }
-
         /* Mobile Responsive Overrides */
         @media (max-width: 768px) {
             .navbar-content { padding: 0 16px; height: 56px; }
@@ -2079,10 +2056,6 @@
 
     <!-- Main Content -->
     <main class="main-content" id="mainContent">
-        <div id="ptr" class="ptr-element">
-            <span class="ptr-icon">↓</span>
-            <span class="ptr-text">Pull to refresh</span>
-        </div>
         <div class="container">
             <!-- Desktop Filter Card -->
             <div class="filter-card">
@@ -3678,92 +3651,12 @@
             });
         }
 
-        // ============ Pull to Refresh ============
-        function initPullToRefresh() {
-            const ptr = document.getElementById('ptr');
-            const main = document.getElementById('mainContent'); // We added ID to main
-            const icon = ptr.querySelector('.ptr-icon');
-            const text = ptr.querySelector('.ptr-text');
-            
-            let startY = 0;
-            let currentY = 0;
-            let isDragging = false;
-            const THRESHOLD = 70;
-
-            window.addEventListener('touchstart', (e) => {
-                if (window.scrollY === 0) {
-                    startY = e.touches[0].clientY;
-                    isDragging = true;
-                }
-            }, { passive: true });
-
-            window.addEventListener('touchmove', (e) => {
-                if (!isDragging) return;
-                
-                const y = e.touches[0].clientY;
-                const delta = y - startY;
-
-                // Only allow pulling down
-                if (delta > 0 && window.scrollY === 0) {
-                    // Elastic resistance
-                    currentY = delta * 0.4;
-                    
-                    // Cap at some point
-                    if (currentY > 100) currentY = 100 + (currentY - 100) * 0.2;
-
-                    ptr.style.transform = `translateY(${currentY - 60}px)`; // -60 is height of ptr
-                    // main.style.transform = `translateY(${currentY}px)`; // Optional: move content too
-
-                    if (currentY > THRESHOLD) {
-                        icon.classList.add('ptr-rotate');
-                        text.textContent = 'Release to refresh';
-                    } else {
-                        icon.classList.remove('ptr-rotate');
-                        text.textContent = 'Pull to refresh';
-                    }
-                } else {
-                    isDragging = false; // Cancel if scrolled up
-                }
-            }, { passive: true });
-
-            window.addEventListener('touchend', () => {
-                if (!isDragging) return;
-                isDragging = false;
-
-                if (currentY > THRESHOLD) {
-                    // Refreshing
-                    ptr.style.transform = 'translateY(0)'; // Keep visible
-                    text.textContent = 'Refreshing...';
-                    icon.style.display = 'none'; // Hide arrow, maybe show spinner?
-                    
-                    // Execute Search
-                    executeSearch().then(() => {
-                        setTimeout(() => {
-                            resetPtr();
-                        }, 500);
-                    });
-                } else {
-                    resetPtr();
-                }
-            });
-
-            function resetPtr() {
-                ptr.style.transform = '';
-                // main.style.transform = '';
-                currentY = 0;
-                icon.classList.remove('ptr-rotate');
-                icon.style.display = '';
-                text.textContent = 'Pull to refresh';
-            }
-        }
-
         // ============ Initialize ============
         document.addEventListener('DOMContentLoaded', function() {
             try { setTheme(currentTheme); } catch(e) { console.error(e); }
             try { setLanguage(currentLang); } catch(e) { console.error(e); }
             try { setupKeyboardShortcuts(); } catch(e) { console.error(e); }
             try { updateResetButtonState(); } catch(e) { console.error(e); }
-            try { initPullToRefresh(); } catch(e) { console.error(e); }
 
             // Initialize filter system
             try { renderCategoryPills('normal'); } catch(e) { console.error(e); }
