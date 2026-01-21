@@ -832,6 +832,32 @@
         .viz-dashboard {
             font-family: var(--nt-font-mono);
             padding: 8px 0;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: var(--nt-border-light) transparent;
+        }
+
+        .viz-dashboard::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .viz-dashboard::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .viz-dashboard::-webkit-scrollbar-thumb {
+            background: var(--nt-border-light);
+            border-radius: 4px;
+        }
+
+        .viz-dashboard::-webkit-scrollbar-thumb:hover {
+            background: var(--nt-border);
+        }
+
+        .viz-dashboard-inner {
+            display: inline-block;
+            min-width: 100%;
         }
 
         .viz-grid {
@@ -936,35 +962,13 @@
         }
 
         /* ============ Refined Fluid Badges ============ */
-        /* Container for single scrollable row */
+        /* Container for pills (no scrolling, parent scrolls) */
         .tag-container {
             display: flex;
             flex-direction: row;
             gap: 10px;
             margin-top: 12px;
-            overflow-x: auto;
-            overflow-y: hidden;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: thin;
-            scrollbar-color: var(--nt-border-light) transparent;
-        }
-
-        /* Scrollbar styling for tag-container */
-        .tag-container::-webkit-scrollbar {
-            height: 8px;
-        }
-
-        .tag-container::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .tag-container::-webkit-scrollbar-thumb {
-            background: var(--nt-border-light);
-            border-radius: 4px;
-        }
-
-        .tag-container::-webkit-scrollbar-thumb:hover {
-            background: var(--nt-border);
+            overflow: visible;
         }
 
         /* Row wrapper */
@@ -1191,20 +1195,18 @@
 
         /* Mobile Dashboard Layout */
         @media (max-width: 768px) {
-            .viz-dashboard { padding: 0; width: 100%; }
+            .viz-dashboard {
+                padding: 0;
+                width: 100%;
+            }
             .tag-container {
                 gap: 8px;
                 flex-direction: row;
             }
             .tag-row {
                 flex-wrap: nowrap;
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-                scrollbar-width: none;
-                padding-right: 16px;
                 gap: 6px;
             }
-            .tag-row::-webkit-scrollbar { display: none; }
             .tag { height: 24px; font-size: 10px; padding: 0 8px; min-width: 40px; }
             .tag.label-tag { height: 24px; font-size: 10px; padding: 0 8px; }
             .btn-link { height: 24px; padding: 0 10px; font-size: 10px; }
@@ -2053,17 +2055,14 @@
                 <div class="nav-stats">
                     <div class="nav-stat">
                         <span class="nav-stat-icon">📊</span>
-                        <span class="nav-stat-label" data-i18n="statRatio">分享率</span>
                         <span class="nav-stat-value ratio">{% if user_profile.share_ratio > 9999 %}∞{% else %}{{ "%.2f"|format(user_profile.share_ratio) }}{% endif %}</span>
                     </div>
                     <div class="nav-stat secondary">
                         <span class="nav-stat-icon">↑</span>
-                        <span class="nav-stat-label" data-i18n="statUpload">上传</span>
                         <span class="nav-stat-value upload">{{ user_profile.uploaded_display|e }}</span>
                     </div>
                     <div class="nav-stat secondary">
                         <span class="nav-stat-icon">↓</span>
-                        <span class="nav-stat-label" data-i18n="statDownload">下载</span>
                         <span class="nav-stat-value download">{{ user_profile.downloaded_display|e }}</span>
                     </div>
                 </div>
@@ -3533,19 +3532,21 @@
 
             return `
                 <div class="viz-dashboard">
-                    <div class="viz-title">${escapeHtml(torrent.name)}</div>
-                    ${torrent.small_descr ? `<div class="viz-subtitle">${escapeHtml(torrent.small_descr)}</div>` : ''}
-                    <div class="tag-container">
-                        <!-- Row 1: Tech Specs -->
-                        ${techSpecs ? `<div class="tag-row">${techSpecs}</div>` : ''}
+                    <div class="viz-dashboard-inner">
+                        <div class="viz-title">${escapeHtml(torrent.name)}</div>
+                        ${torrent.small_descr ? `<div class="viz-subtitle">${escapeHtml(torrent.small_descr)}</div>` : ''}
+                        <div class="tag-container">
+                            <!-- Row 1: Tech Specs -->
+                            ${techSpecs ? `<div class="tag-row">${techSpecs}</div>` : ''}
 
-                        <!-- Row 2: Metadata (Country + Labels) -->
-                        ${metadataRow}
+                            <!-- Row 2: Metadata (Country + Labels) -->
+                            ${metadataRow}
 
-                        <!-- Row 3: External Links -->
-                        <div class="tag-row">
-                            ${doubanHtml}
-                            ${imdbHtml}
+                            <!-- Row 3: External Links -->
+                            <div class="tag-row">
+                                ${doubanHtml}
+                                ${imdbHtml}
+                            </div>
                         </div>
                     </div>
                 </div>

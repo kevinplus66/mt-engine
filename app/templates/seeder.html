@@ -577,6 +577,13 @@
             }
         }
 
+        /* Tablet */
+        @media (min-width: 769px) and (max-width: 1200px) {
+            .container { padding: 0 24px; }
+            table { min-width: 900px; }
+            .table-container { overflow-x: auto; }
+        }
+
         /* Column widths */
         th:nth-child(1), td:nth-child(1) { width: 44%; } /* Name */
         th:nth-child(2), td:nth-child(2) { width: 10%; white-space: nowrap; } /* Size */
@@ -1160,17 +1167,14 @@
                 <div class="nav-stats">
                     <div class="nav-stat">
                         <span class="nav-stat-icon">📊</span>
-                        <span class="nav-stat-label" data-i18n="statRatio">分享率</span>
                         <span class="nav-stat-value ratio">{% if user_profile.share_ratio > 9999 %}∞{% else %}{{ "%.2f"|format(user_profile.share_ratio) }}{% endif %}</span>
                     </div>
                     <div class="nav-stat secondary">
                         <span class="nav-stat-icon">↑</span>
-                        <span class="nav-stat-label" data-i18n="statUpload">上传</span>
                         <span class="nav-stat-value upload">{{ user_profile.uploaded_display|e }}</span>
                     </div>
                     <div class="nav-stat secondary">
                         <span class="nav-stat-icon">↓</span>
-                        <span class="nav-stat-label" data-i18n="statDownload">下载</span>
                         <span class="nav-stat-value download">{{ user_profile.downloaded_display|e }}</span>
                     </div>
                 </div>
