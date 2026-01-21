@@ -1,6 +1,6 @@
 # M-Team Engine (MT 引擎)
 
-![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-3.0.2-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
 ![Docker](https://img.shields.io/badge/docker-ready-blue.svg)
@@ -393,6 +393,28 @@ A: 修改 `.env` 文件中的 `REFRESH_INTERVAL` 值（单位：秒）。
 ---
 
 ## 更新日志
+
+### v3.0.2 (2026-01)
+- 后端优化：
+  - 新增用户状态数据 1 小时缓存机制（做种/下载/收藏/个人/对手资料）
+  - 新增分类列表 24 小时缓存机制
+  - 实现基于时间戳的缓存失效系统
+- 性能提升：
+  - 缓存有效时 API 调用从 10 次减少至 4 次（节省 60%）
+  - 首次刷新：10 次 API 调用（冷缓存）
+  - 1 小时内后续刷新：4 次 API 调用（仅种子搜索）
+  - 24 小时内后续刷新：4-5 次 API 调用
+- 开发体验：
+  - 添加详细缓存日志："✓ 用户状态已刷新" vs "→ 用户状态使用缓存"
+  - 日志显示距离上次缓存刷新的时间
+
+### v3.0.1 (2026-01)
+- UI/UX 变更：
+  - **移除：下拉刷新手势** 在 index.html 和 seeder.html 中移除以防止误触 API 调用
+  - **移除：R 键刷新快捷键** 在 seeder.html 中移除以防止无意触发
+  - 添加平板滚动支持：seeder 表格在 769px-1200px 区间支持横向滚动（min-width: 950px）
+- 代码精简：移除 211 行下拉刷新相关代码（CSS, HTML, JavaScript）
+- 原因：用户频繁误触刷新操作（移动端下拉、桌面端按 R 键），每次手动刷新触发 9-10 个连续 API 调用，容易触发速率限制
 
 ### v3.0.0 (2026-01)
 - 安全修复：
