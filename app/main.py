@@ -3,7 +3,7 @@ MT-Engine - M-Team 免费种子猎手
 自动搜索当前所有 Free / 2xFree 种子
 """
 
-__version__ = "2.4.1"
+__version__ = "3.0.0"
 
 import os
 import re
@@ -11,7 +11,7 @@ import asyncio
 import logging
 import base64
 from datetime import datetime, timezone, timedelta
-from typing import Optional, List, Dict, Any, Union
+from typing import Optional, List, Dict, Any, Union, Literal
 from contextlib import asynccontextmanager
 
 import httpx
@@ -47,11 +47,14 @@ class DownloadRequest(BaseModel):
 class SearchRequest(BaseModel):
     """Request model for torrent search"""
     keyword: str = Field("", max_length=100)
-    mode: str = Field("normal")  # normal/adult/movie/tvshow
+    mode: Literal["normal", "adult", "movie", "tvshow", "other"] = Field("normal")
+    categories: List[int] = Field(default_factory=list)  # 新增：分类筛选
     standards: List[int] = Field(default_factory=list)
     videoCodecs: List[int] = Field(default_factory=list)
     audioCodecs: List[int] = Field(default_factory=list)
     sources: List[int] = Field(default_factory=list)  # 新增：来源筛选
+    countries: List[int] = Field(default_factory=list)  # 新增：国家筛选
+    discount: str = Field("")  # 新增：优惠筛选
     sortField: str = Field("CREATED_DATE")
     sortDirection: str = Field("DESC")
     pageNumber: int = Field(1, ge=1)
@@ -89,7 +92,7 @@ RIVAL_USER_ID = os.getenv("RIVAL_USER_ID", "")
 
 # PushPlus 微信推送配置
 PUSHPLUS_TOKEN = os.getenv("PUSHPLUS_TOKEN", "")
-PUSHPLUS_URL = "http://www.pushplus.plus/send"
+PUSHPLUS_URL = "https://www.pushplus.plus/send"
 ALERT_THRESHOLD_MINUTES = 10  # 免费即将到期报警阈值（分钟）
 ALERT_COOLDOWN = 1800  # 30分钟内不重复报警同一种子
 
@@ -446,7 +449,11 @@ async def get_torrent_download_url(torrent_id: str) -> Optional[str]:
         )
 
         logger.info(f"[下载] API响应状态码: {response.status_code}")
-        data = response.json()
+        try:
+            data = response.json()
+        except Exception as e:
+            logger.error(f"[下载] JSON解析失败 - ID={torrent_id}, error={e}, response text: {response.text[:200]}")
+            return None
 
         # Robust check for code (handle both int and string "0")
         if str(data.get("code")) == "0":
@@ -463,11 +470,10 @@ async def get_torrent_download_url(torrent_id: str) -> Optional[str]:
             logger.info(f"[下载] 成功获取下载链接: {torrent_id}")
             return download_url
         else:
-            # 详细记录API错误
+            # 详细记录API错误（不记录完整响应以避免泄露敏感信息）
             error_code = data.get("code")
             error_msg = data.get("message", "未知错误")
             logger.error(f"[下载] API返回错误 - ID={torrent_id}, code={error_code}, message={error_msg}")
-            logger.error(f"[下载] 完整响应: {data}")
             return None
     except Exception as e:
         logger.error(f"[下载] 获取下载链接异常 - ID={torrent_id}, error={type(e).__name__}: {e}")
@@ -721,7 +727,11 @@ async def fetch_categories() -> List[Dict]:
     try:
         client = await get_http_client()
         response = await client.post(MT_CATEGORY_URL, headers=get_headers())
-        data = response.json()
+        try:
+            data = response.json()
+        except Exception as e:
+            logger.error(f"获取类别失败 - JSON解析错误: {e}")
+            return []
         if data.get("code") == "0":
             return data.get("data", [])
     except Exception as e:
@@ -749,7 +759,11 @@ async def search_free_torrents(
     try:
         client = await get_http_client()
         response = await client.post(MT_SEARCH_URL, headers=get_headers(), json=payload)
-        data = response.json()
+        try:
+            data = response.json()
+        except Exception as e:
+            logger.error(f"搜索 {discount_type} (mode={mode}) 失败 - JSON解析错误: {e}")
+            return []
 
         if data.get("code") == "0":
             return data.get("data", {}).get("data", [])
@@ -1313,7 +1327,7 @@ async def fetch_all_free_torrents() -> Dict[str, Any]:
 
     logger.info("开始搜索免费种子")
 
-    # 获取用户状态
+    # 顺序获取用户状态（避免触发 M-Team API 速率限制）
     await fetch_user_torrent_status()
     await asyncio.sleep(API_DELAY)
     await fetch_user_collection()
@@ -1325,7 +1339,7 @@ async def fetch_all_free_torrents() -> Dict[str, Any]:
     all_torrents = []
     seen_ids = set()
 
-    # 并行搜索普通区和成人区
+    # 顺序搜索普通区和成人区（避免触发速率限制）
     search_tasks = [
         ("FREE", "normal"),
         ("_2X_FREE", "normal"),
@@ -1422,7 +1436,7 @@ async def lifespan(app: FastAPI):
     COUNTRY_LABELS = await fetch_country_list()
     logger.info(f"已加载 {len(COUNTRY_LABELS)} 个国家映射")
 
-    await fetch_all_free_torrents()
+    # 启动后台刷新任务（会立即执行第一次刷新）
     task = asyncio.create_task(background_refresh())
 
     yield
@@ -1441,7 +1455,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MT-Engine",
     description="M-Team 免费种子猎手",
-    version="2.4.1",
+    version="2.8.0",
     lifespan=lifespan,
     docs_url=None,  # Disable Swagger UI in production
     redoc_url=None  # Disable ReDoc in production
@@ -1483,18 +1497,23 @@ RATE_LIMIT_WINDOW = 60  # seconds
 def check_rate_limit(client_ip: str) -> bool:
     """Check if client has exceeded rate limit. Returns True if allowed."""
     now = datetime.now().timestamp()
-    if client_ip not in rate_limit_store:
-        rate_limit_store[client_ip] = []
 
-    # Remove old entries
+    # New IP - allow immediately and initialize with first timestamp
+    if client_ip not in rate_limit_store:
+        rate_limit_store[client_ip] = [now]
+        return True
+
+    # Remove old entries outside the time window
     rate_limit_store[client_ip] = [
         ts for ts in rate_limit_store[client_ip]
         if now - ts < RATE_LIMIT_WINDOW
     ]
 
+    # Check if limit exceeded
     if len(rate_limit_store[client_ip]) >= RATE_LIMIT_REQUESTS:
         return False
 
+    # Add current request and allow
     rate_limit_store[client_ip].append(now)
     return True
 
@@ -1559,10 +1578,25 @@ COUNTRY_LABELS = {}
 
 
 @app.get("/", response_class=HTMLResponse)
+async def search_page(request: Request):
+    """搜索引擎页面"""
+    return templates.TemplateResponse(
+        "index.html",
+        {
+            "request": request,
+            "site_url": MT_SITE_URL,
+            "user_profile": user_profile,
+            "rival_profile": rival_profile,
+            "filter_options": FILTER_OPTIONS
+        }
+    )
+
+
+@app.get("/seeder", response_class=HTMLResponse)
 async def dashboard(request: Request):
     """主仪表盘页面"""
     return templates.TemplateResponse(
-        "index.html",
+        "seeder.html",
         {
             "request": request,
             "data": cached_data,
@@ -1570,21 +1604,6 @@ async def dashboard(request: Request):
             "site_url": MT_SITE_URL,
             "user_profile": user_profile,
             "rival_profile": rival_profile
-        }
-    )
-
-
-@app.get("/search", response_class=HTMLResponse)
-async def search_page(request: Request):
-    """搜索引擎页面"""
-    return templates.TemplateResponse(
-        "search.html",
-        {
-            "request": request,
-            "site_url": MT_SITE_URL,
-            "user_profile": user_profile,
-            "rival_profile": rival_profile,
-            "filter_options": FILTER_OPTIONS
         }
     )
 
@@ -1730,6 +1749,8 @@ async def api_search(request: Request, data: SearchRequest):
             payload["keyword"] = data.keyword
 
         # 添加筛选条件
+        if data.categories:
+            payload["categories"] = data.categories
         if data.standards:
             payload["standards"] = data.standards
         if data.videoCodecs:
@@ -1738,6 +1759,10 @@ async def api_search(request: Request, data: SearchRequest):
             payload["audioCodecs"] = data.audioCodecs
         if data.sources:
             payload["sources"] = data.sources
+        if data.countries:
+            payload["countries"] = data.countries
+        if data.discount:
+            payload["discount"] = data.discount
 
         # 排序
         payload["sortField"] = data.sortField
@@ -1783,6 +1808,7 @@ async def api_search(request: Request, data: SearchRequest):
                 imdb = torrent_info.get("imdb", "")
                 douban = torrent_info.get("douban", "")
                 countries = torrent_info.get("countries", "")
+                category_id = torrent_info.get("category", "")
 
                 # 处理国家字段（ID转名称）
                 country_name = ""
@@ -1822,6 +1848,7 @@ async def api_search(request: Request, data: SearchRequest):
                     "created_date": created_date,
                     "detail_url": detail_url,
                     "user_status": user_status,
+                    "category": category_id,
                     "quality_metadata": {
                         "standard": QUALITY_LABELS["standards"].get(standard_id, ""),
                         "video_codec": QUALITY_LABELS["videoCodecs"].get(video_codec_id, ""),

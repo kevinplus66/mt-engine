@@ -1,6 +1,6 @@
 # M-Team Engine (MT 引擎)
 
-![Version](https://img.shields.io/badge/version-2.4.1-blue.svg)
+![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
 ![Docker](https://img.shields.io/badge/docker-ready-blue.svg)
@@ -393,6 +393,36 @@ A: 修改 `.env` 文件中的 `REFRESH_INTERVAL` 值（单位：秒）。
 ---
 
 ## 更新日志
+
+### v3.0.0 (2026-01)
+- 安全修复：
+  - 修复 seeder.html 中 XSS 漏洞（用户资料数据缺少转义过滤器）
+  - PushPlus 推送改用 HTTPS 协议
+  - 搜索模式参数增强类型验证（Literal 类型限制）
+- 可靠性改进：
+  - 为所有 API 响应添加 JSON 解析错误处理，防止异常响应导致崩溃
+  - 重构速率限制逻辑，提高代码清晰度和内存清理
+- 无障碍改进：
+  - 为屏幕阅读器添加全面的 ARIA 属性支持
+  - Toast 通知增加 role="alert"
+  - 模式导航增加 role="tablist" 和 role="tab"
+  - 移动端筛选抽屉增加 role="dialog"
+  - 所有纯图标按钮增加 aria-label
+  - 可排序表头增加 aria-sort
+- Bug 修复：
+  - 修复 index.html 中 updateResetButtonState() 的未定义变量
+  - 移除对不存在 DOM 元素的引用（抽屉下拉框）
+  - 移除导致重复搜索的 Enter 键事件监听器
+  - 修复速率限制存储的内存泄漏
+
+### v2.5.0 (2026-01)
+- 搜索引擎：全新 3 级筛选架构重设计
+  - 第一级：模式标签（综合、电影、影剧/综艺、其他、成人）
+  - 第二级：根据模式动态显示的分类药丸（如电影 → Remux、Blu-Ray、HD、DVD、SD）
+  - 第三级：技术筛选器，根据模式条件显示/隐藏
+- 后端：搜索 API 新增 `categories`、`countries`、`discount` 参数支持
+- 体验：改进筛选器组织和可发现性
+- 体验：重置按钮现在保留模式选择，仅清除分类和筛选器
 
 ### v2.4.1 (2026-01)
 - 修复：修复国家字段类型不匹配导致国家显示为空的问题
@@ -919,6 +949,36 @@ A: Modify the `REFRESH_INTERVAL` value in `.env` file (unit: seconds).
 ---
 
 ## Changelog
+
+### v3.0.0 (2026-01)
+- Security Fixes:
+  - Fixed XSS vulnerability in seeder.html (missing escape filters on user profile data)
+  - PushPlus notifications now use HTTPS
+  - Enhanced search mode parameter validation with Literal type restriction
+- Reliability Improvements:
+  - Added JSON parse error handling for all API responses to prevent crashes on malformed data
+  - Refactored rate limiting logic for better clarity and memory cleanup
+- Accessibility Enhancements:
+  - Added comprehensive ARIA attributes for screen reader support
+  - role="alert" for toast notifications
+  - role="tablist" and role="tab" for mode navigation
+  - role="dialog" for mobile filter drawer
+  - aria-label for all icon-only buttons
+  - aria-sort for sortable table headers
+- Bug Fixes:
+  - Fixed undefined variables in updateResetButtonState() (index.html)
+  - Removed references to non-existent DOM elements (drawer dropdowns)
+  - Removed duplicate Enter key event listener causing double search execution
+  - Fixed rate limit store memory leak
+
+### v2.5.0 (2026-01)
+- Search Engine: Redesigned filter section with 3-level hierarchical structure
+  - Level 1: Mode Tabs (All, Movie, TV, Others, Adult)
+  - Level 2: Dynamic Category Pills based on selected mode (e.g., Movie → Remux, Blu-Ray, HD, DVD, SD)
+  - Level 3: Technical filters with conditional visibility per mode
+- Backend: Added `categories`, `countries`, `discount` parameters to search API
+- UX: Improved filter organization and discoverability
+- UX: Reset button now preserves mode selection while clearing categories and filters
 
 ### v2.4.1 (2026-01)
 - Bug Fix: Fixed country field type mismatch causing empty country display
