@@ -420,7 +420,7 @@ async def qb_add_torrent_by_url(torrent_url: str, sid: str, tag: str = "") -> bo
         return False
 
 
-async def qb_add_torrent_file(torrent_content: bytes, sid: str, tag: str = "") -> bool:
+async def qb_add_torrent_file(torrent_content: bytes, sid: str, tag: str = "", savepath: str = "") -> bool:
     """
     通过文件内容添加种子到 qBittorrent
 
@@ -428,6 +428,7 @@ async def qb_add_torrent_file(torrent_content: bytes, sid: str, tag: str = "") -
         torrent_content: 种子文件二进制内容
         sid: qBittorrent 会话 ID
         tag: 种子标签（可选）
+        savepath: 下载路径（可选）
 
     Returns:
         bool: 添加成功返回 True
@@ -442,6 +443,8 @@ async def qb_add_torrent_file(torrent_content: bytes, sid: str, tag: str = "") -
             data = {}
             if tag:
                 data["tags"] = tag
+            if savepath:
+                data["savepath"] = savepath
 
             response = await client.post(
                 f"{QBITTORRENT_URL.rstrip('/')}/api/v2/torrents/add",

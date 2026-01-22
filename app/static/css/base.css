@@ -120,6 +120,11 @@ button:disabled {
 
 /* ============ Utility Classes ============ */
 
+/* Hidden - Display None */
+.hidden {
+    display: none !important;
+}
+
 /* Visually Hidden (Accessibility) */
 .visually-hidden {
     position: absolute;

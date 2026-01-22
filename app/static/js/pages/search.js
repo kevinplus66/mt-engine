@@ -10,7 +10,7 @@ import { initDrawer, openFilterDrawer, closeFilterDrawer, applyDrawerFilters as 
 import { initFilters, setMode, filterState, getActiveFilters, resetFilters, updateResetButtonState, updateCategoryPills } from '../components/filter.js';
 import { initTable, renderTorrents, appendTorrents, sortTable, showLoadingSkeleton } from '../components/table.js';
 import { searchTorrents } from '../api.js';
-import { t, updatePageLanguage, currentLang } from '../i18n.js';
+import { t, updatePageLanguage, currentLang, setCurrentPage } from '../i18n.js';
 import { debounce, hapticFeedback } from '../utils.js';
 
 // Page state
@@ -23,6 +23,9 @@ let searchState = {
 };
 
 export function initSearchPage() {
+    // Set current page for title
+    setCurrentPage('search');
+
     // Initialize all components
     initTheme();
     initLanguage();

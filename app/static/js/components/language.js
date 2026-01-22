@@ -6,7 +6,9 @@
 import { getCurrentLang, setLanguage, updatePageLanguage } from '../i18n.js';
 
 export function initLanguage() {
-    // Update UI based on current language
+    // Apply saved language to page
+    updatePageLanguage();
+    // Update language button
     updateLanguageButton();
 }
 

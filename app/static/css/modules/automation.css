@@ -1,0 +1,320 @@
+/* ============================================
+   MT-Engine AutoFarm Module Styles
+   Nothing OS Design System - Unified Layout
+   ============================================ */
+
+/* Unified Top Bar */
+.automation-topbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-xl);
+    background: var(--nt-bg-secondary);
+    border: 1px solid var(--nt-border);
+    margin-bottom: var(--spacing-xl);
+}
+
+/* Compact Inline Stats */
+.automation-topbar-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xl);
+}
+
+.stat-inline {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.stat-inline-label {
+    font-family: var(--nt-font-dot);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--nt-text-secondary);
+}
+
+.stat-inline-value {
+    font-family: var(--nt-font-mono);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--nt-text);
+}
+
+.stat-inline-value--medium {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Topbar Toggles */
+.automation-topbar-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xl);
+    margin-left: auto;
+}
+
+.toggle-label {
+    margin-left: var(--spacing-sm);
+}
+
+/* Topbar Action Buttons */
+.automation-topbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+}
+
+.automation-topbar-actions .search-btn,
+.automation-topbar-actions .reset-filters-btn {
+    height: 40px;
+    padding: 0 16px;
+    font-size: 12px;
+}
+
+/* Dry Run Results Section */
+.automation-dry-run {
+    padding: var(--spacing-xl);
+    background: var(--nt-bg-secondary);
+    border: 1px solid var(--nt-border);
+    margin-bottom: var(--spacing-xl);
+}
+
+.automation-dry-run-header {
+    margin-bottom: var(--spacing-lg);
+}
+
+.automation-dry-run-title {
+    font-family: var(--nt-font-dot);
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--nt-text);
+    margin: 0;
+}
+
+.dry-run-item {
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    border-left: 3px solid var(--status-safe);
+    background: var(--nt-bg);
+}
+
+.dry-run-item:last-child {
+    margin-bottom: 0;
+}
+
+.dry-run-item--cleanup {
+    border-left-color: var(--color-info);
+}
+
+/* Rules Form */
+.automation-form {
+    max-width: none;
+}
+
+.automation-form-grid-3col {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-xl);
+    margin-bottom: var(--spacing-xl);
+}
+
+.automation-form-column {
+    display: flex;
+    flex-direction: column;
+}
+
+.automation-form-card {
+    background: var(--nt-bg-secondary);
+    border: 1px solid var(--nt-border);
+    padding: var(--spacing-xl);
+    margin-bottom: var(--spacing-xl);
+}
+
+.automation-form-title {
+    font-family: var(--nt-font-dot);
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--nt-text);
+    margin: 0 0 var(--spacing-xl) 0;
+}
+
+.automation-form-subtitle {
+    font-family: var(--nt-font-dot);
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--nt-text);
+    margin: var(--spacing-xl) 0 var(--spacing-lg) 0;
+}
+
+.form-field {
+    margin-bottom: var(--spacing-lg);
+}
+
+/* 卡片内双列网格 - 相关字段并排显示 */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.form-row .form-field {
+    margin-bottom: 0;
+}
+
+.form-label {
+    display: block;
+    font-family: var(--nt-font-dot);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--nt-text-secondary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.form-input {
+    width: 100%;
+    height: 40px;
+    padding: 0 var(--spacing-md);
+    background: var(--nt-bg);
+    border: 1px solid var(--nt-border);
+    border-radius: 0; /* Nothing OS - no rounded corners */
+    color: var(--nt-text);
+    font-family: var(--nt-font-mono);
+    font-size: 14px;
+    transition: border-color var(--transition-fast);
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--nt-text);
+    box-shadow: 0 0 0 2px var(--nt-border);
+}
+
+.form-input::placeholder {
+    color: var(--nt-text-tertiary);
+}
+
+.form-hint {
+    font-family: var(--nt-font-body);
+    font-size: 12px;
+    color: var(--nt-text-tertiary);
+    margin-top: var(--spacing-xs);
+    display: block;
+}
+
+.form-weights-hint {
+    font-family: var(--nt-font-body);
+    font-size: 12px;
+    color: var(--nt-text-tertiary);
+    display: block;
+    margin-bottom: var(--spacing-lg);
+}
+
+/* Form Actions */
+.automation-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-lg);
+}
+
+/* Tablet (2 columns) */
+@media (max-width: 1024px) {
+    .automation-form-grid-3col {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* Move Filtering Rules to span full width on top */
+    .automation-form-column:first-child {
+        grid-column: 1 / -1;
+    }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .automation-topbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--spacing-lg);
+    }
+
+    .automation-topbar-stats {
+        flex-direction: column;
+        gap: var(--spacing-md);
+    }
+
+    .stat-inline {
+        justify-content: space-between;
+        padding: var(--spacing-sm) 0;
+        border-bottom: 1px dotted var(--nt-border-light);
+    }
+
+    .stat-inline:last-child {
+        border-bottom: none;
+    }
+
+    .automation-topbar-toggles {
+        flex-direction: column;
+        gap: var(--spacing-md);
+        margin-left: 0;
+        padding-top: var(--spacing-md);
+        border-top: 1px solid var(--nt-border);
+    }
+
+    .automation-topbar-actions {
+        flex-direction: column;
+        padding-top: var(--spacing-md);
+        border-top: 1px solid var(--nt-border);
+    }
+
+    .automation-topbar-actions .search-btn,
+    .automation-topbar-actions .reset-filters-btn {
+        width: 100%;
+    }
+
+    .automation-form-grid-3col {
+        grid-template-columns: 1fr;
+    }
+
+    .automation-form-column:first-child {
+        grid-column: auto;
+    }
+
+    /* 移动端 form-row 变回单列 */
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .form-row .form-field {
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .form-row .form-field:last-child {
+        margin-bottom: 0;
+    }
+
+    .automation-form-actions {
+        flex-direction: column;
+    }
+
+    .automation-form-actions .search-btn,
+    .automation-form-actions .reset-filters-btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .stat-inline-label {
+        font-size: 10px;
+    }
+
+    .stat-inline-value {
+        font-size: 14px;
+    }
+}

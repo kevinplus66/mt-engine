@@ -372,21 +372,6 @@
     letter-spacing: 0.02em;
 }
 
-/* Quality Tag Groups (Labeled Tags for Detail View) */
-.quality-tag-group {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.quality-tag-label {
-    font-size: 10px;
-    color: var(--nt-text-tertiary);
-    font-family: var(--nt-font-dot);
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-}
-
 .quality-tags-inline {
     display: flex;
     flex-wrap: wrap;

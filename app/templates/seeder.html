@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}M-Team 做种助手{% endblock %}
+{% block title %}MT 引擎 · 做种助手{% endblock %}
 
 {% block drawer_content %}
 <!-- Priority Filters (Most Used) -->
@@ -8,10 +8,10 @@
     <div class="drawer-section-title" data-i18n="filterSize">大小</div>
     <div class="drawer-pills" id="drawerSizePills">
         <button class="drawer-pill active" data-value="all" data-group="size" data-i18n="filterAll">全部</button>
-        <button class="drawer-pill" data-value="small" data-group="size">&lt; 10 GB</button>
-        <button class="drawer-pill" data-value="medium" data-group="size">10 - 50 GB</button>
-        <button class="drawer-pill" data-value="large" data-group="size">50 - 100 GB</button>
-        <button class="drawer-pill" data-value="xlarge" data-group="size">&gt; 100 GB</button>
+        <button class="drawer-pill" data-value="small" data-group="size" data-i18n-zh="< 10 GB" data-i18n-en="< 10 GB">&lt; 10 GB</button>
+        <button class="drawer-pill" data-value="medium" data-group="size" data-i18n-zh="10 - 50 GB" data-i18n-en="10 - 50 GB">10 - 50 GB</button>
+        <button class="drawer-pill" data-value="large" data-group="size" data-i18n-zh="50 - 100 GB" data-i18n-en="50 - 100 GB">50 - 100 GB</button>
+        <button class="drawer-pill" data-value="xlarge" data-group="size" data-i18n-zh="> 100 GB" data-i18n-en="> 100 GB">&gt; 100 GB</button>
     </div>
 </div>
 
@@ -31,11 +31,11 @@
     <div class="drawer-section-title" data-i18n="filterRemaining">剩余时间</div>
     <div class="drawer-pills" id="drawerRemainingPills">
         <button class="drawer-pill active" data-value="all" data-group="remaining" data-i18n="filterAll">全部</button>
-        <button class="drawer-pill" data-value="critical" data-group="remaining">&lt; 1小时</button>
-        <button class="drawer-pill" data-value="danger" data-group="remaining">1-2小时</button>
-        <button class="drawer-pill" data-value="warning" data-group="remaining">2-6小时</button>
-        <button class="drawer-pill" data-value="safe" data-group="remaining">6-24小时</button>
-        <button class="drawer-pill" data-value="plenty" data-group="remaining">&gt; 24小时</button>
+        <button class="drawer-pill" data-value="critical" data-group="remaining" data-i18n-zh="< 1小时" data-i18n-en="< 1h">&lt; 1小时</button>
+        <button class="drawer-pill" data-value="danger" data-group="remaining" data-i18n-zh="1-2小时" data-i18n-en="1-2h">1-2小时</button>
+        <button class="drawer-pill" data-value="warning" data-group="remaining" data-i18n-zh="2-6小时" data-i18n-en="2-6h">2-6小时</button>
+        <button class="drawer-pill" data-value="safe" data-group="remaining" data-i18n-zh="6-24小时" data-i18n-en="6-24h">6-24小时</button>
+        <button class="drawer-pill" data-value="plenty" data-group="remaining" data-i18n-zh="> 24小时" data-i18n-en="> 24h">&gt; 24小时</button>
     </div>
 </div>
 
@@ -88,10 +88,10 @@
                 <span class="quick-filter-label" data-i18n="filterSize">大小</span>
                 <div class="quick-filter-pills">
                     <button class="cat-pill size-pill active" data-filter="size" data-value="all" data-i18n="filterAll">全部</button>
-                    <button class="cat-pill size-pill" data-filter="size" data-value="small">&lt;10GB</button>
-                    <button class="cat-pill size-pill" data-filter="size" data-value="medium">10-50GB</button>
-                    <button class="cat-pill size-pill" data-filter="size" data-value="large">50-100GB</button>
-                    <button class="cat-pill size-pill" data-filter="size" data-value="xlarge">&gt;100GB</button>
+                    <button class="cat-pill size-pill" data-filter="size" data-value="small" data-i18n-zh="<10GB" data-i18n-en="<10GB">&lt;10GB</button>
+                    <button class="cat-pill size-pill" data-filter="size" data-value="medium" data-i18n-zh="10-50GB" data-i18n-en="10-50GB">10-50GB</button>
+                    <button class="cat-pill size-pill" data-filter="size" data-value="large" data-i18n-zh="50-100GB" data-i18n-en="50-100GB">50-100GB</button>
+                    <button class="cat-pill size-pill" data-filter="size" data-value="xlarge" data-i18n-zh=">100GB" data-i18n-en=">100GB">&gt;100GB</button>
                 </div>
             </div>
             <div class="quick-filter-group">
@@ -110,11 +110,11 @@
         <div class="tech-filters">
             <select class="filter-select" id="remainingFilter">
                 <option value="all" data-i18n="filterRemaining">剩余时间</option>
-                <option value="critical">&lt; 1小时</option>
-                <option value="danger">1-2小时</option>
-                <option value="warning">2-6小时</option>
-                <option value="safe">6-24小时</option>
-                <option value="plenty">&gt; 24小时</option>
+                <option value="critical" data-i18n-zh="< 1小时" data-i18n-en="< 1h">&lt; 1小时</option>
+                <option value="danger" data-i18n-zh="1-2小时" data-i18n-en="1-2h">1-2小时</option>
+                <option value="warning" data-i18n-zh="2-6小时" data-i18n-en="2-6h">2-6小时</option>
+                <option value="safe" data-i18n-zh="6-24小时" data-i18n-en="6-24h">6-24小时</option>
+                <option value="plenty" data-i18n-zh="> 24小时" data-i18n-en="> 24h">&gt; 24小时</option>
             </select>
             <select class="filter-select" id="modeFilter">
                 <option value="all" data-i18n="filterMode">频道</option>
@@ -161,7 +161,7 @@
     <div class="action-bar">
         <div class="results-info">
             <span data-i18n="showing">显示</span>
-            <strong id="filteredCount">{{ data.torrents | length if data and data.torrents else 0 }}</strong> /
+            <strong id="filteredCount">0</strong> /
             <strong id="totalCount">{{ data.torrents | length if data and data.torrents else 0 }}</strong>
             <span data-i18n="results">个结果</span>
         </div>
@@ -171,7 +171,6 @@
     </div>
 
     <!-- Results Table -->
-    {% if data and data.torrents and data.torrents | length > 0 %}
     <div class="table-card">
         <div class="table-container">
             <table id="torrentTable">
@@ -198,71 +197,16 @@
                     </tr>
                 </thead>
                 <tbody id="torrentBody">
-                    {% for torrent in data.torrents %}
-                    <tr data-id="{{ torrent.id | e }}"
-                        data-name="{{ torrent.name | e }}"
-                        data-size="{{ torrent.size | e }}"
-                        data-seeders="{{ torrent.seeders | e }}"
-                        data-leechers="{{ torrent.leechers | e }}"
-                        data-remaining="{{ torrent.remaining.hours | e }}"
-                        data-status="{{ torrent.user_status | e }}"
-                        data-mode="{{ torrent.mode | e }}">
-                        <td class="name-cell">
-                            <span class="name-text">{{ torrent.name | e }}</span>
-                        </td>
-                        <td class="size-cell">{{ torrent.size_display | e }}</td>
-                        <td class="peer-cell">
-                            <div class="peer-info">
-                                <span class="seeders">▲ {{ torrent.seeders }}</span>
-                                <span class="leechers">▼ {{ torrent.leechers }}</span>
-                            </div>
-                        </td>
-                        <td class="remaining-cell">
-                            <span class="remaining-time status-{{ torrent.remaining.color | e }}">
-                                <span class="status-dot {{ torrent.remaining.color | e }}"></span>
-                                <span class="remaining-display" data-zh="{{ torrent.remaining.display | e }}" data-en="{{ torrent.remaining.display_en | e }}">{{ torrent.remaining.display | e }}</span>
-                            </span>
-                        </td>
-                        <td class="status-cell">
-                            {% if torrent.user_status == 'seeding' %}
-                            <span class="badge badge-seeding" data-status-zh="做种中" data-status-en="Seeding">做种中</span>
-                            {% elif torrent.user_status == 'leeching' %}
-                            <span class="badge badge-leeching" data-status-zh="下载中" data-status-en="DL">下载中</span>
-                            {% else %}
-                            <span class="badge badge-none" data-status-zh="未下载" data-status-en="Not DL">未下载</span>
-                            {% endif %}
-                        </td>
-                        <td class="actions-cell">
-                            <button class="btn btn--download {% if torrent.user_status == 'seeding' or torrent.user_status == 'leeching' %}btn--downloaded{% endif %}"
-                                    {% if torrent.user_status == 'seeding' or torrent.user_status == 'leeching' %}disabled{% endif %}
-                                    aria-label="Download torrent: {{ torrent.name | e }}">
-                                <span class="btn-icon">
-                                    {% if torrent.user_status == 'seeding' or torrent.user_status == 'leeching' %}✓{% else %}↓{% endif %}
-                                </span>
-                            </button>
-                            <a href="{{ torrent.detail_url | e }}" target="_blank" rel="noopener noreferrer" class="detail-link" title="查看详情">
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                                    <path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-3h-2v2H4V4h2V2z"/>
-                                    <path d="M9 2v2h2.59L6.29 9.29l1.41 1.41L13 5.41V8h2V2H9z"/>
-                                </svg>
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
+                    <!-- Content rendered by JS -->
                 </tbody>
             </table>
         </div>
     </div>
-    {% else %}
-    <div class="table-card">
-        <div class="empty-state">
-            <span class="empty-state-icon">📭</span>
-            <p data-i18n="emptyState">暂无免费种子</p>
-            <p style="margin-top: 8px; font-size: 14px;" data-i18n="checkConfig">请检查 MT_TOKEN 配置是否正确</p>
-            <button class="empty-state-cta-btn glitch-hover" id="manualRefreshBtn" data-i18n="refresh">刷新数据</button>
-        </div>
-    </div>
-    {% endif %}
+    
+    <!-- Initial Data -->
+    <script id="initial-torrents" type="application/json">
+        {{ data.torrents | tojson | safe }}
+    </script>
 </div>
 
 <!-- Footer -->
@@ -282,7 +226,7 @@
             <span style="color: var(--nt-text-tertiary); font-weight: 600;">0.00</span>
             {% endif %}
         </p>
-        <p style="margin-top: 8px; font-size: 11px; color: var(--nt-text-secondary);">v4.0.0</p>
+        <p style="margin-top: 8px; font-size: 11px; color: var(--nt-text-secondary);">v5.0.0</p>
     </div>
 </footer>
 {% endblock %}

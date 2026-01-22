@@ -5,6 +5,8 @@ services:
     restart: unless-stopped
     ports:
       - "5001:5001"
+    volumes:
+      - ./data:/app/data
     environment:
       - MT_TOKEN=${MT_TOKEN}
       - MT_USER_ID=${MT_USER_ID}
@@ -15,6 +17,8 @@ services:
       - QBITTORRENT_URL=${QBITTORRENT_URL:-}
       - QBITTORRENT_USER=${QBITTORRENT_USER:-}
       - QBITTORRENT_PASSWORD=${QBITTORRENT_PASSWORD:-}
+      - MT_AUTO_USER=${MT_AUTO_USER:-admin}
+      - MT_AUTO_PASS=${MT_AUTO_PASS:-admin}
     env_file:
       - .env
     healthcheck:

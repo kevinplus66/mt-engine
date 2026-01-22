@@ -1,6 +1,6 @@
 # M-Team Engine (MT 引擎)
 
-![Version](https://img.shields.io/badge/version-4.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-5.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
 ![Docker](https://img.shields.io/badge/docker-ready-blue.svg)
@@ -13,9 +13,10 @@ M-Team 引擎 - 免费种子猎手 + 全能搜索引擎
 
 ## 简介
 
-**M-Team Engine (MT 引擎)** 是一个双功能 M-Team 工具：
+**M-Team Engine (MT 引擎)** 是一个三功能 M-Team 工具：
 1. **免费猎手** - 自动追踪 Free/2xFree 限时免费种子
 2. **搜索引擎** - 全能种子搜索，支持高级筛选和一键下载
+3. **AutoFarm** - 自动农场，规则化自动下载和管理免费种子
 
 ### 主要功能
 
@@ -23,6 +24,7 @@ M-Team 引擎 - 免费种子猎手 + 全能搜索引擎
 |------|
 | **免费猎手** - 自动搜索 Free/2xFree 种子 |
 | **搜索引擎** - 电影/电视剧/成人内容搜索 |
+| **AutoFarm** - 规则化自动农场管理系统 |
 | 高级筛选（分辨率/视频编码/音频编码/来源） |
 | 可展开行显示质量元数据（分辨率、编码、音频、来源、制作组） |
 | 一键下载到 qBittorrent（带标签分类） |
@@ -308,19 +310,23 @@ docker compose up -d
 
 ## 更新日志
 
-### v4.0.0 (2026-01) - 重大架构重构
-**后端模块化**
-- main.py 拆分为 19 个模块（从 ~2000 行精简至 237 行，减少 88%）
-- 模块结构：config, models, utils, constants, state, services, routes
+### v5.0.0 (2026-01) - AutoFarm 自动农场模块
+**全新 AutoFarm 功能**
+- 基于规则的自动种子管理系统，专为 M-Team 免费种子设计
+- 智能评分引擎：大小、免费时间、种子年龄、做种人数等多维度加权评分
+- 磁盘空间检测：自动停止下载防止磁盘满载
+- 重复下载防护：防止同一种子多次下载
+- 僵尸任务检测：自动删除长时间停滞的下载任务
+- H&R 保护：最小做种时间保护，防止 Hit and Run
+- 路径隔离：独立下载目录，使用 `MT_AUTO` 标签管理
 
-**前端模块化**
-- CSS 拆分为 11 个模块文件（BEM 命名规范）
-- JavaScript 拆分为 12 个 ES6 模块
-- Jinja2 模板继承（base.html）
-- index.html 从 3751 行精简至 226 行（减少 94%）
-- seeder.html 从 2062 行精简至 305 行（减少 85%）
+**安全性**
+- HTTP Basic Auth 认证保护（防时序攻击）
+- IP 级别速率限制（5次失败/分钟）
+- 环境变量存储凭证（不在配置文件中存储）
 
-**无功能变更** - 所有现有功能保持不变
+**前端**
+- 全新 `/automation` 页面，包含仪表板和规则配置标签页
 
 **查看完整更新历史**: [GitHub Releases](https://github.com/kevinplus66/MT-Engine/releases)
 

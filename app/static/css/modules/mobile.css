@@ -136,16 +136,11 @@
 }
 
 /* ============ Mobile Meta Row ============ */
-.mobile-meta-zone,
 .mobile-meta-row {
     display: none;
 }
 
 @media (max-width: 768px) {
-    .mobile-meta-zone {
-        display: flex;
-    }
-
     .mobile-meta-row {
         display: flex;
         flex-wrap: wrap;

@@ -3,7 +3,7 @@ MT-Engine - M-Team 免费种子猎手
 自动搜索当前所有 Free / 2xFree 种子
 """
 
-__version__ = "4.0.0"
+__version__ = "5.0.0"
 
 import asyncio
 from datetime import datetime
@@ -26,6 +26,8 @@ from app.routes.torrents import (
 from app.routes.search import (
     api_filter_options, api_search, search_download_torrent
 )
+from app.routes.automation import router as automation_router
+from app.core.automation import automation_loop
 from app.models import DownloadRequest, SearchRequest
 import app.state as state
 
@@ -87,14 +89,22 @@ async def lifespan(app: FastAPI):
     logger.info(f"已加载 {len(country_labels)} 个国家映射")
 
     # 启动后台刷新任务（会立即执行第一次刷新）
-    task = asyncio.create_task(background_refresh())
+    refresh_task = asyncio.create_task(background_refresh())
+
+    # 启动自动化后台任务
+    automation_task = asyncio.create_task(automation_loop())
 
     yield
 
     # 关闭时清理
-    task.cancel()
+    refresh_task.cancel()
+    automation_task.cancel()
     try:
-        await task
+        await refresh_task
+    except asyncio.CancelledError:
+        pass
+    try:
+        await automation_task
     except asyncio.CancelledError:
         pass
 
@@ -157,6 +167,21 @@ async def search_page(request: Request):
 async def dashboard(request: Request):
     """Free Hunter 主仪表盘页面"""
     return get_dashboard_page(request)
+
+
+@app.get("/automation", response_class=None)
+async def automation_page(request: Request):
+    """AutoFarm automation management page"""
+    from app.routes.pages import templates
+    from app.state import user_profile
+    return templates.TemplateResponse(
+        "automation.html",
+        {"request": request, "active_page": "automation", "user_profile": user_profile}
+    )
+
+
+# ============ 自动化 API ============
+app.include_router(automation_router)
 
 
 # ============ 种子 API ============

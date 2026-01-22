@@ -59,6 +59,9 @@ td {
     vertical-align: middle;
     font-size: 13px;
     font-family: var(--nt-font-mono);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 tr {
@@ -147,6 +150,10 @@ tbody tr:not(.detail-row) {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
+}
+
+.mobile-meta-zone {
+    display: none;
 }
 
 /* ============ Actions Cell ============ */
@@ -336,7 +343,12 @@ tbody tr:not(.detail-row) {
 }
 
 .detail-row {
+    display: none;
     background: var(--nt-bg-secondary);
+}
+
+.detail-row.expanded {
+    display: table-row;
 }
 
 .detail-content {
@@ -793,6 +805,10 @@ tr.swipe-trigger-download {
         padding: 0;
     }
 
+    .detail-row.expanded {
+        display: block;
+    }
+
     .detail-row td {
         padding: 12px 14px !important;
         width: 100% !important;
@@ -815,10 +831,6 @@ tr.swipe-trigger-download {
 
     .quality-tags-inline {
         gap: 6px 10px;
-    }
-
-    .quality-tag-label {
-        font-size: 9px;
     }
 
     .quality-tags-row,

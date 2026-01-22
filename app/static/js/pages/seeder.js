@@ -7,12 +7,14 @@ import { initTheme, toggleTheme } from '../components/theme.js';
 import { initLanguage, toggleLanguage } from '../components/language.js';
 import { showToast } from '../components/toast.js';
 import { initDrawer, openFilterDrawer, closeFilterDrawer } from '../components/drawer.js';
-import { refreshTorrents, toggleAutoDelete as apiToggleAutoDelete } from '../api.js';
-import { t, currentLang } from '../i18n.js';
+import { refreshTorrents, toggleAutoDelete as apiToggleAutoDelete, getTorrents } from '../api.js';
+import { initTable, renderTorrents } from '../components/table.js';
+import { t, currentLang, setCurrentPage } from '../i18n.js';
 import { hapticFeedback, debounce, throttle } from '../utils.js';
 import { CONFIG } from '../config.js';
 
 // Page state
+let allTorrents = [];
 let filterState = {
     size: 'all',
     seeder: 'all',
@@ -39,12 +41,25 @@ let autoRefreshInterval = null;
 const REFRESH_INTERVAL = 60000; // 1 minute
 
 export function initSeederPage() {
+    // Set current page for title
+    setCurrentPage('seeder');
+
     // Initialize all components
     initTheme();
     initLanguage();
     initDrawer();
+    initTable();
 
     // Load initial data
+    try {
+        const scriptTag = document.getElementById('initial-torrents');
+        if (scriptTag) {
+            allTorrents = JSON.parse(scriptTag.textContent);
+        }
+    } catch (e) {
+        console.error('Failed to parse initial data:', e);
+    }
+
     loadAutoDeleteStatus();
     loadFiltersFromLocalStorage();
 
@@ -178,33 +193,36 @@ function setupEventListeners() {
 
     // Refresh buttons
     const refreshBtn = document.getElementById('refreshBtn');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', async () => {
-            refreshBtn.disabled = true;
-            try {
-                await refreshTorrents();
-                location.reload();
-            } catch (e) {
-                console.error('Refresh failed:', e);
-                showToast(t('refreshError') || '刷新失败');
-                refreshBtn.disabled = false;
+    const manualRefreshBtn = document.getElementById('manualRefreshBtn');
+
+    const handleRefresh = async (btn) => {
+        if (!btn) return;
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        // Optional: btn.classList.add('loading');
+        
+        try {
+            await refreshTorrents();
+            const data = await getTorrents();
+            if (data && data.torrents) {
+                allTorrents = data.torrents;
+                applyFilters();
+                showToast(t('refreshSuccess') || '刷新成功');
             }
-        });
+        } catch (e) {
+            console.error('Refresh failed:', e);
+            showToast(t('refreshError') || '刷新失败');
+        } finally {
+            btn.disabled = false;
+        }
+    };
+
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => handleRefresh(refreshBtn));
     }
 
-    const manualRefreshBtn = document.getElementById('manualRefreshBtn');
     if (manualRefreshBtn) {
-        manualRefreshBtn.addEventListener('click', async () => {
-            manualRefreshBtn.disabled = true;
-            try {
-                await refreshTorrents();
-                location.reload();
-            } catch (e) {
-                console.error('Refresh failed:', e);
-                showToast(t('refreshError') || '刷新失败');
-                manualRefreshBtn.disabled = false;
-            }
-        });
+        manualRefreshBtn.addEventListener('click', () => handleRefresh(manualRefreshBtn));
     }
 
     // Drawer pills
@@ -300,100 +318,72 @@ function filterByMode(mode, btn) {
 
 function applyFilters() {
     const searchTerm = filterState.search.toLowerCase();
-    const rows = document.querySelectorAll('#torrentBody tr');
-    let visibleCount = 0;
-
     const GB = 1024 * 1024 * 1024;
 
-    rows.forEach(row => {
-        let show = true;
-        const size = parseInt(row.getAttribute('data-size'), 10);
-        const seeders = parseInt(row.getAttribute('data-seeders'), 10);
-        const remaining = parseFloat(row.getAttribute('data-remaining'));
-        const name = (row.getAttribute('data-name') || '').toLowerCase();
-        const status = row.getAttribute('data-status');
-        const mode = row.getAttribute('data-mode');
+    const filtered = allTorrents.filter(torrent => {
+        const size = torrent.size || 0;
+        const seeders = torrent.seeders || 0;
+        // Handle remaining time safely
+        const remaining = torrent.remaining ? (typeof torrent.remaining === 'object' ? (torrent.remaining.hours || 0) : parseFloat(torrent.remaining)) : 0;
+        const name = (torrent.name || '').toLowerCase();
+        const status = torrent.user_status || 'none';
+        const mode = torrent.mode || 'normal';
 
         // Search filter
-        if (searchTerm && !name.includes(searchTerm)) {
-            show = false;
-        }
+        if (searchTerm && !name.includes(searchTerm)) return false;
 
         // Status filter
-        if (show && filterState.status !== 'all' && status !== filterState.status) {
-            show = false;
-        }
+        if (filterState.status !== 'all' && status !== filterState.status) return false;
 
         // Mode filter
-        if (show && filterState.mode !== 'all' && mode !== filterState.mode) {
-            show = false;
-        }
+        if (filterState.mode !== 'all' && mode !== filterState.mode) return false;
 
         // Size filter
-        if (show && filterState.size !== 'all') {
+        if (filterState.size !== 'all') {
             switch (filterState.size) {
-                case 'small':
-                    show = size < 10 * GB;
-                    break;
-                case 'medium':
-                    show = size >= 10 * GB && size < 50 * GB;
-                    break;
-                case 'large':
-                    show = size >= 50 * GB && size < 100 * GB;
-                    break;
-                case 'xlarge':
-                    show = size >= 100 * GB;
-                    break;
+                case 'small': if (size >= 10 * GB) return false; break;
+                case 'medium': if (size < 10 * GB || size >= 50 * GB) return false; break;
+                case 'large': if (size < 50 * GB || size >= 100 * GB) return false; break;
+                case 'xlarge': if (size < 100 * GB) return false; break;
             }
         }
 
         // Seeder filter
-        if (show && filterState.seeder !== 'all') {
+        if (filterState.seeder !== 'all') {
             switch (filterState.seeder) {
-                case 'hot':
-                    show = seeders > 10;
-                    break;
-                case 'normal':
-                    show = seeders >= 5 && seeders <= 10;
-                    break;
-                case 'rare':
-                    show = seeders >= 1 && seeders < 5;
-                    break;
-                case 'dead':
-                    show = seeders === 0;
-                    break;
+                case 'hot': if (seeders <= 10) return false; break;
+                case 'normal': if (seeders < 5 || seeders > 10) return false; break;
+                case 'rare': if (seeders < 1 || seeders >= 5) return false; break;
+                case 'dead': if (seeders !== 0) return false; break;
             }
         }
 
         // Remaining time filter
-        if (show && filterState.remaining !== 'all') {
+        if (filterState.remaining !== 'all') {
             switch (filterState.remaining) {
-                case 'critical':
-                    show = remaining < 1;
-                    break;
-                case 'danger':
-                    show = remaining >= 1 && remaining < 2;
-                    break;
-                case 'warning':
-                    show = remaining >= 2 && remaining < 6;
-                    break;
-                case 'safe':
-                    show = remaining >= 6 && remaining < 24;
-                    break;
-                case 'plenty':
-                    show = remaining >= 24;
-                    break;
+                case 'critical': if (remaining >= 1) return false; break;
+                case 'danger': if (remaining < 1 || remaining >= 2) return false; break;
+                case 'warning': if (remaining < 2 || remaining >= 6) return false; break;
+                case 'safe': if (remaining < 6 || remaining >= 24) return false; break;
+                case 'plenty': if (remaining < 24) return false; break;
             }
         }
 
-        row.style.display = show ? '' : 'none';
-        if (show) visibleCount++;
+        return true;
     });
+
+    renderTorrents(filtered, false);
 
     // Update visible count
     const filteredCount = document.getElementById('filteredCount');
     if (filteredCount) {
-        filteredCount.textContent = visibleCount;
+        filteredCount.textContent = filtered.length;
+    }
+    
+    // Update total count
+    const totalCount = document.getElementById('totalCount');
+    if (totalCount) {
+        totalCount.textContent = allTorrents.length;
     }
 
     updateFilterIndicators();
@@ -669,8 +659,17 @@ export function startAutoRefresh() {
         clearInterval(autoRefreshInterval);
     }
 
-    autoRefreshInterval = setInterval(() => {
-        location.reload();
+    autoRefreshInterval = setInterval(async () => {
+        try {
+            // Poll for latest data (silent refresh)
+            const data = await getTorrents();
+            if (data && data.torrents) {
+                allTorrents = data.torrents;
+                applyFilters();
+            }
+        } catch (e) {
+            console.error('Auto refresh failed:', e);
+        }
     }, REFRESH_INTERVAL);
 }
 

@@ -6,6 +6,7 @@
 import { formatSize, formatDate, escapeHtml } from '../utils.js';
 import { t, translateCountry, currentLang } from '../i18n.js';
 import { CONFIG, PARENT_CATEGORY_NAMES, CHILD_TO_PARENT } from '../config.js';
+import { downloadTorrent } from './download.js';
 
 // Table state
 let currentSort = {
@@ -25,8 +26,50 @@ export function initTable() {
         });
     });
 
-    // Initialize mobile swipe for expandable rows
-    initMobileSwipe();
+    // Initialize event delegation on tbody
+    const tbody = document.querySelector('.table-card tbody');
+    if (tbody) {
+        tbody.addEventListener('click', handleTableClick);
+    }
+}
+
+function handleTableClick(e) {
+    const target = e.target;
+    
+    // Handle Expand Toggle
+    const expandBtn = target.closest('.expand-toggle');
+    if (expandBtn) {
+        e.stopPropagation();
+        const row = expandBtn.closest('tr');
+        toggleRowExpansion(row);
+        return;
+    }
+
+    // Handle Download Button
+    const downloadBtn = target.closest('.btn--download');
+    if (downloadBtn) {
+        e.stopPropagation();
+        // Prevent double clicks or clicking disabled buttons
+        if (downloadBtn.disabled || downloadBtn.hasAttribute('data-downloaded')) return;
+
+        const row = downloadBtn.closest('tr');
+        const torrentId = row.dataset.id;
+
+        // Determine if we are on search page or seeder page based on URL or context
+        const isSearch = window.location.pathname.includes('/search');
+
+        // Call the download function
+        downloadTorrent(torrentId, downloadBtn, isSearch);
+        return;
+    }
+    
+    // Handle Row Click (for expansion, excluding interactive elements)
+    const row = target.closest('tr');
+    if (row && !target.closest('a') && !target.closest('button')) {
+        if (!row.classList.contains('detail-row')) {
+            toggleRowExpansion(row);
+        }
+    }
 }
 
 export function sortTable(column) {
@@ -78,9 +121,6 @@ export function renderTorrents(torrents, isSearch = true) {
     tbody.innerHTML = torrents.map(torrent =>
         createTorrentRow(torrent, isSearch)
     ).join('');
-
-    // Attach event listeners
-    attachRowEventListeners(tbody);
 }
 
 // Append new torrents without re-rendering entire table (for pagination/loadMore)
@@ -95,39 +135,19 @@ export function appendTorrents(newTorrents, isSearch = true) {
         return;
     }
 
-    // Create temporary container
-    const tempDiv = document.createElement('div');
+    // Use DocumentFragment for better performance
+    const fragment = document.createDocumentFragment();
+    const tempDiv = document.createElement('tbody'); // Use tbody as container to parse TRs correctly
+    
     tempDiv.innerHTML = newTorrents.map(torrent =>
         createTorrentRow(torrent, isSearch)
     ).join('');
 
-    // Append new rows
     while (tempDiv.firstChild) {
-        tbody.appendChild(tempDiv.firstChild);
+        fragment.appendChild(tempDiv.firstChild);
     }
 
-    // Attach event listeners to new rows only
-    const newRows = Array.from(tbody.children).slice(-newTorrents.length);
-    newRows.forEach(row => {
-        const expandBtn = row.querySelector('.expand-toggle');
-        if (expandBtn) {
-            expandBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                toggleRowExpansion(row);
-            });
-        }
-    });
-}
-
-// Helper function to attach event listeners
-function attachRowEventListeners(container) {
-    container.querySelectorAll('.expand-toggle').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const row = btn.closest('tr');
-            toggleRowExpansion(row);
-        });
-    });
+    tbody.appendChild(fragment);
 }
 
 function createTorrentRow(torrent, isSearch) {
@@ -138,17 +158,67 @@ function createTorrentRow(torrent, isSearch) {
     const addedDate = torrent.added || torrent.created_date;
     const addedTimestamp = torrent.added_timestamp || (torrent.created_date ? new Date(torrent.created_date).getTime() / 1000 : 0);
 
+    // Columns 4 and 5 content based on page type
+    let col4Content, col5Content;
+    let col4Class = 'category-cell', col5Class = 'date-cell';
+    let col4Sort = '', col5Sort = '';
+
+    if (isSearch) {
+        // Search Page: Category & Date
+        col4Content = categoryId ? getCategoryLabel(categoryId) : '-';
+        col5Content = formatDate(addedDate);
+        col5Sort = `data-sort-value="${addedTimestamp}"`;
+    } else {
+        // Seeder Page: Remaining Time & Status
+        col4Class = 'remaining-cell';
+        col5Class = 'status-cell';
+        
+        // Remaining Time
+        if (torrent.remaining && typeof torrent.remaining === 'object') {
+            const displayTime = currentLang === 'zh' ? torrent.remaining.display : (torrent.remaining.display_en || torrent.remaining.display);
+            const colorClass = torrent.remaining.color || 'safe'; // Default to safe if missing
+            col4Content = `
+                <span class="remaining-time status-${colorClass}">
+                    <span class="status-dot ${colorClass}"></span>
+                    <span class="remaining-display">${escapeHtml(displayTime)}</span>
+                </span>
+            `;
+            col4Sort = `data-sort-value="${torrent.remaining.hours || 9999}"`;
+        } else {
+            col4Content = '-';
+        }
+
+        // Status Badge
+        let statusText = t('statusNotDownloaded') || '未下载';
+        let statusClass = 'badge-none';
+        
+        if (torrent.user_status === 'seeding') {
+            statusText = t('statusSeeding') || '做种中';
+            statusClass = 'badge-seeding';
+        } else if (torrent.user_status === 'leeching') {
+            statusText = t('statusLeeching') || '下载中';
+            statusClass = 'badge-leeching';
+        }
+        
+        col5Content = `<span class="badge ${statusClass}">${statusText}</span>`;
+    }
+
     const mainRow = `
-        <tr class="torrent-row" data-id="${torrent.id}">
+        <tr class="torrent-row" data-id="${torrent.id}"
+            data-name="${escapeHtml(torrent.name)}"
+            data-size="${size}"
+            data-seeders="${torrent.seeders || 0}"
+            data-leechers="${torrent.leechers || 0}"
+            data-remaining="${torrent.remaining ? (torrent.remaining.hours || 0) : 0}"
+            data-status="${torrent.user_status || 'none'}"
+            data-mode="${torrent.mode || 'normal'}">
             <td class="name-cell">
                 <div class="torrent-name">
                     <button class="expand-toggle" aria-label="${t('expand_details')}">▼</button>
                     <span class="torrent-link">${escapeHtml(torrent.name)}</span>
                 </div>
                 <div class="torrent-descr">${escapeHtml(torrent.small_descr || '')}</div>
-                <div class="torrent-tags">
-                    ${createTorrentTags(torrent, categoryId)}
-                </div>
+                <div class="torrent-tags"></div>
                 <div class="mobile-meta-zone">
                     <div class="mobile-meta-item">
                         <span class="value">${torrent.size_display || formatSize(size)}</span>
@@ -159,7 +229,7 @@ function createTorrentRow(torrent, isSearch) {
                         <span class="leechers">${torrent.leechers || 0}</span>
                     </div>
                     <div class="mobile-meta-item">
-                        <span class="value">${formatDate(addedDate)}</span>
+                        <span class="value">${isSearch ? formatDate(addedDate) : (col4Content.includes('span') ? col4Content : '')}</span>
                     </div>
                 </div>
             </td>
@@ -173,14 +243,14 @@ function createTorrentRow(torrent, isSearch) {
                     <span class="leechers">${torrent.leechers || 0}</span>
                 </div>
             </td>
-            <td class="category-cell">
-                ${categoryId ? getCategoryLabel(categoryId) : '-'}
+            <td class="${col4Class}" ${col4Sort}>
+                ${col4Content}
             </td>
-            <td class="date-cell" data-sort-value="${addedTimestamp}">
-                ${formatDate(addedDate)}
+            <td class="${col5Class}" ${col5Sort}>
+                ${col5Content}
             </td>
             <td class="action-cell">
-                <button class="btn btn--download" onclick="downloadTorrent(${torrent.id}, this, ${isSearch})"
+                <button class="btn btn--download" 
                     ${torrent.downloaded || torrent.user_status === 'seeding' || torrent.user_status === 'leeching' ? 'data-downloaded="true"' : ''}>
                     <span class="btn-icon">${torrent.downloaded || torrent.user_status === 'seeding' || torrent.user_status === 'leeching' ? '✓' : '↓'}</span>
                     <span class="btn-text">${torrent.downloaded || torrent.user_status === 'seeding' || torrent.user_status === 'leeching' ? t('downloaded') : t('download')}</span>
@@ -195,7 +265,7 @@ function createTorrentRow(torrent, isSearch) {
         </tr>
     `;
 
-    const detailRow = createDetailRow(torrent);
+    const detailRow = createDetailRow(torrent, categoryId);
 
     return mainRow + detailRow;
 }
@@ -213,56 +283,80 @@ function getCategoryLabel(catId) {
     return '-';
 }
 
-function createTorrentTags(torrent, categoryId) {
-    const tags = [];
+function createDetailRow(torrent, categoryId) {
+    const pills = [];
 
-    // Category tag
+    // Category pill
     if (categoryId) {
         const parentId = CHILD_TO_PARENT[categoryId] || categoryId;
         const catName = PARENT_CATEGORY_NAMES[parentId];
         if (catName) {
             const langKey = currentLang === 'zh' ? 'zh' : 'en';
-            tags.push(`<span class="tag tag--meta">${catName[langKey]}</span>`);
+            pills.push(`<span class="tag tag--meta">${escapeHtml(catName[langKey])}</span>`);
         }
     }
 
-    // Discount tag - handle both formats
+    // Discount pill
     const discountLabel = torrent.discount_label || torrent.discount;
     if (discountLabel) {
         const displayLabel = typeof discountLabel === 'object' ?
             (discountLabel[currentLang === 'zh' ? 'zh' : 'en'] || discountLabel.zh) :
             discountLabel;
         if (displayLabel && displayLabel !== '1.0X') {
-            tags.push(`<span class="tag tag--discount">${escapeHtml(displayLabel)}</span>`);
+            pills.push(`<span class="tag tag--discount">${escapeHtml(displayLabel)}</span>`);
         }
     }
 
-    // Label tags - handle both formats
+    // Label pills (中字, HDR, DoVi, etc.)
     const labels = torrent.labels || (torrent.quality_metadata && torrent.quality_metadata.labels_new);
     if (labels && labels.length > 0) {
         labels.forEach(label => {
-            tags.push(`<span class="tag tag--label">${escapeHtml(label)}</span>`);
+            pills.push(`<span class="tag tag--label">${escapeHtml(label)}</span>`);
         });
     }
 
-    return tags.join('');
-}
-
-function createDetailRow(torrent) {
     // Handle both quality and quality_metadata formats
     const quality = torrent.quality || torrent.quality_metadata || {};
+
+    // Resolution/Standard
+    const resolution = quality.standard || quality.resolution;
+    if (resolution) {
+        pills.push(`<span class="tag tag--tech">${escapeHtml(resolution)}</span>`);
+    }
+
+    // Video codec
+    const videoCodec = quality.video_codec || quality.video;
+    if (videoCodec) {
+        pills.push(`<span class="tag tag--tech">${escapeHtml(videoCodec)}</span>`);
+    }
+
+    // Audio codec
+    const audioCodec = quality.audio_codec || quality.audio;
+    if (audioCodec) {
+        pills.push(`<span class="tag tag--tech">${escapeHtml(audioCodec)}</span>`);
+    }
+
+    // Codec
+    if (quality.codec) {
+        pills.push(`<span class="tag tag--tech">${escapeHtml(quality.codec)}</span>`);
+    }
+
+    // Source
+    if (quality.source) {
+        pills.push(`<span class="tag tag--meta">${escapeHtml(quality.source)}</span>`);
+    }
+
+    // Country
+    if (quality.country) {
+        pills.push(`<span class="tag tag--meta">${escapeHtml(translateCountry(quality.country))}</span>`);
+    }
 
     return `
         <tr class="detail-row" data-id="${torrent.id}">
             <td colspan="6">
                 <div class="detail-content">
                     <div class="quality-tags-inline">
-                        ${createQualityTag('视频', quality.video_codec || quality.video, 'tech')}
-                        ${createQualityTag('音频', quality.audio_codec || quality.audio, 'tech')}
-                        ${createQualityTag('编码', quality.codec, 'tech')}
-                        ${createQualityTag('分辨率', quality.standard || quality.resolution, 'tech')}
-                        ${createQualityTag('来源', quality.source, 'meta')}
-                        ${createQualityTag('国家', quality.country ? translateCountry(quality.country) : null, 'meta')}
+                        ${pills.join('')}
                     </div>
                     ${torrent.num_files ? `
                         <div class="file-info" style="margin-top: 8px; font-size: 12px;">
@@ -272,17 +366,6 @@ function createDetailRow(torrent) {
                 </div>
             </td>
         </tr>
-    `;
-}
-
-function createQualityTag(label, value, type) {
-    if (!value) return '';
-
-    return `
-        <div class="quality-tag-group">
-            <span class="quality-tag-label">${label}</span>
-            <span class="tag tag--${type}">${escapeHtml(value)}</span>
-        </div>
     `;
 }
 

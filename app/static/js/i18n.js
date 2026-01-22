@@ -9,6 +9,12 @@ import { escapeHtml } from './utils.js';
 // ============ Translations ============
 export const TRANSLATIONS = {
     'zh': {
+        appName: 'MT 引擎',
+        pageTitle: {
+            search: '搜索引擎',
+            seeder: '做种助手',
+            automation: '自动农场'
+        },
         searchBtn: '搜索',
         resetFilters: '重置',
         resolution: '清晰度',
@@ -100,14 +106,133 @@ export const TRANSLATIONS = {
         autoDeleteError: '切换失败',
         view_details: '查看详情',
         refreshError: '刷新失败',
+        refreshSuccess: '刷新成功',
+        statusSeeding: '做种中',
+        statusLeeching: '下载中',
+        statusNotDownloaded: '未下载',
         today: '今天',
         yesterday: '昨天',
         daysAgo: '天前',
         weeksAgo: '周前',
         monthsAgo: '月前',
-        yearsAgo: '年前'
+        yearsAgo: '年前',
+        // Seeder page - missing keys
+        colDiscount: '优惠',
+        filterAll: '全部',
+        filterSize: '大小',
+        filterSeeders: '做种',
+        filterRemaining: '剩余时间',
+        filterMode: '频道',
+        filterNormal: '综合',
+        filterAdult: '成人',
+        filterLeeching: '下载中',
+        filterSeeding: '做种中',
+        autoDelete: '自动删除',
+        autoDeleteDesc: '免费变节时删除未完成下载',
+        refresh: '刷新数据',
+        colRemaining: '剩余时间',
+        colStatus: '状态',
+        autoRefresh: '自动刷新间隔',
+        minutes: '分钟',
+        lastRefresh: '上次刷新',
+        ratioDiff: '差距',
+        // Time ranges
+        timeRangeCritical: '< 1小时',
+        timeRangeDanger: '1-2小时',
+        timeRangeWarning: '2-6小时',
+        timeRangeSafe: '6-24小时',
+        timeRangePlenty: '> 24小时',
+        // Quality labels
+        qualityVideo: '视频',
+        qualityAudio: '音频',
+        qualityCodec: '编码',
+        qualityResolution: '分辨率',
+        qualitySource: '来源',
+        qualityCountry: '国家',
+        // Automation page
+        autoDashboard: '仪表板',
+        autoRules: '规则',
+        autoActiveTasks: '活动任务',
+        autoPendingDownloads: '待下载',
+        autoDownloadStatus: '下载状态',
+        autoCleanupStatus: '清理状态',
+        autoEnableDownload: '启用下载',
+        autoEnableCleanup: '启用清理',
+        autoDryRun: '🔍 模拟运行',
+        autoRunDownload: '⬇️ 执行下载',
+        autoRunCleanup: '🗑️ 执行清理',
+        autoRefreshStats: '🔄 刷新状态',
+        autoActions: '操作',
+        autoDryRunResults: '模拟结果',
+        autoDownloadPolicy: '下载策略',
+        autoFilteringRules: '过滤规则',
+        autoCleanupPolicy: '清理策略',
+        autoMaxActiveTasks: '最大活动任务数',
+        autoInterval: '间隔 (秒)',
+        autoSavePath: '保存路径',
+        autoDiskThreshold: '磁盘阈值 (%)',
+        autoDiskThresholdHint: '磁盘使用超过此百分比时停止下载',
+        autoMinSize: '最小大小 (GB)',
+        autoMaxSize: '最大大小 (GB)',
+        autoIncludeKeywords: '包含关键词 (逗号分隔)',
+        autoIncludeKeywordsPlaceholder: '例如: movie, series…',
+        autoExcludeKeywords: '排除关键词 (逗号分隔)',
+        autoExcludeKeywordsPlaceholder: '例如: cam, ts…',
+        autoScoringWeights: '评分权重',
+        autoWeightsHint: '调整权重以优先考虑不同因素 (-10 到 10)',
+        autoWeightSize: '大小权重 (越小 = 越高分)',
+        autoWeightFreeTime: '免费时间权重 (剩余越多 = 越高分)',
+        autoWeightAge: '年龄权重 (越新 = 越高分)',
+        autoWeightSeeders: '做种数权重 (越少 = 越高分)',
+        autoDeleteOnExpired: '优惠过期时删除',
+        autoMinShareRatio: '最小分享率',
+        autoMinSeedTime: '最小做种时间 (小时)',
+        autoMinSeedTimeHint: 'H&R 保护: 在此时间之前不会删除',
+        autoMaxDownloadTime: '最大下载时间 (小时, 0=禁用)',
+        autoMaxDownloadTimeHint: '僵尸任务检测: 下载超过此时间则删除',
+        autoMaxSeeders: '最大做种数 (0=不限制)',
+        autoMaxSeedersHint: '只下载做种人数低于此值的种子',
+        autoMinLeechers: '最小下载数 (0=不限制)',
+        autoMinLeechersHint: '只下载当前下载人数高于此值的种子',
+        autoMinCurrentUsers: '最小当前用户数 (0=禁用)',
+        autoMinCurrentUsersHint: '做种+下载人数低于此值时删除',
+        autoMinUploadSpeed: '最小上传速度 (KB/s, 0=禁用)',
+        autoMinUploadSpeedHint: '平均上传速度低于此值时删除',
+        autoUploadSpeedCheckMinutes: '速度检查窗口 (分钟)',
+        autoUploadSpeedCheckHint: '计算平均上传速度的时间窗口',
+        autoSaveConfig: '💾 保存配置',
+        autoCancel: '取消',
+        autoEnabled: '✅ 已启用',
+        autoDisabled: '⏸️ 已禁用',
+        // Automation toast messages
+        autoConfigSaved: '配置已保存',
+        autoConfigSaveFailed: '保存配置失败',
+        autoConfigLoadFailed: '加载配置失败',
+        autoDryRunCompleted: '模拟运行完成',
+        autoDryRunFailed: '模拟运行失败',
+        autoDownloadTriggered: '下载周期已完成',
+        autoDownloadTriggerFailed: '触发下载失败',
+        autoCleanupTriggered: '清理周期已完成',
+        autoCleanupTriggerFailed: '触发清理失败',
+        autoChangesCancelled: '已取消更改',
+        autoRunning: '运行中…',
+        // Automation dry run results
+        autoTopCandidates: '前',
+        autoOfCandidates: '个候选，共',
+        autoNoCandidates: '无下载候选',
+        autoCleanupCount: '个任务将被清理',
+        autoNoCleanup: '无清理候选',
+        autoSize: '大小',
+        autoScore: '评分',
+        autoRatio: '分享率'
     },
     'en': {
+        appName: 'MT-Engine',
+        pageTitle: {
+            search: 'Search',
+            seeder: 'Free Hunter',
+            automation: 'AutoFarm'
+        },
         searchBtn: 'Search',
         resetFilters: 'Reset',
         resolution: 'Resolution',
@@ -199,12 +324,125 @@ export const TRANSLATIONS = {
         autoDeleteError: 'Toggle failed',
         view_details: 'View details',
         refreshError: 'Refresh failed',
+        refreshSuccess: 'Refresh successful',
+        statusSeeding: 'Seeding',
+        statusLeeching: 'Downloading',
+        statusNotDownloaded: 'Not Downloaded',
         today: 'Today',
         yesterday: 'Yesterday',
         daysAgo: 'days ago',
         weeksAgo: 'weeks ago',
         monthsAgo: 'months ago',
-        yearsAgo: 'years ago'
+        yearsAgo: 'years ago',
+        // Seeder page - missing keys
+        colDiscount: 'Discount',
+        filterAll: 'All',
+        filterSize: 'Size',
+        filterSeeders: 'Seeders',
+        filterRemaining: 'Remaining',
+        filterMode: 'Channel',
+        filterNormal: 'Normal',
+        filterAdult: 'Adult',
+        filterLeeching: 'Downloading',
+        filterSeeding: 'Seeding',
+        autoDelete: 'Auto Delete',
+        autoDeleteDesc: 'Delete incomplete when free ends',
+        refresh: 'Refresh',
+        colRemaining: 'Remaining',
+        colStatus: 'Status',
+        autoRefresh: 'Auto refresh interval',
+        minutes: 'min',
+        lastRefresh: 'Last refresh',
+        ratioDiff: 'Diff',
+        // Time ranges
+        timeRangeCritical: '< 1h',
+        timeRangeDanger: '1-2h',
+        timeRangeWarning: '2-6h',
+        timeRangeSafe: '6-24h',
+        timeRangePlenty: '> 24h',
+        // Quality labels
+        qualityVideo: 'Video',
+        qualityAudio: 'Audio',
+        qualityCodec: 'Codec',
+        qualityResolution: 'Resolution',
+        qualitySource: 'Source',
+        qualityCountry: 'Country',
+        // Automation page
+        autoDashboard: 'Dashboard',
+        autoRules: 'Rules',
+        autoActiveTasks: 'Active Tasks',
+        autoPendingDownloads: 'Pending Downloads',
+        autoDownloadStatus: 'Download Status',
+        autoCleanupStatus: 'Cleanup Status',
+        autoEnableDownload: 'Enable Download',
+        autoEnableCleanup: 'Enable Cleanup',
+        autoDryRun: '🔍 Dry Run',
+        autoRunDownload: '⬇️ Run Download',
+        autoRunCleanup: '🗑️ Run Cleanup',
+        autoRefreshStats: '🔄 Refresh Stats',
+        autoActions: 'Actions',
+        autoDryRunResults: 'Dry Run Results',
+        autoDownloadPolicy: 'Download Policy',
+        autoFilteringRules: 'Filtering Rules',
+        autoCleanupPolicy: 'Cleanup Policy',
+        autoMaxActiveTasks: 'Max Active Tasks',
+        autoInterval: 'Interval (seconds)',
+        autoSavePath: 'Save Path',
+        autoDiskThreshold: 'Disk Usage Threshold (%)',
+        autoDiskThresholdHint: 'Stop downloads when disk usage exceeds this percentage',
+        autoMinSize: 'Min Size (GB)',
+        autoMaxSize: 'Max Size (GB)',
+        autoIncludeKeywords: 'Include Keywords (comma-separated)',
+        autoIncludeKeywordsPlaceholder: 'e.g., movie, series…',
+        autoExcludeKeywords: 'Exclude Keywords (comma-separated)',
+        autoExcludeKeywordsPlaceholder: 'e.g., cam, ts…',
+        autoScoringWeights: 'Scoring Weights',
+        autoWeightsHint: 'Adjust weights to prioritize different factors (-10 to 10)',
+        autoWeightSize: 'Size Weight (smaller = higher score)',
+        autoWeightFreeTime: 'Free Time Weight (more remaining = higher)',
+        autoWeightAge: 'Age Weight (newer = higher)',
+        autoWeightSeeders: 'Seeders Weight (fewer = higher)',
+        autoDeleteOnExpired: 'Delete when discount expires',
+        autoMinShareRatio: 'Minimum Share Ratio',
+        autoMinSeedTime: 'Minimum Seed Time (hours)',
+        autoMinSeedTimeHint: 'H&R protection: won\'t delete before this time',
+        autoMaxDownloadTime: 'Max Download Time (hours, 0=disabled)',
+        autoMaxDownloadTimeHint: 'Zombie task detection: delete if downloading exceeds this time',
+        autoMaxSeeders: 'Max Seeders (0=no limit)',
+        autoMaxSeedersHint: 'Only download torrents with seeders below this count',
+        autoMinLeechers: 'Min Leechers (0=no limit)',
+        autoMinLeechersHint: 'Only download torrents with leechers above this count',
+        autoMinCurrentUsers: 'Min Current Users (0=disabled)',
+        autoMinCurrentUsersHint: 'Delete if seeders + leechers below this value',
+        autoMinUploadSpeed: 'Min Upload Speed (KB/s, 0=disabled)',
+        autoMinUploadSpeedHint: 'Delete if average upload speed below this value',
+        autoUploadSpeedCheckMinutes: 'Upload Speed Check Window (min)',
+        autoUploadSpeedCheckHint: 'Time window for calculating average upload speed',
+        autoSaveConfig: '💾 Save Configuration',
+        autoCancel: 'Cancel',
+        autoEnabled: '✅ Enabled',
+        autoDisabled: '⏸️ Disabled',
+        // Automation toast messages
+        autoConfigSaved: 'Configuration saved',
+        autoConfigSaveFailed: 'Failed to save configuration',
+        autoConfigLoadFailed: 'Failed to load configuration',
+        autoDryRunCompleted: 'Dry run completed',
+        autoDryRunFailed: 'Dry run failed',
+        autoDownloadTriggered: 'Download cycle completed',
+        autoDownloadTriggerFailed: 'Failed to trigger download',
+        autoCleanupTriggered: 'Cleanup cycle completed',
+        autoCleanupTriggerFailed: 'Failed to trigger cleanup',
+        autoChangesCancelled: 'Changes cancelled',
+        autoRunning: 'Running…',
+        // Automation dry run results
+        autoTopCandidates: 'Top',
+        autoOfCandidates: 'of',
+        autoNoCandidates: 'No download candidates',
+        autoCleanupCount: 'tasks will be cleaned',
+        autoNoCleanup: 'No cleanup candidates',
+        autoSize: 'Size',
+        autoScore: 'Score',
+        autoRatio: 'Ratio'
     }
 };
 
@@ -224,6 +462,22 @@ export function getCurrentLang() {
 
 // Keep named export for backward compatibility but update via setter
 export let currentLang = _currentLang;
+
+// ============ Current Page State ============
+let _currentPage = null;
+
+// ============ Document Title Management ============
+export function setCurrentPage(pageKey) {
+    _currentPage = pageKey;
+    updateDocumentTitle();
+}
+
+export function updateDocumentTitle() {
+    if (!_currentPage) return;
+    const appName = t('appName');
+    const pageTitle = t(`pageTitle.${_currentPage}`);
+    document.title = `${appName} · ${pageTitle}`;
+}
 
 // ============ Translation Function ============
 export function t(key) {
@@ -276,6 +530,9 @@ export function updatePageLanguage() {
             element.textContent = text;
         }
     });
+
+    // Update document title
+    updateDocumentTitle();
 }
 
 // ============ Set Language ============
