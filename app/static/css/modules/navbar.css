@@ -1,0 +1,199 @@
+/* ============================================================================
+   MT-Engine - Navbar Module
+   Sticky navigation bar with logo switcher, stats, and actions
+   ============================================================================ */
+
+/* ============ Navbar Container ============ */
+.navbar {
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px dotted var(--nt-border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+[data-theme="light"] .navbar {
+    background: rgba(234, 234, 234, 0.9);
+}
+
+.navbar-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 60px;
+    max-width: 1800px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+/* ============ Logo Switcher ============ */
+.logo-switcher {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo-link {
+    opacity: 0.35;
+    filter: grayscale(100%);
+    transition: all var(--transition-base);
+    display: flex;
+    align-items: center;
+}
+
+.logo-link:hover {
+    opacity: 0.6;
+}
+
+.logo-link--active {
+    opacity: 1;
+    filter: none;
+}
+
+.logo-icon {
+    height: 20px;
+    width: auto;
+    display: block;
+}
+
+/* Dark theme logo inversion */
+[data-theme="dark"] .logo-link .logo-icon {
+    filter: invert(1);
+}
+
+[data-theme="dark"] .logo-link:not(.active):not(.logo-link--active) .logo-icon {
+    filter: invert(1) grayscale(100%);
+}
+
+/* ============ Navigation Right Section ============ */
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+/* ============ User Stats ============ */
+.nav-stats {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.nav-stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    opacity: 0.8;
+    color: var(--nt-text);
+}
+
+.nav-stat-label {
+    color: var(--nt-text-secondary);
+}
+
+.nav-stat-value {
+    font-weight: 500;
+    font-size: 14px;
+    font-family: var(--nt-font-mono);
+}
+
+.nav-stat-value--ratio {
+    color: var(--nt-red);
+}
+
+/* Support legacy class names */
+.nav-stat-value.ratio {
+    color: var(--nt-red);
+}
+
+.nav-stat-value.upload,
+.nav-stat-value.download {
+    color: var(--nt-text);
+}
+
+.nav-stat-icon {
+    font-size: 14px;
+}
+
+/* ============ Divider ============ */
+.nav-divider {
+    width: 1px;
+    height: 24px;
+    background: var(--nt-border);
+}
+
+/* ============ Navigation Actions ============ */
+.nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.nav-btn {
+    background: transparent;
+    border: 1px solid var(--nt-border);
+    color: var(--nt-text);
+    cursor: pointer;
+    padding: 0 12px;
+    height: 32px;
+    border-radius: 0;
+    transition: all var(--transition-base);
+    font-size: 14px;
+    font-family: var(--nt-font-dot);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-btn:hover {
+    background: var(--nt-text);
+    color: var(--nt-bg);
+}
+
+/* ============ Responsive ============ */
+
+/* Mobile (<= 768px) */
+@media (max-width: 768px) {
+    .navbar-content {
+        padding: 0 16px;
+        height: 56px;
+    }
+
+    /* Logo */
+    .logo-switcher {
+        gap: 8px;
+    }
+
+    .logo-icon {
+        height: 20px;
+    }
+
+    /* Stats & Actions */
+    .nav-right {
+        gap: 12px;
+    }
+
+    /* Hide all stats on mobile to prevent banner overflow */
+    .nav-stats {
+        display: none;
+    }
+
+    .nav-divider {
+        display: none;
+    }
+
+    .nav-actions {
+        gap: 8px;
+    }
+
+    .nav-btn {
+        padding: 0 8px;
+        height: 28px;
+        font-size: 12px;
+    }
+}

@@ -1,0 +1,206 @@
+/* ============================================================================
+   MT-Engine - Drawer Module
+   Mobile filter drawer with slide-up animation
+   ============================================================================ */
+
+/* ============ Drawer Overlay ============ */
+.drawer-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--transition-slow);
+}
+
+.drawer-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* ============ Filter Drawer ============ */
+.filter-drawer {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--nt-bg-secondary);
+    border-top: 1px solid var(--nt-border);
+    z-index: 1001;
+    transform: translateY(100%);
+    transition: transform var(--transition-drawer);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-drawer.active {
+    transform: translateY(0);
+}
+
+/* ============ Drawer Handle ============ */
+.drawer-handle {
+    padding: 12px 0;
+    display: flex;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.drawer-handle-bar {
+    width: 40px;
+    height: 4px;
+    background: var(--nt-border-light);
+    border-radius: 2px;
+}
+
+/* ============ Drawer Header ============ */
+.drawer-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 24px 24px;
+    border-bottom: 1px dotted var(--nt-border);
+    margin-bottom: 0;
+    flex-shrink: 0;
+}
+
+.drawer-title {
+    font-size: 16px;
+    font-family: var(--nt-font-dot);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.drawer-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--nt-text);
+    padding: 0;
+    line-height: 1;
+}
+
+.drawer-close:focus,
+.drawer-close:focus-visible {
+    outline: 2px solid var(--nt-text);
+    outline-offset: 2px;
+}
+
+/* ============ Drawer Content ============ */
+.drawer-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 24px 16px;
+}
+
+.drawer-section {
+    margin-bottom: 24px;
+}
+
+.drawer-section-title {
+    font-size: 12px;
+    color: var(--nt-text-secondary);
+    margin-bottom: 12px;
+    font-family: var(--nt-font-dot);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.drawer-select {
+    width: 100%;
+    height: 48px;
+    background: transparent;
+    border: 1px solid var(--nt-border);
+    border-radius: 0;
+    padding: 0 16px;
+    font-family: var(--nt-font-mono);
+    color: var(--nt-text);
+}
+
+/* ============ Drawer Pills ============ */
+.drawer-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.drawer-pill {
+    padding: 10px 16px;
+    border: 1px solid var(--nt-border);
+    background: transparent;
+    color: var(--nt-text-secondary);
+    font-family: var(--nt-font-mono);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.drawer-pill:focus,
+.drawer-pill:focus-visible {
+    outline: 2px solid var(--nt-text);
+    outline-offset: 2px;
+}
+
+.drawer-pill.active {
+    background: var(--nt-text);
+    color: var(--nt-bg);
+    border-color: var(--nt-text);
+}
+
+/* ============ Drawer Footer (Sticky) ============ */
+.drawer-footer {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    gap: 12px;
+    padding: 16px 24px;
+    background: var(--nt-bg-secondary);
+    border-top: 1px dotted var(--nt-border);
+    flex-shrink: 0;
+}
+
+.drawer-reset-btn {
+    flex: 0 0 35%;
+    height: 48px;
+    background: transparent;
+    border: 1px solid var(--nt-border);
+    color: var(--nt-text);
+    border-radius: 0;
+    font-family: var(--nt-font-dot);
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.drawer-reset-btn:active {
+    background: var(--nt-border);
+}
+
+.drawer-apply-btn {
+    flex: 1;
+    height: 48px;
+    background: var(--nt-red);
+    color: var(--btn-primary-text);
+    border: none;
+    border-radius: 0;
+    font-family: var(--nt-font-dot);
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.drawer-apply-btn:active {
+    opacity: 0.85;
+}

@@ -1,0 +1,3751 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M-Team 搜索引擎</title>
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <link rel="apple-touch-icon" href="/static/favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Roboto+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* ============ Nothing OS Design System ============ */
+        :root {
+            /* Nothing Colors - Light */
+            --nt-bg: #EAEAEA;
+            --nt-bg-secondary: #FFFFFF;
+            --nt-text: #000000;
+            --nt-text-secondary: #666666;
+            --nt-text-tertiary: #999999;
+            --nt-border: #000000;
+            --nt-border-light: #CCCCCC;
+            --nt-red: #D71921;
+
+            /* Toast Colors (Inverted High Contrast) */
+            --toast-bg: #000000;
+            --toast-text: #FFFFFF;
+
+            /* Fonts */
+            --nt-font-dot: 'DotGothic16', sans-serif;
+            --nt-font-mono: 'Roboto Mono', monospace;
+            --nt-font-body: 'Inter', sans-serif;
+
+            /* Compatibility Mappings */
+            --apple-bg: var(--nt-bg);
+            --apple-bg-secondary: var(--nt-bg-secondary);
+            --apple-bg-tertiary: #F5F5F5;
+            --apple-text: var(--nt-text);
+            --apple-text-secondary: var(--nt-text-secondary);
+            --apple-text-tertiary: var(--nt-text-tertiary);
+            --apple-link: var(--nt-text);
+            --apple-link-hover: var(--nt-red);
+            --apple-border: var(--nt-border);
+            --apple-border-light: var(--nt-border-light);
+
+            --btn-primary-text: #FFFFFF;
+
+            --shadow-sm: none;
+            --shadow-md: 4px 4px 0px rgba(0,0,0,0.1);
+            --shadow-lg: 8px 8px 0px rgba(0,0,0,0.1);
+            --shadow-hover: 6px 6px 0px rgba(0,0,0,0.1);
+            
+            --hover-bg: rgba(0,0,0,0.05);
+        }
+
+        [data-theme="dark"] {
+            /* Nothing Colors - Dark */
+            --nt-bg: #000000;
+            --nt-bg-secondary: #111111;
+            --nt-text: #FFFFFF;
+            --nt-text-secondary: #AAAAAA;
+            --nt-text-tertiary: #555555;
+            --nt-border: #333333;
+            --nt-border-light: #222222;
+            
+            /* Toast Colors (Inverted High Contrast) */
+            --toast-bg: #FFFFFF;
+            --toast-text: #000000;
+            
+            --hover-bg: rgba(255,255,255,0.1);
+
+            /* Compatibility Mappings */
+            --apple-bg: var(--nt-bg);
+            --apple-bg-secondary: var(--nt-bg-secondary);
+            --apple-bg-tertiary: #1A1A1A;
+            --apple-text: var(--nt-text);
+            --apple-text-secondary: var(--nt-text-secondary);
+            --apple-text-tertiary: var(--nt-text-tertiary);
+            --apple-link: var(--nt-text);
+            --apple-link-hover: var(--nt-red);
+            --apple-border: var(--nt-border);
+            --apple-border-light: var(--nt-border-light);
+
+            --btn-primary-text: #000000;
+
+            --shadow-sm: none;
+            --shadow-md: 4px 4px 0px rgba(255,255,255,0.1);
+            --shadow-lg: 8px 8px 0px rgba(255,255,255,0.1);
+            --shadow-hover: 6px 6px 0px rgba(255,255,255,0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--nt-font-body);
+            background: var(--nt-bg);
+            color: var(--nt-text);
+            min-height: 100vh;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body.drawer-open { overflow: hidden; }
+
+        /* Typography */
+        h1, h2, h3, h4, h5, h6,
+        .logo-text,
+        .badge,
+        .drawer-title,
+        th,
+        .pill,
+        .nav-btn,
+        .filter-label,
+        .filter-dropdown-label,
+        .drawer-section-title,
+        .search-btn,
+        .drawer-apply-btn,
+        .drawer-reset-btn,
+        .reset-filters-btn,
+        .refresh-btn-subtle,
+        button {
+            font-family: var(--nt-font-dot);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .nav-stat-value,
+        td,
+        .search-input,
+        select,
+        .total-count,
+        .footer {
+            font-family: var(--nt-font-mono);
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Navbar */
+        .navbar {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px dotted var(--nt-border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        [data-theme="light"] .navbar {
+             background: rgba(234, 234, 234, 0.9);
+        }
+
+        .navbar-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Logo Switcher */
+        .logo-switcher {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-link {
+            opacity: 0.35;
+            filter: grayscale(100%);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-link:hover {
+            opacity: 0.6;
+        }
+
+        .logo-link.active {
+            opacity: 1;
+            filter: none;
+        }
+
+        .logo-icon {
+            height: 20px;
+            width: auto;
+            display: block;
+        }
+
+        [data-theme="dark"] .logo-link .logo-icon {
+            filter: invert(1);
+        }
+
+        [data-theme="dark"] .logo-link:not(.active) .logo-icon {
+            filter: invert(1) grayscale(100%);
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .nav-stats {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .nav-stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            opacity: 0.8;
+            color: var(--nt-text);
+        }
+
+        .nav-stat-label { color: var(--nt-text-secondary); }
+
+        .nav-stat-value {
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .nav-stat-value.ratio { color: var(--nt-red); }
+        .nav-stat-value.upload { color: var(--nt-text); }
+        .nav-stat-value.download { color: var(--nt-text); }
+
+        .nav-divider {
+            width: 1px;
+            height: 24px;
+            background: var(--nt-border);
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: 1px solid var(--nt-border);
+            color: var(--nt-text);
+            cursor: pointer;
+            padding: 0 12px;
+            height: 32px;
+            border-radius: 0;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-btn:hover {
+            background: var(--nt-text);
+            color: var(--nt-bg);
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 32px 0;
+        }
+
+        /* Filter Card */
+        .filter-card {
+            background: var(--nt-bg-secondary);
+            border: 1px solid var(--nt-border);
+            border-radius: 0;
+            padding: 24px;
+            margin-bottom: 32px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .search-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .search-input {
+            flex: 1;
+            height: 48px;
+            padding: 0 16px;
+            border: 1px solid var(--nt-border);
+            border-radius: 0;
+            font-size: 14px;
+            background: transparent;
+            color: var(--nt-text);
+        }
+
+        .search-input:focus {
+            outline: 2px solid var(--nt-red);
+            border-color: transparent;
+        }
+
+        .search-input::placeholder { color: var(--nt-text-secondary); }
+
+        .search-btn {
+            height: 48px;
+            padding: 0 24px;
+            background: var(--nt-red);
+            color: #FFFFFF;
+            border: none;
+            border-radius: 0;
+            font-size: 14px;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+
+        .search-btn:active { transform: scale(0.98); }
+
+        .reset-filters-btn {
+            height: 48px;
+            border-radius: 0;
+            border: 1px dotted var(--nt-border);
+            background: transparent;
+            color: var(--nt-text-secondary);
+            padding: 0 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .reset-filters-btn:hover {
+            border-style: solid;
+            color: var(--nt-text);
+            background: var(--nt-bg);
+        }
+
+        /* Filter Section */
+        .filter-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .filter-label {
+            display: block;
+            font-size: 12px;
+            color: var(--nt-text-secondary);
+        }
+
+        .filter-pills {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            height: 36px;
+            padding: 0 16px;
+            background: transparent;
+            border: 1px solid var(--nt-border);
+            color: var(--nt-text-secondary);
+            border-radius: 0;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pill:hover {
+            border-color: var(--nt-text);
+            color: var(--nt-text);
+        }
+
+        .pill.active {
+            background: var(--nt-text);
+            color: var(--nt-bg);
+            border-color: var(--nt-text);
+        }
+
+        /* Filter Dropdowns */
+        .filter-dropdowns {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .filter-dropdown-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-dropdown-label {
+            display: block;
+            font-size: 12px;
+            color: var(--nt-text-secondary);
+        }
+
+        .filter-select {
+            min-width: 150px;
+            height: 40px;
+            background: transparent;
+            border: 1px solid var(--nt-border);
+            border-radius: 0;
+            padding: 0 32px 0 12px;
+            font-size: 13px;
+            font-family: var(--nt-font-mono);
+            color: var(--nt-text);
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888888' d='M6 9L2 4h8z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+        }
+
+        .filter-select:focus {
+            outline: 2px solid var(--nt-red);
+            border-color: transparent;
+        }
+
+        /* ============ New Filter Hierarchy Styles ============ */
+
+        /* Mode Tabs (Row 1) */
+        .filter-tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid var(--nt-border);
+            margin-bottom: 24px;
+            overflow-x: auto;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .filter-tabs::-webkit-scrollbar { display: none; }
+
+        .tab-btn {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: var(--nt-text-secondary);
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover { color: var(--nt-text); }
+        .tab-btn.active {
+            color: var(--nt-text);
+            border-bottom-color: var(--nt-red);
+            font-weight: 600;
+        }
+
+        .tab-btn.adult-tab:hover, .tab-btn.adult-tab.active {
+            color: #ff0055;
+        }
+        .tab-btn.adult-tab.active {
+            border-bottom-color: #ff0055;
+        }
+
+        /* Category Pills (Row 2) */
+        .category-pills-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 24px;
+            min-height: 0;
+            transition: all 0.2s ease;
+        }
+
+        /* Collapse when empty (General Mode) */
+        .category-pills-container:empty {
+            margin-bottom: 0;
+            height: 0;
+            overflow: hidden;
+        }
+
+        .cat-pill {
+            padding: 6px 14px;
+            border: 1px solid var(--nt-border-light);
+            background: transparent;
+            color: var(--nt-text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border-radius: 16px;
+        }
+
+        .cat-pill:hover { border-color: var(--nt-text); color: var(--nt-text); }
+
+        .cat-pill.active {
+            background: var(--nt-text);
+            color: var(--nt-bg);
+            border-color: var(--nt-text);
+        }
+
+        /* Technical Filters (Row 3) */
+        .tech-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            padding-top: 24px;
+            border-top: 1px dotted var(--nt-border-light);
+            align-items: center;
+        }
+
+        .filter-select-wrapper {
+            display: block;
+        }
+
+        .reset-filters-btn {
+            height: 48px;
+            border-radius: 0;
+            border: 1px dotted var(--nt-border);
+            background: transparent;
+            color: var(--nt-text-secondary);
+            padding: 0 24px;
+            font-family: var(--nt-font-display);
+            font-size: 12px;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .reset-filters-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        @media (hover: hover) {
+            .reset-filters-btn:not(:disabled):hover {
+                border-style: solid;
+                color: var(--nt-text);
+                background: var(--nt-bg);
+            }
+        }
+
+        /* Table Card */
+        .table-card {
+            background: var(--nt-bg-secondary);
+            border: 1px solid var(--nt-border);
+            border-radius: 0;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            position: relative;
+        }
+
+        .table-container { overflow-x: auto; }
+
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .results-info {
+            font-family: var(--nt-font-dot);
+            font-size: 14px;
+            color: var(--nt-text-secondary);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        th {
+            text-align: left;
+            padding: 16px;
+            font-size: 12px;
+            color: var(--nt-text-secondary);
+            background: var(--nt-bg);
+            border-bottom: 2px solid var(--nt-border);
+            cursor: pointer;
+            white-space: nowrap;
+            user-select: none;
+        }
+
+        th:hover {
+            color: var(--nt-text);
+        }
+
+        th .sort-icon { margin-left: 4px; opacity: 0.5; }
+        th.sorted .sort-icon { opacity: 1; color: var(--nt-red); }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px dotted var(--nt-border-light);
+            vertical-align: middle;
+            font-size: 13px;
+        }
+
+        tr { transition: background 0.1s; }
+
+        /* Desktop Hover Effects (Mouse Only) */
+        @media (hover: hover) and (min-width: 769px) {
+            tr:not(.detail-row):hover td {
+                background: var(--hover-bg);
+            }
+            /* Removed color inversions per user request */
+        }
+
+        /* Active/Expanded State (Touch Compatible) */
+        tr[aria-expanded="true"] td {
+            background: var(--nt-bg-secondary);
+            border-bottom: 1px solid var(--nt-border-light) !important;
+        }
+
+        /* Column widths */
+        th:nth-child(1), td:nth-child(1) { width: 40%; } /* Name - Expanded */
+        th:nth-child(2), td:nth-child(2) { width: 10%; white-space: nowrap; } /* Size */
+        th:nth-child(3), td:nth-child(3) { width: 12%; } /* Peers */
+        th:nth-child(4), td:nth-child(4) { width: 10%; } /* Discount */
+        th:nth-child(5), td:nth-child(5) { width: 15%; } /* Date */
+        th:nth-child(6), td:nth-child(6) { width: 13%; } /* Actions */
+
+        tbody tr:not(.detail-row) {
+            cursor: pointer;
+        }
+
+        .torrent-name .name-text {
+            color: var(--nt-text);
+            text-decoration: none;
+            font-weight: 500;
+            font-family: var(--nt-font-body);
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .torrent-descr {
+            color: var(--nt-text-secondary);
+            font-size: 11px;
+            font-family: var(--nt-font-mono);
+            margin-top: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Peers */
+        .peer-info {
+            display: flex;
+            gap: 12px;
+            font-family: var(--nt-font-mono);
+        }
+
+        .seeders { color: var(--nt-text); font-weight: 500; }
+        .leechers { color: var(--nt-text-secondary); font-weight: 500; }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 0;
+            font-size: 11px;
+            border: 1px solid var(--nt-border);
+            background: transparent;
+            color: var(--nt-text);
+            text-align: center;
+            min-width: 60px;
+        }
+
+        .badge-free, .badge-2xfree {
+            border-style: dotted;
+            border-color: var(--nt-text);
+            box-shadow: none;
+        }
+
+        /* Actions Cell */
+        .actions-wrapper {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Download Button */
+        .download-btn {
+            background: transparent;
+            border: 1px solid var(--nt-border);
+            color: var(--nt-text);
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .download-btn:hover:not(:disabled) {
+            background: var(--nt-text);
+            color: var(--nt-bg);
+        }
+
+        .download-btn.loading {
+            opacity: 0.5;
+            cursor: wait;
+        }
+
+        .download-btn.downloaded,
+        .download-btn:disabled {
+            background: var(--nt-red);
+            border-color: var(--nt-red);
+            color: #fff;
+            cursor: default;
+        }
+
+        /* Detail Link */
+        .detail-link {
+            background: transparent;
+            border: 1px solid var(--nt-border);
+            color: var(--nt-text);
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .detail-link:hover {
+            background: var(--nt-text);
+            color: var(--nt-bg);
+        }
+
+        /* ============ Expandable Row Details ============ */
+        .expand-cell {
+            width: 3%;
+            text-align: center;
+            padding: 8px 4px !important;
+        }
+
+        .expand-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            color: var(--nt-text-secondary);
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+
+        .expand-btn:hover {
+            color: var(--nt-text);
+        }
+
+        .detail-row {
+            background: var(--nt-bg-secondary);
+        }
+
+        .detail-content {
+            padding: 12px 16px;
+            border-left: 3px solid var(--nt-text);
+        }
+
+        .quality-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .quality-tags-row, .metadata-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .label {
+            font-weight: 500;
+            color: var(--nt-text-secondary);
+            font-family: var(--nt-font-body);
+        }
+
+        .tag-quality {
+            display: inline-block;
+            padding: 3px 8px;
+            font-size: 11px;
+            border: 1px solid var(--nt-border-light);
+            background: var(--nt-bg-secondary);
+            color: var(--nt-text);
+            border-radius: 0;
+            font-family: var(--nt-font-mono);
+        }
+
+        .metadata-row span {
+            color: var(--nt-text-secondary);
+            font-size: 13px;
+            font-family: var(--nt-font-body);
+        }
+
+        /* Load More Button */
+        .load-more-container {
+            text-align: center;
+            padding: 24px;
+        }
+
+        .load-more-btn {
+            font-family: var(--nt-font-dot);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 12px 32px;
+            background: transparent;
+            color: var(--nt-text-primary);
+            border: 1px dotted var(--nt-border-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        @media (hover: hover) {
+            .load-more-btn:hover {
+                background: var(--nt-text-primary);
+                color: var(--nt-bg-primary);
+                border-style: solid;
+            }
+        }
+
+        .load-more-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .load-more-btn.loading {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        /* ============ Data Dashboard (Expanded View) ============ */
+        .viz-dashboard {
+            font-family: var(--nt-font-mono);
+            padding: 8px 0;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: var(--nt-border-light) transparent;
+        }
+
+        .viz-dashboard::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .viz-dashboard::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .viz-dashboard::-webkit-scrollbar-thumb {
+            background: var(--nt-border-light);
+            border-radius: 4px;
+        }
+
+        .viz-dashboard::-webkit-scrollbar-thumb:hover {
+            background: var(--nt-border);
+        }
+
+        .viz-dashboard-inner {
+            display: inline-block;
+            min-width: 100%;
+        }
+
+        .viz-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            grid-auto-flow: column;
+            gap: 12px;
+        }
+
+        .viz-box {
+            background: var(--nt-bg);
+            border: 1px dotted var(--nt-border);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+            height: 100%;
+            justify-content: center;
+        }
+
+        .viz-label {
+            font-size: 10px;
+            color: var(--nt-text-secondary);
+            text-transform: uppercase;
+            font-family: var(--nt-font-dot);
+        }
+
+        .viz-value {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Label badges */
+        .label-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            margin: 1px 2px;
+            background: var(--nt-text);
+            color: var(--nt-bg);
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .viz-labels {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            line-height: 1.4;
+        }
+
+        /* External links */
+        .external-link {
+            color: var(--nt-text);
+            text-decoration: underline;
+            text-decoration-style: dotted;
+        }
+
+        .external-link:hover {
+            color: var(--nt-primary);
+        }
+
+        /* Media link buttons (IMDB, Douban) */
+        .media-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px 12px;
+            border: 1px dotted var(--nt-border);
+            background: transparent;
+            color: var(--nt-text);
+            font-family: var(--nt-font-dot);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
+
+        .media-link:hover {
+            border-style: solid;
+        }
+
+        .media-link.imdb:hover {
+            background: #F5C518;
+            color: #000;
+            border-color: #F5C518;
+        }
+
+        .media-link.douban:hover {
+            background: #00B51D;
+            color: #fff;
+            border-color: #00B51D;
+        }
+
+        .media-link-disabled {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        /* ============ Refined Fluid Badges ============ */
+        /* Container for pills (no scrolling, parent scrolls) */
+        .tag-container {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            margin-top: 12px;
+            overflow: visible;
+        }
+
+        /* Row wrapper */
+        .tag-row {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 8px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        /* Base Tag Style - Uniform Look */
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 26px;
+            padding: 0 10px;
+            min-width: 45px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            font-family: var(--nt-font-mono);
+            white-space: nowrap;
+            border: 1px solid transparent;
+            box-sizing: border-box;
+            transition: all 0.2s;
+        }
+
+        /* Row 1: Tech Specs (Morandi Grey-Blue) */
+        .tag.tech {
+            background: rgba(142, 154, 175, 0.08);
+            color: #8E9AAF;
+            border-color: rgba(142, 154, 175, 0.25);
+            opacity: 0.85;
+        }
+
+        [data-theme="light"] .tag.tech {
+            background: rgba(107, 122, 143, 0.06);
+            color: #6B7A8F;
+            border-color: rgba(107, 122, 143, 0.2);
+        }
+
+        /* Row 2: Metadata (Morandi Grey-Green) */
+        .tag.meta {
+            background: rgba(163, 177, 138, 0.08);
+            color: #A3B18A;
+            border-color: rgba(163, 177, 138, 0.25);
+            opacity: 0.85;
+        }
+
+        [data-theme="light"] .tag.meta {
+            background: rgba(107, 142, 107, 0.06);
+            color: #6B8E6B;
+            border-color: rgba(107, 142, 107, 0.2);
+        }
+
+        /* Discount Tags (Morandi Grey-Pink) */
+        .tag.discount {
+            background: rgba(212, 165, 165, 0.08);
+            color: #D4A5A5;
+            border-color: rgba(212, 165, 165, 0.25);
+            opacity: 0.85;
+        }
+
+        [data-theme="light"] .tag.discount {
+            background: rgba(176, 136, 136, 0.06);
+            color: #B08888;
+            border-color: rgba(176, 136, 136, 0.2);
+        }
+
+        .tag.meta .tag-icon {
+            font-size: 13px;
+            margin-right: 2px;
+        }
+
+        /* System labels (Morandi Grey-Purple) */
+        .tag.label-tag {
+            background: rgba(184, 169, 201, 0.08);
+            color: #B8A9C9;
+            border-color: rgba(184, 169, 201, 0.25);
+            opacity: 0.85;
+        }
+
+        [data-theme="light"] .tag.label-tag {
+            background: rgba(139, 123, 158, 0.06);
+            color: #8B7B9E;
+            border-color: rgba(139, 123, 158, 0.2);
+        }
+
+        /* Row 3: External Links - Ghost Style */
+        .btn-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 26px;
+            padding: 0 12px;
+            border-radius: 4px;
+            font-family: var(--nt-font-dot);
+            font-size: 11px;
+            text-transform: uppercase;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            background: transparent;
+            border: 1px solid;
+        }
+
+        /* IMDb (Morandi Grey-Yellow) */
+        .btn-link.imdb {
+            color: #D4C5A0;
+            border-color: rgba(212, 197, 160, 0.25);
+            background: rgba(212, 197, 160, 0.08);
+            opacity: 0.85;
+        }
+
+        .btn-link.imdb:hover {
+            background: rgba(212, 197, 160, 0.15);
+            border-color: rgba(212, 197, 160, 0.4);
+        }
+
+        [data-theme="light"] .btn-link.imdb {
+            color: #B5A67A;
+            border-color: rgba(181, 166, 122, 0.2);
+            background: rgba(181, 166, 122, 0.06);
+        }
+
+        [data-theme="light"] .btn-link.imdb:hover {
+            background: rgba(181, 166, 122, 0.12);
+            border-color: rgba(181, 166, 122, 0.35);
+        }
+
+        /* Douban (Morandi Grey-Cyan-Green) */
+        .btn-link.douban {
+            color: #9DB4A0;
+            border-color: rgba(157, 180, 160, 0.25);
+            background: rgba(157, 180, 160, 0.08);
+            opacity: 0.85;
+        }
+
+        .btn-link.douban:hover {
+            background: rgba(157, 180, 160, 0.15);
+            border-color: rgba(157, 180, 160, 0.4);
+        }
+
+        [data-theme="light"] .btn-link.douban {
+            color: #7A9A7D;
+            border-color: rgba(122, 154, 125, 0.2);
+            background: rgba(122, 154, 125, 0.06);
+        }
+
+        [data-theme="light"] .btn-link.douban:hover {
+            background: rgba(122, 154, 125, 0.12);
+            border-color: rgba(122, 154, 125, 0.35);
+        }
+
+        /* Disabled State */
+        .btn-link.disabled {
+            color: var(--nt-text-tertiary);
+            border-color: var(--nt-border-light);
+            background: transparent;
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        /* Title styling in expanded view */
+        .viz-title {
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .viz-stats {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        /* Peer Bar */
+        .peer-bar-container {
+            width: 100%;
+        }
+
+        .peer-bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            margin-bottom: 6px;
+            font-family: var(--nt-font-dot);
+        }
+
+        .peer-bar {
+            height: 8px;
+            background: var(--nt-border-light);
+            display: flex;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .pb-seed { background: var(--nt-text); height: 100%; transition: width 0.5s ease; }
+        .pb-leech { background: var(--nt-red); height: 100%; transition: width 0.5s ease; }
+
+        /* Meta List (Team, Tags) */
+        .meta-list {
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .meta-item { display: flex; gap: 8px; align-items: baseline; }
+        .meta-icon { opacity: 0.5; font-size: 10px; }
+
+        /* Mobile Swipe Feedback */
+        tr.swipe-active {
+            transition: transform 0.1s linear, background 0.2s;
+            position: relative;
+            z-index: 10;
+        }
+
+        tr.swipe-trigger-download {
+            background: rgba(46, 204, 113, 0.2) !important; /* Soft Green */
+            border-color: #2ecc71 !important;
+        }
+
+        /* Mobile Dashboard Layout */
+        @media (max-width: 768px) {
+            .viz-dashboard {
+                padding: 0;
+                width: 100%;
+            }
+            .tag-container {
+                gap: 8px;
+                flex-direction: row;
+            }
+            .tag-row {
+                flex-wrap: nowrap;
+                gap: 6px;
+            }
+            .tag { height: 24px; font-size: 10px; padding: 0 8px; min-width: 40px; }
+            .tag.label-tag { height: 24px; font-size: 10px; padding: 0 8px; }
+            .btn-link { height: 24px; padding: 0 10px; font-size: 10px; }
+            .viz-title { white-space: normal; font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+            .viz-subtitle { white-space: normal; font-size: 12px; }
+        }
+
+        /* Mobile Filter Bar - Hidden on Desktop */
+        .mobile-filter-bar { display: none; }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .navbar-content { padding: 0 16px; height: 56px; }
+            .container { padding: 0 16px; }
+            .filter-card { display: none; }
+
+            /* Logo */
+            .logo-switcher { gap: 8px; }
+            .logo-icon { height: 20px; }
+
+            /* Navbar Stats & Actions */
+            .nav-right { gap: 12px; }
+            .nav-stats { gap: 12px; }
+
+            /* Hide all stats on mobile to prevent banner overflow */
+            .nav-stats { display: none; }
+            .nav-divider { display: none; }
+
+            .nav-actions { gap: 8px; }
+            .nav-btn { padding: 0 8px; height: 28px; font-size: 12px; }
+
+            /* Show mobile filter bar only on mobile */
+            .mobile-filter-bar { display: flex; gap: 12px; margin-bottom: 20px; }
+
+            .filter-toggle-btn {
+                position: relative;
+                background: transparent;
+                border: 1px solid var(--nt-border);
+                width: 48px; height: 48px;
+                display: flex; align-items: center; justify-content: center;
+                border-radius: 0;
+                color: var(--nt-text);
+                font-size: 20px;
+            }
+
+            .filter-toggle-btn.has-filters { /* Keep transparent background, only red dot indicates active filters */ }
+
+            /* Filter Status Indicator (Red Dot) */
+            .filter-indicator {
+                display: none;
+                position: absolute;
+                top: 6px;
+                right: 6px;
+                width: 8px;
+                height: 8px;
+                background: var(--nt-red);
+                border-radius: 50%;
+            }
+            .filter-toggle-btn.has-filters .filter-indicator { display: block; }
+
+            /* Mobile Mode Tabs (Level 1 Navigation) */
+            .mobile-mode-tabs {
+                display: flex;
+                overflow-x: auto;
+                white-space: nowrap;
+                gap: 8px;
+                padding: 0 0 16px 0;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+            }
+            .mobile-mode-tabs::-webkit-scrollbar { display: none; }
+
+            .mobile-mode-tab {
+                flex-shrink: 0;
+                padding: 8px 16px;
+                border: 1px solid var(--nt-border);
+                background: transparent;
+                color: var(--nt-text-secondary);
+                font-family: var(--nt-font-dot);
+                font-size: 12px;
+                cursor: pointer;
+                transition: 0.2s;
+            }
+            .mobile-mode-tab.active {
+                background: var(--nt-text);
+                color: var(--nt-bg);
+                border-color: var(--nt-text);
+            }
+
+            /* Mobile Category Pills (Level 2 Navigation) */
+            .mobile-category-pills {
+                display: flex;
+                overflow-x: auto;
+                white-space: nowrap;
+                gap: 8px;
+                padding-bottom: 16px;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+            }
+            .mobile-category-pills::-webkit-scrollbar { display: none; }
+            .mobile-category-pills:empty { display: none !important; }
+
+            .mobile-cat-pill {
+                flex-shrink: 0;
+                padding: 6px 14px;
+                border: 1px solid var(--nt-border-light);
+                background: transparent;
+                color: var(--nt-text-secondary);
+                font-size: 11px;
+                font-family: var(--nt-font-dot);
+                cursor: pointer;
+                transition: 0.2s;
+                border-radius: 16px;
+            }
+            .mobile-cat-pill.active {
+                background: var(--nt-text);
+                color: var(--nt-bg);
+                border-color: var(--nt-text);
+            }
+
+            table, thead, tbody, th, td, tr { display: block; }
+            thead { display: none; }
+
+            tr {
+                border: 1px solid var(--nt-border);
+                margin-bottom: 16px;
+                padding: 16px;
+                position: relative;
+                background: var(--nt-bg-secondary);
+            }
+
+            tr:hover td { background: transparent; color: inherit; }
+            tr:hover .torrent-name a { color: var(--nt-text); }
+            tr:hover .torrent-descr { color: var(--nt-text-secondary); }
+            tr:hover .badge { border-color: var(--nt-border) !important; color: var(--nt-text) !important; }
+            tr:hover .download-btn { background: transparent !important; color: var(--nt-text) !important; border-color: var(--nt-border) !important; }
+            tr:hover .download-btn.downloaded { background: var(--nt-red) !important; border-color: var(--nt-red) !important; color: #fff !important; }
+            tr:hover .detail-link { background: transparent !important; color: var(--nt-text) !important; border-color: var(--nt-border) !important; }
+            tr:hover .peer-info span { color: inherit !important; }
+
+            td {
+                border: none;
+                padding: 4px 0;
+            }
+
+            /* Mobile Title - Full Width + Padding for Actions */
+            td:nth-child(1) {
+                /* Torrent name */
+                padding-bottom: 12px;
+                border-bottom: 1px dotted var(--nt-border-light);
+                margin-bottom: 12px;
+                width: 100% !important;
+                padding-right: 80px; /* Space for action buttons */
+            }
+
+            .mobile-meta-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 12px 16px;
+            }
+
+            /* Metadata items */
+            td:nth-child(2), td:nth-child(3), td:nth-child(4), td:nth-child(5) {
+                display: inline-block !important;
+                width: auto !important;
+                margin-right: 12px;
+                padding: 0;
+                white-space: nowrap;
+                color: var(--nt-text-secondary);
+                font-size: 12px;
+            }
+
+            /* Actions */
+            td:nth-child(6) {
+                position: absolute;
+                top: 16px;
+                right: 16px;
+                padding: 0;
+                width: auto !important;
+            }
+
+            /* Expandable row details on mobile */
+            .detail-row {
+                border: 1px solid var(--nt-border);
+                margin-top: -16px;
+                margin-bottom: 16px;
+                padding: 12px 16px;
+            }
+
+            .detail-row td {
+                padding-right: 0 !important;
+                margin-right: 0;
+                width: 100% !important;
+            }
+
+            .detail-content {
+                padding: 8px 12px;
+                border-left: none; /* Remove border on mobile to save space */
+            }
+
+            .quality-tags-row, .metadata-row {
+                font-size: 12px;
+            }
+
+            .torrent-name a {
+                white-space: normal;
+                line-height: 1.4;
+                font-size: 16px;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+
+            .torrent-descr {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 100%;
+                display: block;
+            }
+        }
+
+        /* Mobile Components - Hidden by default, shown on mobile */
+        .mobile-mode-tabs { display: none; }
+        .mobile-category-pills { display: none; }
+
+        /* Drawer */
+        .drawer-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            opacity: 0; visibility: hidden;
+            transition: 0.3s;
+        }
+
+        .drawer-overlay.active { opacity: 1; visibility: visible; }
+
+        .filter-drawer {
+            position: fixed; left: 0; right: 0; bottom: 0;
+            background: var(--nt-bg-secondary);
+            border-top: 1px solid var(--nt-border);
+            z-index: 1001;
+            transform: translateY(100%);
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-drawer.active { transform: translateY(0); }
+
+        .drawer-handle { padding: 12px 0; display: flex; justify-content: center; flex-shrink: 0; }
+        .drawer-handle-bar { width: 40px; height: 4px; background: var(--nt-border-light); }
+
+        .drawer-header { display: flex; justify-content: space-between; padding: 0 24px 24px; border-bottom: 1px dotted var(--nt-border); margin-bottom: 0; flex-shrink: 0; }
+        .drawer-title { font-size: 16px; font-family: var(--nt-font-dot); }
+        .drawer-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--nt-text); padding: 0; }
+
+        .drawer-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 24px 16px;
+        }
+
+        .drawer-section { margin-bottom: 24px; }
+        .drawer-section-title { font-size: 12px; color: var(--nt-text-secondary); margin-bottom: 12px; font-family: var(--nt-font-dot); text-transform: uppercase; letter-spacing: 0.5px; }
+        .drawer-select { width: 100%; height: 48px; background: transparent; border: 1px solid var(--nt-border); border-radius: 0; padding: 0 16px; font-family: var(--nt-font-mono); color: var(--nt-text); }
+
+        /* Drawer Pills */
+        .drawer-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+        .drawer-pill {
+            padding: 10px 16px;
+            border: 1px solid var(--nt-border);
+            background: transparent;
+            color: var(--nt-text-secondary);
+            font-family: var(--nt-font-mono);
+            font-size: 13px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .drawer-pill.active {
+            background: var(--nt-text);
+            color: var(--nt-bg);
+            border-color: var(--nt-text);
+        }
+
+        /* Sticky Footer with Side-by-Side Buttons */
+        .drawer-footer {
+            position: sticky;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            gap: 12px;
+            padding: 16px 24px;
+            background: var(--nt-bg-secondary);
+            border-top: 1px dotted var(--nt-border);
+            flex-shrink: 0;
+        }
+
+        .drawer-reset-btn {
+            flex: 0 0 35%;
+            height: 48px;
+            background: transparent;
+            border: 1px solid var(--nt-border);
+            color: var(--nt-text);
+            border-radius: 0;
+            font-family: var(--nt-font-dot);
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .drawer-reset-btn:active {
+            background: var(--nt-border);
+        }
+
+        .drawer-apply-btn {
+            flex: 1;
+            height: 48px;
+            background: var(--nt-red);
+            color: #FFF;
+            border: none;
+            border-radius: 0;
+            font-family: var(--nt-font-dot);
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .drawer-apply-btn:active {
+            opacity: 0.85;
+        }
+
+        /* Footer */
+        .footer {
+            border-top: 1px dotted var(--nt-border);
+            padding: 48px 0;
+            text-align: center;
+            font-size: 11px;
+            color: var(--nt-text-secondary);
+            margin-top: 48px;
+        }
+
+        /* Back to top */
+        .back-to-top {
+            position: fixed; bottom: 32px; right: 32px;
+            width: 48px; height: 48px;
+            background: var(--nt-text);
+            color: var(--nt-bg);
+            border: 1px solid var(--nt-border);
+            border-radius: 0;
+            cursor: pointer;
+            font-size: 20px;
+            opacity: 0; visibility: hidden;
+            transition: 0.3s;
+            z-index: 900;
+        }
+
+        .back-to-top.visible { opacity: 1; visibility: visible; }
+
+        /* Tablet */
+        @media (min-width: 769px) and (max-width: 1200px) {
+            .container { padding: 0 24px; }
+            table { min-width: 900px; }
+            .table-container { overflow-x: auto; }
+            .nav-stat-label { display: none; }
+        }
+
+        /* Empty State */
+        .empty-state { text-align: center; padding: 64px 0; }
+        .empty-state-icon { font-size: 64px; opacity: 0.2; filter: grayscale(100%); display: block; margin-bottom: 24px; }
+        .empty-state-text { color: var(--nt-text-secondary); font-family: var(--nt-font-dot); }
+
+        /* Initial State */
+        .initial-state {
+            text-align: center;
+            padding: 80px 20px;
+            opacity: 0.6;
+        }
+
+        .initial-state-icon {
+            font-size: 48px;
+            margin-bottom: 24px;
+            opacity: 0.5;
+            filter: grayscale(100%);
+        }
+
+        .initial-state-title {
+            font-size: 24px;
+            font-family: var(--nt-font-dot);
+            margin-bottom: 12px;
+            color: var(--nt-text);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        
+        .initial-state-title::after {
+            content: '_';
+            animation: blink 1s step-end infinite;
+        }
+
+        .initial-state-text {
+            color: var(--nt-text-secondary);
+            font-size: 12px;
+            font-family: var(--nt-font-mono);
+            text-transform: uppercase;
+        }
+
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* ============ Skeleton Loading ============ */
+        .skeleton-row td {
+            pointer-events: none;
+        }
+        .skeleton-box {
+            height: 16px;
+            background: linear-gradient(90deg, var(--nt-bg) 25%, var(--nt-border-light) 50%, var(--nt-bg) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 2px;
+            opacity: 0.3;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* ============ Glitch Effect ============ */
+        @keyframes glitch-skew {
+            0% { transform: skew(0deg); }
+            20% { transform: skew(-2deg); }
+            40% { transform: skew(2deg); }
+            60% { transform: skew(-1deg); }
+            80% { transform: skew(1deg); }
+            100% { transform: skew(0deg); }
+        }
+        .glitch-hover:hover {
+            animation: glitch-skew 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+            color: var(--nt-red);
+        }
+
+        /* ============ Nothing OS Toast ============ */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100%);
+            padding: 12px 24px;
+            background: var(--toast-bg);
+            color: var(--toast-text);
+            font-family: var(--nt-font-dot);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            z-index: 9999;
+            border: 1px dotted var(--toast-text);
+            border-radius: 0;
+            box-shadow: 4px 4px 0px var(--toast-text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            width: auto;
+            min-width: 200px;
+            justify-content: center;
+        }
+        .toast.active {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* Mobile Responsive Overrides */
+        @media (max-width: 768px) {
+            .navbar-content { padding: 0 16px; height: 56px; }
+            .container { padding: 0 16px; }
+            .filter-card { display: none; }
+
+            /* Logo */
+            .logo-switcher { gap: 8px; }
+            .logo-icon { height: 20px; }
+
+            /* Navbar Stats & Actions */
+            .nav-right { gap: 12px; }
+            .nav-stats { gap: 12px; }
+
+            /* Hide all stats on mobile to prevent banner overflow */
+            .nav-stats { display: none; }
+            .nav-divider { display: none; }
+
+            .nav-actions { gap: 8px; }
+            .nav-btn { padding: 0 8px; height: 28px; font-size: 12px; }
+
+            /* Show mobile filter bar only on mobile */
+            .mobile-filter-bar { display: flex; gap: 12px; margin-bottom: 20px; }
+
+            .filter-toggle-btn {
+                position: relative;
+                background: transparent;
+                border: 1px solid var(--nt-border);
+                width: 48px; height: 48px;
+                display: flex; align-items: center; justify-content: center;
+                border-radius: 0;
+                color: var(--nt-text);
+                font-size: 20px;
+            }
+
+            .filter-toggle-btn.has-filters { /* Keep transparent background, only red dot indicates active filters */ }
+
+            /* Filter Status Indicator (Red Dot) */
+            .filter-indicator {
+                display: none;
+                position: absolute;
+                top: 6px;
+                right: 6px;
+                width: 8px;
+                height: 8px;
+                background: var(--nt-red);
+                border-radius: 50%;
+            }
+            .filter-toggle-btn.has-filters .filter-indicator { display: block; }
+
+            /* Mobile Mode Tabs (Level 1 Navigation) */
+            .mobile-mode-tabs {
+                display: flex;
+                overflow-x: auto;
+                white-space: nowrap;
+                gap: 8px;
+                padding: 0 0 16px 0;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+            }
+            .mobile-mode-tabs::-webkit-scrollbar { display: none; }
+
+            .mobile-mode-tab {
+                flex-shrink: 0;
+                padding: 8px 16px;
+                border: 1px solid var(--nt-border);
+                background: transparent;
+                color: var(--nt-text-secondary);
+                font-family: var(--nt-font-dot);
+                font-size: 12px;
+                cursor: pointer;
+                transition: 0.2s;
+            }
+            .mobile-mode-tab.active {
+                background: var(--nt-text);
+                color: var(--nt-bg);
+                border-color: var(--nt-text);
+            }
+
+            /* Mobile Category Pills (Level 2 Navigation) */
+            .mobile-category-pills {
+                display: flex;
+                overflow-x: auto;
+                white-space: nowrap;
+                gap: 8px;
+                padding-bottom: 16px;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+            }
+            .mobile-category-pills::-webkit-scrollbar { display: none; }
+            .mobile-category-pills:empty { display: none !important; }
+
+            .mobile-cat-pill {
+                flex-shrink: 0;
+                padding: 6px 14px;
+                border: 1px solid var(--nt-border-light);
+                background: transparent;
+                color: var(--nt-text-secondary);
+                font-size: 11px;
+                font-family: var(--nt-font-dot);
+                cursor: pointer;
+                transition: 0.2s;
+                border-radius: 16px;
+            }
+            .mobile-cat-pill.active {
+                background: var(--nt-text);
+                color: var(--nt-bg);
+                border-color: var(--nt-text);
+            }
+
+            table, thead, tbody, th, td, tr { display: block; }
+            thead { display: none; }
+
+            tr {
+                border: 1px solid var(--nt-border);
+                margin-bottom: 16px;
+                padding: 16px;
+                position: relative;
+                background: var(--nt-bg-secondary);
+            }
+
+            tr:hover td { background: transparent; color: inherit; }
+            tr:hover .torrent-name a { color: var(--nt-text); }
+            tr:hover .torrent-descr { color: var(--nt-text-secondary); }
+            tr:hover .badge { border-color: var(--nt-border) !important; color: var(--nt-text) !important; }
+            tr:hover .download-btn { background: transparent !important; color: var(--nt-text) !important; border-color: var(--nt-border) !important; }
+            tr:hover .download-btn.downloaded { background: var(--nt-red) !important; border-color: var(--nt-red) !important; color: #fff !important; }
+            tr:hover .detail-link { background: transparent !important; color: var(--nt-text) !important; border-color: var(--nt-border) !important; }
+            tr:hover .peer-info span { color: inherit !important; }
+
+            td {
+                border: none;
+                padding: 4px 0;
+            }
+
+            /* Mobile Title - Full Width + Padding for Actions */
+            td:nth-child(1) {
+                /* Torrent name */
+                padding-bottom: 12px;
+                border-bottom: 1px dotted var(--nt-border-light);
+                margin-bottom: 12px;
+                width: 100% !important;
+                padding-right: 80px; /* Space for action buttons */
+            }
+
+            .mobile-meta-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 12px 16px;
+            }
+
+            /* Metadata items */
+            td:nth-child(2), td:nth-child(3), td:nth-child(4), td:nth-child(5) {
+                display: inline-block !important;
+                width: auto !important;
+                margin-right: 12px;
+                padding: 0;
+                white-space: nowrap;
+                color: var(--nt-text-secondary);
+                font-size: 12px;
+            }
+
+            /* Actions */
+            td:nth-child(6) {
+                position: absolute;
+                top: 16px;
+                right: 16px;
+                padding: 0;
+                width: auto !important;
+            }
+
+            /* Expandable row details on mobile */
+            .detail-row {
+                border: 1px solid var(--nt-border);
+                margin-top: -16px;
+                margin-bottom: 16px;
+                padding: 12px 16px;
+            }
+
+            .detail-row td {
+                padding-right: 0 !important;
+                margin-right: 0;
+                width: 100% !important;
+            }
+
+            /* Full-width scroll container */
+            .detail-content {
+                padding: 8px 0;
+                border-left: none;
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+
+            .detail-content::-webkit-scrollbar {
+                display: none;
+            }
+
+            .quality-tags-row, .metadata-row {
+                font-size: 12px;
+            }
+
+            .torrent-name a {
+                white-space: normal;
+                line-height: 1.4;
+                font-size: 16px;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+
+            .torrent-descr {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 100%;
+                display: block;
+            }
+
+            /* Dashboard Mobile - Unified Horizontal Scroll */
+            .viz-dashboard {
+                display: inline-block;
+                min-width: 100%;
+                padding: 0 12px;
+            }
+
+            .viz-title {
+                white-space: nowrap;
+                font-size: 14px;
+                font-weight: 600;
+                margin-bottom: 4px;
+                color: var(--nt-text);
+            }
+
+            .viz-subtitle {
+                white-space: nowrap;
+                font-size: 12px;
+                color: var(--nt-text-secondary);
+                margin-bottom: 12px;
+            }
+
+            .viz-grid {
+                display: grid;
+                grid-template-rows: repeat(2, 80px);
+                grid-auto-flow: column;
+                gap: 8px;
+            }
+
+            .viz-box {
+                width: 120px;
+                min-width: 120px;
+                height: 80px;
+                padding: 8px 10px;
+            }
+
+            .viz-value {
+                white-space: normal;
+                overflow-x: hidden;
+                overflow-y: auto;
+                max-height: 100%;
+                font-size: 12px;
+            }
+
+            .viz-labels {
+                flex-wrap: wrap;
+                overflow-x: hidden;
+                overflow-y: auto;
+                max-height: 100%;
+            }
+        }
+    </style>
+</head>
+<body data-theme="dark">
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Drawer Overlay -->
+    <div class="drawer-overlay" id="drawerOverlay" onclick="closeFilterDrawer()"></div>
+
+    <!-- Filter Drawer (Mobile) -->
+    <div class="filter-drawer" id="filterDrawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+        <div class="drawer-handle">
+            <div class="drawer-handle-bar"></div>
+        </div>
+        <div class="drawer-header">
+            <span class="drawer-title" id="drawerTitle" data-i18n="filterTitle">筛选条件</span>
+            <button class="drawer-close" onclick="closeFilterDrawer()">✕</button>
+        </div>
+
+        <div class="drawer-content">
+            <div class="drawer-section">
+                <div class="drawer-section-title" data-i18n="resolution">清晰度</div>
+                <div class="drawer-pills" id="drawerResolutionPills">
+                    <!-- JS will render pills from filter_options.standards -->
+                </div>
+            </div>
+
+            <div class="drawer-section">
+                <div class="drawer-section-title" data-i18n="videoFormat">视频编码</div>
+                <div class="drawer-pills" id="drawerVideoPills">
+                    <!-- JS will render pills from filter_options.videoCodecs -->
+                </div>
+            </div>
+
+            <div class="drawer-section">
+                <div class="drawer-section-title" data-i18n="audioFormat">音频格式</div>
+                <div class="drawer-pills" id="drawerAudioPills">
+                    <!-- JS will render pills from filter_options.audioCodecs -->
+                </div>
+            </div>
+
+            <div class="drawer-section">
+                <div class="drawer-section-title" data-i18n="country">国家/地区</div>
+                <div class="drawer-pills" id="drawerCountryPills">
+                    <!-- JS will render top 8 countries -->
+                </div>
+            </div>
+
+            <div class="drawer-section">
+                <div class="drawer-section-title" data-i18n="colDiscount">优惠</div>
+                <div class="drawer-pills" id="drawerDiscountPills">
+                    <!-- JS will render discount options -->
+                </div>
+            </div>
+        </div>
+
+        <div class="drawer-footer">
+            <button class="drawer-reset-btn" onclick="resetDrawerFilters()" data-i18n="resetFilters">重置</button>
+            <button class="drawer-apply-btn" onclick="applyDrawerFilters()" data-i18n="searchBtn">搜索</button>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <div class="logo-switcher">
+                <a href="/" class="logo-link active" title="Search Engine">
+                    <img src="/static/search-logo.png" alt="Search Engine" class="logo-icon">
+                </a>
+                <a href="/seeder" class="logo-link" title="Free Hunter">
+                    <img src="/static/seeder-logo.png" alt="Free Hunter" class="logo-icon">
+                </a>
+            </div>
+            <div class="nav-right">
+                <div class="nav-stats">
+                    <div class="nav-stat">
+                        <span class="nav-stat-icon">📊</span>
+                        <span class="nav-stat-value ratio">{% if user_profile.share_ratio > 9999 %}∞{% else %}{{ "%.2f"|format(user_profile.share_ratio) }}{% endif %}</span>
+                    </div>
+                    <div class="nav-stat secondary">
+                        <span class="nav-stat-icon">↑</span>
+                        <span class="nav-stat-value upload">{{ user_profile.uploaded_display|e }}</span>
+                    </div>
+                    <div class="nav-stat secondary">
+                        <span class="nav-stat-icon">↓</span>
+                        <span class="nav-stat-value download">{{ user_profile.downloaded_display|e }}</span>
+                    </div>
+                </div>
+                <div class="nav-divider"></div>
+                <div class="nav-actions">
+                    <button class="nav-btn" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle theme">
+                        <span id="themeIcon">☀️</span>
+                    </button>
+                    <button class="nav-btn" id="langToggle" onclick="toggleLanguage()" aria-label="Toggle language">EN</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent">
+        <div class="container">
+            <!-- Desktop Filter Card -->
+            <div class="filter-card">
+                <!-- 1. Search Bar -->
+                <div class="search-row">
+                    <input type="text" class="search-input" id="searchInput" placeholder="搜索关键词 / Search by keyword..." data-placeholder-zh="搜索关键词 / Search by keyword..." data-placeholder-en="Search by keyword...">
+                    <button class="search-btn" onclick="executeSearch()" data-i18n="searchBtn">SEARCH</button>
+                    <button class="reset-filters-btn" id="resetFiltersBtn" onclick="resetFilters()" data-i18n="resetFilters">重置</button>
+                </div>
+
+                <!-- 2. Mode Tabs (Primary Category) -->
+                <div class="filter-tabs" id="modeTabs" role="tablist">
+                    <button class="tab-btn active" data-mode="normal" data-i18n="modeNormal" role="tab" aria-selected="true">综合</button>
+                    <button class="tab-btn" data-mode="movie" data-i18n="modeMovie" role="tab" aria-selected="false">电影</button>
+                    <button class="tab-btn" data-mode="tvshow" data-i18n="modeTvshow" role="tab" aria-selected="false">电视剧</button>
+                    <button class="tab-btn" data-mode="other" data-i18n="modeOther" role="tab" aria-selected="false">其他</button>
+                    <button class="tab-btn adult-tab" data-mode="adult" data-i18n="modeAdult" style="margin-left: auto;" role="tab" aria-selected="false">成人</button>
+                </div>
+
+                <!-- 3. Sub-Category Pills (Dynamic based on Mode) -->
+                <div class="category-pills-container" id="categoryPills">
+                    <!-- Javascript will inject pills here -->
+                </div>
+
+                <!-- 4. Technical & Attribute Filters (Dynamic Visibility) -->
+                <div class="tech-filters">
+                    <div class="filter-select-wrapper" id="resolutionWrapper">
+                        <select class="filter-select" id="resolutionSelect">
+                            <option value="" data-i18n="filterResolution">清晰度</option>
+                            {% for opt in filter_options.standards %}
+                            <option value="{{ opt.id }}">{{ opt.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="filter-select-wrapper" id="videoWrapper">
+                        <select class="filter-select" id="videoSelect">
+                            <option value="" data-i18n="filterVideo">视频编码</option>
+                            {% for opt in filter_options.videoCodecs %}
+                            <option value="{{ opt.id }}">{{ opt.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="filter-select-wrapper" id="audioWrapper">
+                        <select class="filter-select" id="audioSelect">
+                            <option value="" data-i18n="filterAudio">音频编码</option>
+                            {% for opt in filter_options.audioCodecs %}
+                            <option value="{{ opt.id }}">{{ opt.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="filter-select-wrapper" id="countryWrapper">
+                        <select class="filter-select" id="countrySelect">
+                            <option value="" data-i18n="filterCountry">国家/地区</option>
+                            <!-- Options will be populated dynamically from FILTER_OPTIONS.countries -->
+                        </select>
+                    </div>
+
+                    <div class="filter-select-wrapper" id="discountWrapper">
+                        <select class="filter-select" id="discountSelect">
+                            <option value="" data-i18n="filterDiscount">优惠</option>
+                            <option value="FREE" data-i18n="discountFree">免费</option>
+                            <option value="_2X_FREE" data-i18n="discount2xFree">2x免费</option>
+                            <option value="_2X" data-i18n="discount2xUp">2x上传</option>
+                            <option value="PERCENT_50" data-i18n="discountHalf">50%</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile Filter Bar -->
+            <div class="mobile-filter-bar">
+                <input type="text" class="search-input" id="mobileSearchInput" placeholder="输入关键词搜索..." data-placeholder-zh="输入关键词搜索..." data-placeholder-en="Search by keyword...">
+                <button class="filter-toggle-btn" id="filterToggleBtn" onclick="openFilterDrawer()" aria-label="Open filter drawer">
+                    <span>⚙️</span>
+                    <span class="filter-indicator" id="filterIndicator"></span>
+                </button>
+            </div>
+
+            <!-- Mobile Mode Tabs (Level 1) -->
+            <div class="mobile-mode-tabs" id="mobileModeTabsContainer">
+                <button class="mobile-mode-tab active" data-mode="normal" data-i18n-zh="综合" data-i18n-en="All">综合</button>
+                <button class="mobile-mode-tab" data-mode="movie" data-i18n-zh="电影" data-i18n-en="Movie">电影</button>
+                <button class="mobile-mode-tab" data-mode="tvshow" data-i18n-zh="影剧" data-i18n-en="TV">影剧</button>
+                <button class="mobile-mode-tab" data-mode="other" data-i18n-zh="其他" data-i18n-en="Other">其他</button>
+                <button class="mobile-mode-tab" data-mode="adult" data-i18n-zh="成人" data-i18n-en="Adult">成人</button>
+            </div>
+
+            <!-- Mobile Category Pills (Level 2) -->
+            <div class="mobile-category-pills" id="mobileCategoryPills">
+                <!-- JS will inject pills here based on selected mode -->
+            </div>
+
+            <!-- Action Bar -->
+            <div class="action-bar">
+                <div class="results-info">
+                    <span data-i18n="showing">显示</span> <strong id="filteredCount">0</strong> / <strong id="totalCount">0</strong> <span data-i18n="results">个结果</span>
+                </div>
+            </div>
+
+            <!-- Results Table -->
+            <div class="table-card">
+                <div class="loading-bar" id="loadingBar"></div>
+                <div class="table-container">
+                    <table id="torrentTable">
+                        <thead>
+                            <tr>
+                                <th onclick="sortTable('name')" style="cursor: pointer;" aria-sort="none">
+                                    <span data-i18n="colName">名称</span>
+                                    <span class="sort-icon">↕</span>
+                                </th>
+                                <th onclick="sortTable('size')" style="cursor: pointer;" aria-sort="none">
+                                    <span data-i18n="colSize">大小</span>
+                                    <span class="sort-icon">↕</span>
+                                </th>
+                                <th onclick="sortTable('seeders')" style="cursor: pointer;" aria-sort="none">
+                                    <span data-i18n="colPeers">做种/下载</span>
+                                    <span class="sort-icon">↕</span>
+                                </th>
+                                <th data-i18n="colCategory">分类</th>
+                                <th onclick="sortTable('createdDate')" style="cursor: pointer;" class="sorted" aria-sort="descending">
+                                    <span data-i18n="colDate">上传时间</span>
+                                    <span class="sort-icon">↓</span>
+                                </th>
+                                <th data-i18n="colActions">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsBody">
+                            <!-- Results will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Initial State -->
+                <div class="initial-state" id="initialState">
+                    <div class="initial-state-icon">🔍</div>
+                    <div class="initial-state-title glitch-hover" data-i18n="initialTitle">开始搜索</div>
+                    <div class="initial-state-text" data-i18n="initialText">输入关键词并点击搜索按钮</div>
+                </div>
+
+                <!-- Empty State -->
+                <div class="empty-state" id="emptyState" style="display: none;">
+                    <div class="empty-state-icon">📭</div>
+                    <div class="empty-state-text" data-i18n="emptyState">没有找到匹配的结果</div>
+                </div>
+
+                <!-- Load More Button -->
+                <div class="load-more-container" id="loadMoreContainer" style="display: none;">
+                    <button class="load-more-btn" id="loadMoreBtn" data-i18n="loadMore">加载更多</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Back to Top Button -->
+    <button class="back-to-top" id="backToTop" onclick="scrollToTop()" title="Back to top" aria-label="Back to top">
+        ↑
+    </button>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>MT-Engine · Search Engine</p>
+            <p style="margin-top: 8px; font-size: 11px; color: var(--nt-text-secondary);">v4.0.0</p>
+        </div>
+    </footer>
+
+    <!-- Toast -->
+    <div id="toast" class="toast" role="alert" aria-live="polite"></div>
+
+    <script>
+        // ============ Translations ============
+        const TRANSLATIONS = {
+            'zh': {
+                searchBtn: '搜索',
+                resetFilters: '重置',
+                resolution: '清晰度',
+                videoFormat: '视频格式',
+                audioFormat: '音频格式',
+                source: '来源',
+                contentType: '类型',
+                sortBy: '排序',
+                modeNormal: '综合',
+                modeMovie: '电影',
+                modeTvshow: '电视剧',
+                modeOther: '其他',
+                modeAdult: '成人',
+                all: '全部',
+                filterResolution: '清晰度',
+                filterVideo: '视频编码',
+                filterAudio: '音频编码',
+                filterCountry: '国家/地区',
+                filterDiscount: '优惠',
+                countryChina: '中国大陆',
+                countryHK: '中国香港',
+                countryTW: '中国台湾',
+                countryUS: '美国',
+                countryJP: '日本',
+                countryKR: '韩国',
+                discountFree: '免费',
+                discount2xFree: '2x免费',
+                discount2xUp: '2x上传',
+                discountHalf: '50%',
+                sortDateDesc: '上传时间 ↓',
+                sortDateAsc: '上传时间 ↑',
+                sortSizeDesc: '大小 ↓',
+                sortSizeAsc: '大小 ↑',
+                sortSeedersDesc: '做种数 ↓',
+                sortSeedersAsc: '做种数 ↑',
+                sortLeechersDesc: '下载数 ↓',
+                sortLeechersAsc: '下载数 ↑',
+                showing: '显示',
+                results: '个结果',
+                colName: '名称',
+                colSize: '大小',
+                colPeers: '做种/下载',
+                colCategory: '分类',
+                colDate: '上传时间',
+                colActions: '操作',
+                filterTitle: '筛选条件',
+                initialTitle: '开始搜索',
+                initialText: '输入关键词并点击搜索按钮',
+                emptyState: '没有找到匹配的结果',
+                loadingMore: '加载更多...',
+                loadMore: '加载更多',
+                downloadSuccess: '已添加到下载队列',
+                downloadFailed: '下载失败',
+                searchFailed: '搜索失败',
+                errors: {
+                    qb_not_configured: 'qBittorrent 未配置',
+                    download_link_failed: '获取下载链接失败',
+                    qb_connection_failed: 'qBittorrent 连接失败',
+                    add_torrent_failed: '添加种子失败'
+                },
+                statRatio: '分享率',
+                statUpload: '上传',
+                statDownload: '下载',
+                rivalRatio: '对手分享率',
+                metaQuality: '质量',
+                metaTeam: '制作组',
+                metaCompleted: '完成',
+                metaTags: '标签',
+                metaTimes: '次',
+                labels: '标签',
+                douban: '豆瓣',
+                country: '国家和地区'
+            },
+            'en': {
+                searchBtn: 'Search',
+                resetFilters: 'Reset',
+                resolution: 'Resolution',
+                videoFormat: 'Video',
+                audioFormat: 'Audio',
+                source: 'Source',
+                contentType: 'Type',
+                sortBy: 'Sort',
+                modeNormal: 'All',
+                modeMovie: 'Movie',
+                modeTvshow: 'TV Show',
+                modeOther: 'Others',
+                modeAdult: 'Adult',
+                all: 'All',
+                filterResolution: 'Resolution',
+                filterVideo: 'Video Codec',
+                filterAudio: 'Audio Codec',
+                filterCountry: 'Country',
+                filterDiscount: 'Discount',
+                countryChina: 'China',
+                countryHK: 'Hong Kong',
+                countryTW: 'Taiwan',
+                countryUS: 'USA',
+                countryJP: 'Japan',
+                countryKR: 'Korea',
+                discountFree: 'Free',
+                discount2xFree: '2x Free',
+                discount2xUp: '2x Upload',
+                discountHalf: '50% Off',
+                sortDateDesc: 'Date ↓',
+                sortDateAsc: 'Date ↑',
+                sortSizeDesc: 'Size ↓',
+                sortSizeAsc: 'Size ↑',
+                sortSeedersDesc: 'Seeders ↓',
+                sortSeedersAsc: 'Seeders ↑',
+                sortLeechersDesc: 'Leechers ↓',
+                sortLeechersAsc: 'Leechers ↑',
+                showing: 'Showing',
+                results: 'results',
+                colName: 'Name',
+                colSize: 'Size',
+                colPeers: 'S/L',
+                colCategory: 'Category',
+                colDate: 'Date',
+                colActions: 'Actions',
+                filterTitle: 'Filters',
+                initialTitle: 'Start Searching',
+                initialText: 'Enter keywords and click search',
+                emptyState: 'No results found',
+                loadingMore: 'Loading more...',
+                loadMore: 'Load More',
+                downloadSuccess: 'Added to download queue',
+                downloadFailed: 'Download failed',
+                searchFailed: 'Search failed',
+                errors: {
+                    qb_not_configured: 'qBittorrent not configured',
+                    download_link_failed: 'Failed to get download link',
+                    qb_connection_failed: 'qBittorrent connection failed',
+                    add_torrent_failed: 'Failed to add torrent'
+                },
+                statRatio: 'Ratio',
+                statUpload: 'Upload',
+                statDownload: 'Download',
+                rivalRatio: 'Rival Ratio',
+                metaQuality: 'Quality',
+                metaTeam: 'Team',
+                metaCompleted: 'Completed',
+                metaTags: 'Tags',
+                metaTimes: 'times',
+                labels: 'Labels',
+                douban: 'Douban',
+                country: 'Country & Region'
+            }
+        };
+
+        // ============ Category Mappings ============
+        // 父分类ID到显示名的映射
+        const PARENT_CATEGORY_NAMES = {
+            // 顶级分类
+            100: { zh: '电影', en: 'Movie' },
+            105: { zh: '影剧/综艺', en: 'TV Series' },
+            110: { zh: '音乐', en: 'Music' },
+            444: { zh: '纪录', en: 'Documentary' },
+            447: { zh: '游戏', en: 'Game' },
+            449: { zh: '动漫', en: 'Anime' },
+            450: { zh: '其他', en: 'Other' },
+            // 成人分类
+            115: { zh: '有码', en: 'Censored' },
+            120: { zh: '无码', en: 'Uncensored' },
+            445: { zh: '写真', en: 'IV' },
+            446: { zh: 'H-ACG', en: 'H-ACG' },
+        };
+
+        // 子分类ID到父分类ID的映射
+        const CHILD_TO_PARENT = {
+            // 电影子分类 -> 100
+            401: 100, 419: 100, 420: 100, 421: 100, 439: 100,
+            // 影剧子分类 -> 105
+            402: 105, 403: 105, 435: 105, 438: 105,
+            // Music子分类 -> 110
+            434: 110, 406: 110,
+            // 纪录子分类 -> 444
+            404: 444,
+            // 动漫子分类 -> 449
+            405: 449,
+            // 游戏子分类 -> 447
+            423: 447, 448: 447,
+            // 其他子分类 -> 450
+            427: 450, 407: 450, 422: 450, 442: 450, 451: 450, 409: 450,
+            // 成人子分类
+            410: 115, 424: 115, 437: 115, 431: 115,  // 有码
+            429: 120, 430: 120, 426: 120, 432: 120, 436: 120, 440: 120,  // 无码
+            425: 445, 433: 445,  // IV
+            411: 446, 412: 446, 413: 446,  // H-ACG
+        };
+
+        // ============ Country Translations (English to Chinese) ============
+        const COUNTRY_TRANSLATIONS = {
+            // Asia
+            'China': '中国', 'Mainland China': '中国大陆', 'Hong Kong': '香港', 'Taiwan': '台湾',
+            'Japan': '日本', 'South Korea': '韩国', 'Korea': '韩国', 'North Korea': '朝鲜',
+            'Thailand': '泰国', 'Vietnam': '越南', 'Singapore': '新加坡', 'Malaysia': '马来西亚',
+            'Indonesia': '印度尼西亚', 'Philippines': '菲律宾', 'India': '印度', 'Pakistan': '巴基斯坦',
+            'Bangladesh': '孟加拉国', 'Sri Lanka': '斯里兰卡', 'Nepal': '尼泊尔', 'Myanmar': '缅甸',
+            'Cambodia': '柬埔寨', 'Laos': '老挝', 'Mongolia': '蒙古', 'Kazakhstan': '哈萨克斯坦',
+            'Uzbekistan': '乌兹别克斯坦', 'Turkmenistan': '土库曼斯坦', 'Kyrgyzstan': '吉尔吉斯斯坦',
+            'Tajikistan': '塔吉克斯坦', 'Afghanistan': '阿富汗', 'Iran': '伊朗', 'Iraq': '伊拉克',
+            'Saudi Arabia': '沙特阿拉伯', 'United Arab Emirates': '阿联酋', 'UAE': '阿联酋',
+            'Israel': '以色列', 'Turkey': '土耳其', 'Lebanon': '黎巴嫩', 'Jordan': '约旦',
+            'Kuwait': '科威特', 'Qatar': '卡塔尔', 'Bahrain': '巴林', 'Oman': '阿曼', 'Yemen': '也门',
+            'Syria': '叙利亚', 'Palestine': '巴勒斯坦',
+            // Europe
+            'United Kingdom': '英国', 'UK': '英国', 'England': '英国', 'France': '法国',
+            'Germany': '德国', 'Italy': '意大利', 'Spain': '西班牙', 'Portugal': '葡萄牙',
+            'Netherlands': '荷兰', 'Belgium': '比利时', 'Switzerland': '瑞士', 'Austria': '奥地利',
+            'Sweden': '瑞典', 'Norway': '挪威', 'Denmark': '丹麦', 'Finland': '芬兰',
+            'Iceland': '冰岛', 'Ireland': '爱尔兰', 'Poland': '波兰', 'Czech Republic': '捷克',
+            'Czechia': '捷克', 'Hungary': '匈牙利', 'Romania': '罗马尼亚', 'Bulgaria': '保加利亚',
+            'Greece': '希腊', 'Croatia': '克罗地亚', 'Serbia': '塞尔维亚', 'Slovenia': '斯洛文尼亚',
+            'Slovakia': '斯洛伐克', 'Ukraine': '乌克兰', 'Russia': '俄罗斯', 'Belarus': '白俄罗斯',
+            'Lithuania': '立陶宛', 'Latvia': '拉脱维亚', 'Estonia': '爱沙尼亚', 'Moldova': '摩尔多瓦',
+            'Albania': '阿尔巴尼亚', 'North Macedonia': '北马其顿', 'Montenegro': '黑山',
+            'Bosnia and Herzegovina': '波黑', 'Kosovo': '科索沃', 'Luxembourg': '卢森堡',
+            'Malta': '马耳他', 'Cyprus': '塞浦路斯', 'Monaco': '摩纳哥', 'Liechtenstein': '列支敦士登',
+            'Andorra': '安道尔', 'San Marino': '圣马力诺', 'Vatican': '梵蒂冈',
+            // Americas
+            'United States': '美国', 'United States of America': '美国', 'USA': '美国', 'US': '美国', 'America': '美国',
+            'Canada': '加拿大', 'Mexico': '墨西哥', 'Brazil': '巴西', 'Argentina': '阿根廷',
+            'Chile': '智利', 'Colombia': '哥伦比亚', 'Peru': '秘鲁', 'Venezuela': '委内瑞拉',
+            'Ecuador': '厄瓜多尔', 'Bolivia': '玻利维亚', 'Paraguay': '巴拉圭', 'Uruguay': '乌拉圭',
+            'Cuba': '古巴', 'Dominican Republic': '多米尼加', 'Puerto Rico': '波多黎各',
+            'Jamaica': '牙买加', 'Haiti': '海地', 'Costa Rica': '哥斯达黎加', 'Panama': '巴拿马',
+            'Guatemala': '危地马拉', 'Honduras': '洪都拉斯', 'El Salvador': '萨尔瓦多',
+            'Nicaragua': '尼加拉瓜', 'Bahamas': '巴哈马', 'Trinidad and Tobago': '特立尼达和多巴哥',
+            // Oceania
+            'Australia': '澳大利亚', 'New Zealand': '新西兰', 'Fiji': '斐济',
+            'Papua New Guinea': '巴布亚新几内亚', 'Samoa': '萨摩亚', 'Tonga': '汤加',
+            // Africa
+            'South Africa': '南非', 'Egypt': '埃及', 'Morocco': '摩洛哥', 'Algeria': '阿尔及利亚',
+            'Tunisia': '突尼斯', 'Libya': '利比亚', 'Sudan': '苏丹', 'Ethiopia': '埃塞俄比亚',
+            'Kenya': '肯尼亚', 'Nigeria': '尼日利亚', 'Ghana': '加纳', 'Tanzania': '坦桑尼亚',
+            'Uganda': '乌干达', 'Zimbabwe': '津巴布韦', 'Zambia': '赞比亚', 'Botswana': '博茨瓦纳',
+            'Namibia': '纳米比亚', 'Mozambique': '莫桑比克', 'Angola': '安哥拉', 'Senegal': '塞内加尔',
+            'Ivory Coast': '科特迪瓦', 'Cameroon': '喀麦隆', 'Congo': '刚果',
+            'Democratic Republic of the Congo': '刚果民主共和国', 'Rwanda': '卢旺达',
+            // Special
+            'International': '国际', 'Unknown': '未知', 'Other': '其他', 'Multiple': '多国'
+        };
+
+        // Translate country name based on current language
+        function translateCountry(countryStr) {
+            if (!countryStr) return '-';
+            if (currentLang !== 'zh') return escapeHtml(countryStr);
+            // Handle multiple countries (comma-separated)
+            const countries = countryStr.split(',').map(c => c.trim());
+            const translated = countries.map(c => COUNTRY_TRANSLATIONS[c] || c);
+            return escapeHtml(translated.join(', '));
+        }
+
+        // ============ Data & Config ============
+        // API Category Mapping based on M-Team-API.md
+        const CATEGORY_MAP = {
+            'movie': [
+                { id: 439, name_zh: 'Remux', name_en: 'Remux' },
+                { id: 421, name_zh: 'Blu-Ray', name_en: 'Blu-Ray' },
+                { id: 419, name_zh: 'HD (Web/Rip)', name_en: 'HD (Web/Rip)' },
+                { id: 420, name_zh: 'DVD', name_en: 'DVD' },
+                { id: 401, name_zh: 'SD', name_en: 'SD' }
+            ],
+            'tvshow': [
+                { id: 438, name_zh: 'Blu-Ray', name_en: 'Blu-Ray' },
+                { id: 402, name_zh: 'HD (Web/Rip)', name_en: 'HD (Web/Rip)' },
+                { id: 435, name_zh: 'DVD', name_en: 'DVD' },
+                { id: 403, name_zh: 'SD', name_en: 'SD' }
+            ],
+            // 'Other' maps to a collection of categories (top-level + sub-categories)
+            'other': [
+                { id: '449,405', name_zh: '动漫', name_en: 'Anime' },           // Top + sub
+                { id: '444,404', name_zh: '纪录片', name_en: 'Documentary' },   // Top + sub
+                { id: '110,434,406', name_zh: '音乐', name_en: 'Music' },       // Top + subs
+                { id: '447,423,448', name_zh: '游戏', name_en: 'Game' },        // Top + subs
+                { id: '422', name_zh: '软件', name_en: 'Software' },            // Sub only
+                { id: '427', name_zh: '电子书', name_en: 'E-Book' },            // Sub only
+                { id: '407', name_zh: '运动', name_en: 'Sports' },              // Sub only
+                { id: '442', name_zh: '有声书', name_en: 'Audiobook' },         // Sub only
+                { id: '451', name_zh: '教育', name_en: 'Education' },           // Sub only
+                { id: '409', name_zh: '其他', name_en: 'Misc' }                 // Sub only
+            ],
+            'adult': [
+                { id: '410,424,437,431', name_zh: '有码', name_en: 'Censored' },
+                { id: '429,430,426,432,436', name_zh: '无码', name_en: 'Uncensored' },
+                { id: '440', name_zh: 'Gay', name_en: 'Gay' },
+                { id: '425,433', name_zh: '写真', name_en: 'IV/Gravure' },
+                { id: '411', name_zh: '游戏', name_en: 'H-Game' },
+                { id: '412', name_zh: '动漫', name_en: 'H-Anime' },
+                { id: '413', name_zh: '漫画', name_en: 'H-Comic' }
+            ],
+            // Normal (All) mode searches everything except Adult.
+            // We leave this empty to indicate "No specific sub-category filtering".
+            'normal': []
+        };
+
+        // Filter Visibility Configuration
+        const FILTER_CONFIG = {
+            'normal':   ['resolution', 'video', 'audio', 'country', 'discount'], // All
+            'movie':    ['resolution', 'video', 'audio', 'country', 'discount'], // All
+            'tvshow':   ['resolution', 'video', 'audio', 'country', 'discount'], // All
+            'other':    ['country', 'discount'],       // Hide tech specs for music/books/games
+            'adult':    ['resolution', 'discount']     // Simplified for adult
+        };
+
+        // Internal State map for mode category fallbacks
+        const MOVIE_CATEGORY_IDS = [439, 421, 419, 420, 401];   // Remux, Blu-Ray, HD, DVD, SD
+        const TVSHOW_CATEGORY_IDS = [438, 402, 435, 403];       // Blu-Ray, HD, DVD, SD
+        // Other mode: include both top-level and sub-categories for complete results
+        const OTHER_CATEGORY_IDS = [
+            // Music: top-level + sub-categories
+            110, 434, 406,
+            // Anime: top-level + sub-category
+            449, 405,
+            // Documentary: top-level + sub-category
+            444, 404,
+            // Game: top-level + sub-categories
+            447, 423, 448,
+            // Other (parent 450): sub-categories
+            422, 427, 407, 442, 451, 409
+        ];
+        const ADULT_CATEGORY_IDS = [
+            // 有码 (Censored) - parent 115
+            410, 424, 437, 431,
+            // 无码 (Uncensored) - parent 120
+            429, 430, 426, 432, 436,
+            // Gay
+            440,
+            // IV/写真 - parent 445
+            425, 433,
+            // H-ACG - parent 446
+            411, 412, 413
+        ];
+        // Normal mode = all non-adult categories combined
+        const NORMAL_CATEGORY_IDS = [
+            ...MOVIE_CATEGORY_IDS,    // 439, 421, 419, 420, 401
+            ...TVSHOW_CATEGORY_IDS,   // 438, 402, 435, 403
+            ...OTHER_CATEGORY_IDS     // 449, 444, 110, 447, 450
+        ];
+
+        // ============ State ============
+        let currentLang = localStorage.getItem('language') || 'zh';
+        let currentTheme = localStorage.getItem('theme') || 'dark';
+        let currentPage = 1;
+        let isLoading = false;
+        let hasMore = true;
+        let totalResults = 0;
+        let hasSearched = false;
+
+        // Filter state
+        let currentMode = 'normal';
+        let selectedCategory = null;  // Single Integer ID or null
+        let selectedStandards = [];
+        let selectedVideoCodecs = [];
+        let selectedAudioCodecs = [];
+        let selectedSources = [];
+        let selectedCountries = [];
+        let selectedDiscount = '';
+
+        // Drawer pill states (single-select per group)
+        let drawerResolution = null;
+        let drawerVideo = null;
+        let drawerAudio = null;
+        let drawerCountry = null;
+        let drawerDiscount = null;
+
+        // Filter options data (for rendering pills)
+        const FILTER_OPTIONS = {
+            standards: {{ filter_options.standards|tojson|safe }},
+            videoCodecs: {{ filter_options.videoCodecs|tojson|safe }},
+            audioCodecs: {{ filter_options.audioCodecs|tojson|safe }},
+            countries: [
+                { id: 1, name_zh: '中国', name_en: 'China' },
+                { id: 4, name_zh: '美国', name_en: 'USA' },
+                { id: 5, name_zh: '日本', name_en: 'Japan' },
+                { id: 6, name_zh: '韩国', name_en: 'Korea' },
+                { id: 7, name_zh: '英国', name_en: 'UK' },
+                { id: 2, name_zh: '香港', name_en: 'HK' },
+                { id: 3, name_zh: '台湾', name_en: 'Taiwan' },
+                { id: 8, name_zh: '法国', name_en: 'France' }
+            ],
+            discounts: [
+                { id: 'FREE', name_zh: '免费', name_en: 'FREE' },
+                { id: '_2X_FREE', name_zh: '2x免费', name_en: '2xFREE' },
+                { id: '_2X', name_zh: '2x上传', name_en: '2xUP' },
+                { id: 'PERCENT_50', name_zh: '50%', name_en: '50%' }
+            ]
+        };
+
+        // Sort state
+        let currentSort = { column: 'createdDate', direction: 'desc' };
+
+        const SITE_URL = "{{ site_url }}";
+
+        // ============ Theme ============
+        function setTheme(theme) {
+            document.body.setAttribute('data-theme', theme);
+            document.getElementById('themeIcon').textContent = theme === 'dark' ? '☀️' : '🌙';
+            localStorage.setItem('theme', theme);
+            currentTheme = theme;
+        }
+
+        function toggleTheme() {
+            setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        }
+
+        // ============ Language ============
+        function setLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('language', lang);
+            document.getElementById('langToggle').textContent = lang === 'zh' ? 'EN' : '中文';
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (TRANSLATIONS[lang][key]) el.textContent = TRANSLATIONS[lang][key];
+            });
+
+            // Update search placeholders
+            document.querySelectorAll('.search-input').forEach(el => {
+                el.placeholder = lang === 'zh' ? el.dataset.placeholderZh : el.dataset.placeholderEn;
+            });
+
+            // Re-render category pills with new language
+            renderCategoryPills(currentMode);
+        }
+
+        function toggleLanguage() {
+            document.getElementById('loadingBar').classList.add('active');
+            localStorage.setItem('language', currentLang === 'zh' ? 'en' : 'zh');
+            setTimeout(() => location.reload(), 150);
+        }
+
+        // ============ Drawer ============
+        function openFilterDrawer() {
+            syncDesktopToDrawer();
+            initDrawerPills();
+            document.getElementById('drawerOverlay').classList.add('active');
+            document.getElementById('filterDrawer').classList.add('active');
+            document.body.classList.add('drawer-open');
+        }
+
+        function closeFilterDrawer() {
+            document.getElementById('drawerOverlay').classList.remove('active');
+            document.getElementById('filterDrawer').classList.remove('active');
+            document.body.classList.remove('drawer-open');
+        }
+
+        // ============ Haptic Feedback ============
+        function triggerHaptic() {
+            if ('vibrate' in navigator) {
+                navigator.vibrate(30);
+            }
+        }
+
+        // ============ Mobile Mode Tabs (Level 1) ============
+        function initMobileModeTabs() {
+            const tabs = document.querySelectorAll('.mobile-mode-tab');
+            tabs.forEach(tab => {
+                tab.onclick = () => {
+                    triggerHaptic();
+                    const mode = tab.dataset.mode;
+
+                    // Update tab UI
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+
+                    // Update global state
+                    currentMode = mode;
+                    selectedCategory = null;
+
+                    // Update desktop tabs to match
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    const desktopTab = document.querySelector(`.tab-btn[data-mode="${mode}"]`);
+                    if (desktopTab) desktopTab.classList.add('active');
+
+                    // Render category pills for this mode
+                    renderMobileCategoryPills(mode);
+                    renderCategoryPills(mode);
+                    updateFilterVisibility(mode);
+                    updateResetButtonState();
+                };
+            });
+        }
+
+        // ============ Mobile Category Pills (Level 2) ============
+        function renderMobileCategoryPills(mode) {
+            const container = document.getElementById('mobileCategoryPills');
+            container.innerHTML = '';
+
+            const cats = CATEGORY_MAP[mode] || [];
+            if (cats.length === 0) return;
+
+            cats.forEach(cat => {
+                const isActive = selectedCategory === cat.id;
+                const displayName = cat[`name_${currentLang}`] || cat.name_zh;
+                const pill = document.createElement('button');
+                pill.className = `mobile-cat-pill ${isActive ? 'active' : ''}`;
+                pill.textContent = displayName;
+
+                pill.onclick = () => {
+                    triggerHaptic();
+                    if (selectedCategory === cat.id) {
+                        selectedCategory = null;
+                    } else {
+                        selectedCategory = cat.id;
+                    }
+                    renderMobileCategoryPills(mode);
+                    renderCategoryPills(mode);
+                };
+
+                container.appendChild(pill);
+            });
+        }
+
+        // ============ Drawer Pills Rendering ============
+        function renderDrawerPills(containerId, options, currentValue, stateKey) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+
+            options.forEach(opt => {
+                const optId = opt.id;
+                const isActive = currentValue === optId;
+                const displayName = opt[`name_${currentLang}`] || opt.name_zh || opt.name;
+
+                const pill = document.createElement('button');
+                pill.className = `drawer-pill ${isActive ? 'active' : ''}`;
+                pill.textContent = displayName;
+
+                pill.onclick = () => {
+                    triggerHaptic();
+                    if (stateKey === 'drawerResolution') {
+                        drawerResolution = drawerResolution === optId ? null : optId;
+                        renderDrawerPills(containerId, options, drawerResolution, stateKey);
+                    } else if (stateKey === 'drawerVideo') {
+                        drawerVideo = drawerVideo === optId ? null : optId;
+                        renderDrawerPills(containerId, options, drawerVideo, stateKey);
+                    } else if (stateKey === 'drawerAudio') {
+                        drawerAudio = drawerAudio === optId ? null : optId;
+                        renderDrawerPills(containerId, options, drawerAudio, stateKey);
+                    } else if (stateKey === 'drawerCountry') {
+                        drawerCountry = drawerCountry === optId ? null : optId;
+                        renderDrawerPills(containerId, options, drawerCountry, stateKey);
+                    } else if (stateKey === 'drawerDiscount') {
+                        drawerDiscount = drawerDiscount === optId ? null : optId;
+                        renderDrawerPills(containerId, options, drawerDiscount, stateKey);
+                    }
+                    updateFilterIndicator();
+                    updateResetButtonState();
+                };
+
+                container.appendChild(pill);
+            });
+        }
+
+        function initDrawerPills() {
+            renderDrawerPills('drawerResolutionPills', FILTER_OPTIONS.standards, drawerResolution, 'drawerResolution');
+            renderDrawerPills('drawerVideoPills', FILTER_OPTIONS.videoCodecs, drawerVideo, 'drawerVideo');
+            renderDrawerPills('drawerAudioPills', FILTER_OPTIONS.audioCodecs, drawerAudio, 'drawerAudio');
+            renderDrawerPills('drawerCountryPills', FILTER_OPTIONS.countries, drawerCountry, 'drawerCountry');
+            renderDrawerPills('drawerDiscountPills', FILTER_OPTIONS.discounts, drawerDiscount, 'drawerDiscount');
+        }
+
+        // ============ Filter Indicator (Red Dot) ============
+        function updateFilterIndicator() {
+            const hasFilters = drawerResolution || drawerVideo || drawerAudio || drawerCountry || drawerDiscount ||
+                               selectedStandards.length > 0 || selectedVideoCodecs.length > 0 ||
+                               selectedAudioCodecs.length > 0 || selectedCountries.length > 0 || selectedDiscount;
+            const btn = document.getElementById('filterToggleBtn');
+            if (hasFilters) {
+                btn.classList.add('has-filters');
+            } else {
+                btn.classList.remove('has-filters');
+            }
+        }
+
+        function resetDrawerFilters() {
+            drawerResolution = null;
+            drawerVideo = null;
+            drawerAudio = null;
+            drawerCountry = null;
+            drawerDiscount = null;
+            initDrawerPills();
+            updateFilterIndicator();
+        }
+
+        function applyDrawerFilters() {
+            // Read drawer pill states and apply to filter arrays
+            selectedStandards = drawerResolution ? [parseInt(drawerResolution)] : [];
+            selectedVideoCodecs = drawerVideo ? [parseInt(drawerVideo)] : [];
+            selectedAudioCodecs = drawerAudio ? [parseInt(drawerAudio)] : [];
+            selectedCountries = drawerCountry ? [parseInt(drawerCountry)] : [];
+            selectedDiscount = drawerDiscount || '';
+
+            // Sync to desktop selects
+            document.getElementById('resolutionSelect').value = drawerResolution || '';
+            document.getElementById('videoSelect').value = drawerVideo || '';
+            document.getElementById('audioSelect').value = drawerAudio || '';
+            document.getElementById('countrySelect').value = drawerCountry || '';
+            document.getElementById('discountSelect').value = drawerDiscount || '';
+
+            // Sync mobile search to desktop
+            const mobileSearch = document.getElementById('mobileSearchInput').value;
+            document.getElementById('searchInput').value = mobileSearch;
+
+            // Execute search
+            executeSearch();
+            closeFilterDrawer();
+            updateFilterIndicator();
+        }
+
+        function syncDrawerToDesktop() {
+            // Deprecated - now using applyDrawerFilters
+        }
+
+        function syncDesktopToDrawer() {
+            // Sync desktop select values to drawer pill states
+            const resVal = document.getElementById('resolutionSelect').value;
+            const vidVal = document.getElementById('videoSelect').value;
+            const audVal = document.getElementById('audioSelect').value;
+            const cntVal = document.getElementById('countrySelect').value;
+            const discVal = document.getElementById('discountSelect').value;
+
+            drawerResolution = resVal ? parseInt(resVal) : null;
+            drawerVideo = vidVal ? parseInt(vidVal) : null;
+            drawerAudio = audVal ? parseInt(audVal) : null;
+            drawerCountry = cntVal ? parseInt(cntVal) : null;
+            drawerDiscount = discVal || null;
+        }
+
+        // ============ Filter Dropdowns ============
+        function updateFilterArrays() {
+            // Read single values from dropdowns and convert to arrays for API
+            const resolutionVal = document.getElementById('resolutionSelect').value;
+            selectedStandards = resolutionVal ? [parseInt(resolutionVal)] : [];
+
+            const audioVal = document.getElementById('audioSelect').value;
+            selectedAudioCodecs = audioVal ? [parseInt(audioVal)] : [];
+
+            // Note: selectedSources is populated elsewhere (not from desktop dropdown)
+            // videoCodecs no longer used (removed filter)
+            selectedVideoCodecs = [];
+        }
+
+        function updateDrawerFilterArrays() {
+            // NOTE: Drawer uses pills instead of dropdowns, so these elements don't exist
+            // Commenting out to prevent null reference errors
+            // const drawerStandardVal = document.getElementById('drawerStandardSelect').value;
+            // selectedStandards = drawerStandardVal ? [parseInt(drawerStandardVal)] : [];
+
+            // const drawerAudioVal = document.getElementById('drawerAudioSelect').value;
+            // selectedAudioCodecs = drawerAudioVal ? [parseInt(drawerAudioVal)] : [];
+
+            // const drawerVideoVal = document.getElementById('drawerVideoSelect').value;
+            // selectedVideoCodecs = drawerVideoVal ? [parseInt(drawerVideoVal)] : [];
+        }
+
+        function updateResetButtonState() {
+            const hasFilters =
+                currentMode !== 'normal' ||
+                selectedCategory !== null ||
+                selectedStandards.length > 0 ||
+                selectedVideoCodecs.length > 0 ||
+                selectedAudioCodecs.length > 0 ||
+                selectedCountries.length > 0 ||
+                selectedDiscount !== '' ||
+                document.getElementById('resolutionSelect').value !== '' ||
+                document.getElementById('videoSelect').value !== '' ||
+                document.getElementById('audioSelect').value !== '' ||
+                document.getElementById('countrySelect').value !== '' ||
+                document.getElementById('discountSelect').value !== '' ||
+                document.getElementById('searchInput').value.trim() !== '';
+            const resetBtn = document.getElementById('resetFiltersBtn');
+            if (resetBtn) {
+                resetBtn.disabled = !hasFilters;
+            }
+        }
+
+        function sortTable(column) {
+            const tbody = document.getElementById('resultsBody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+
+            // Toggle direction if same column, otherwise default to ascending
+            if (currentSort.column === column) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.column = column;
+                currentSort.direction = 'asc';
+            }
+
+            // Sort rows based on column type
+            rows.sort((a, b) => {
+                let aVal, bVal;
+
+                switch (column) {
+                    case 'name':
+                        aVal = a.querySelector('.torrent-name .name-text').textContent.toLowerCase();
+                        bVal = b.querySelector('.torrent-name .name-text').textContent.toLowerCase();
+                        break;
+                    case 'size':
+                        aVal = parseInt(a.dataset.size || 0);
+                        bVal = parseInt(b.dataset.size || 0);
+                        break;
+                    case 'seeders':
+                        aVal = parseInt(a.dataset.seeders || 0);
+                        bVal = parseInt(b.dataset.seeders || 0);
+                        break;
+                    case 'createdDate':
+                        aVal = new Date(a.dataset.createdDate || 0).getTime();
+                        bVal = new Date(b.dataset.createdDate || 0).getTime();
+                        break;
+                    default:
+                        return 0;
+                }
+
+                // Compare values
+                if (typeof aVal === 'string') {
+                    return currentSort.direction === 'asc'
+                        ? aVal.localeCompare(bVal)
+                        : bVal.localeCompare(aVal);
+                }
+                return currentSort.direction === 'asc' ? aVal - bVal : bVal - aVal;
+            });
+
+            // Re-append sorted rows
+            rows.forEach(row => tbody.appendChild(row));
+
+            // Update visual indicators
+            updateSortIndicators(column);
+        }
+
+        function updateSortIndicators(column) {
+            // Reset all indicators
+            document.querySelectorAll('th').forEach(th => th.classList.remove('sorted'));
+            document.querySelectorAll('th .sort-icon').forEach(icon => {
+                icon.textContent = '↕';
+            });
+
+            // Set active indicator
+            const ths = document.querySelectorAll('th');
+            ths.forEach(th => {
+                const onclick = th.getAttribute('onclick');
+                if (onclick && onclick.includes(`'${column}'`)) {
+                    th.classList.add('sorted');
+                    const icon = th.querySelector('.sort-icon');
+                    if (icon) {
+                        icon.textContent = currentSort.direction === 'asc' ? '↑' : '↓';
+                    }
+                }
+            });
+        }
+
+        function resetAllFilters() {
+            // Reset search inputs
+            document.getElementById('searchInput').value = '';
+            document.getElementById('mobileSearchInput').value = '';
+
+            // Reset desktop dropdowns (use actual element IDs)
+            document.getElementById('resolutionSelect').value = '';
+            document.getElementById('videoSelect').value = '';
+            document.getElementById('audioSelect').value = '';
+            document.getElementById('countrySelect').value = '';
+            document.getElementById('discountSelect').value = '';
+
+            // NOTE: Drawer uses pills instead of dropdowns, these elements don't exist
+            // Commenting out to prevent null reference errors
+            // document.getElementById('drawerStandardSelect').value = '';
+            // document.getElementById('drawerVideoSelect').value = '';
+            // document.getElementById('drawerAudioSelect').value = '';
+            // document.getElementById('drawerCountrySelect').value = '';
+            // document.getElementById('drawerDiscountSelect').value = '';
+            // document.getElementById('drawerModeSelect').value = 'normal';
+
+            // Reset mode via tabs (not non-existent modeSelect)
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            const normalTab = document.querySelector('.tab-btn[data-mode="normal"]');
+            if (normalTab) normalTab.classList.add('active');
+            currentMode = 'normal';
+            selectedCategory = null;
+            renderCategoryPills('normal');
+            updateFilterVisibility('normal');
+
+            // Reset filter arrays
+            selectedStandards = [];
+            selectedVideoCodecs = [];
+            selectedAudioCodecs = [];
+            selectedSources = [];
+
+            updateResetButtonState();
+        }
+
+        // ============ New Filter Functions ============
+        // Populate PC Country Dropdown from FILTER_OPTIONS
+        function populateCountryDropdown() {
+            const select = document.getElementById('countrySelect');
+            // Remove existing options except the first one (placeholder)
+            while (select.options.length > 1) {
+                select.remove(1);
+            }
+
+            // Add options from FILTER_OPTIONS.countries
+            FILTER_OPTIONS.countries.forEach(country => {
+                const option = document.createElement('option');
+                option.value = country.id;
+                option.textContent = currentLang === 'zh' ? country.name_zh : country.name_en;
+                select.appendChild(option);
+            });
+        }
+
+        function renderCategoryPills(mode) {
+            const container = document.getElementById('categoryPills');
+            container.innerHTML = '';
+
+            const cats = CATEGORY_MAP[mode] || [];
+
+            // If no categories (e.g. Normal mode), container collapses via CSS :empty check
+            if (cats.length === 0) {
+                return;
+            }
+
+            cats.forEach(cat => {
+                const isActive = selectedCategory === cat.id;
+                const displayName = cat[`name_${currentLang}`] || cat.name_zh;
+                const pill = createPill(displayName, cat.id, isActive);
+
+                pill.onclick = () => {
+                    // Single select toggle logic
+                    if (selectedCategory === cat.id) {
+                        selectedCategory = null; // Deselect
+                    } else {
+                        selectedCategory = cat.id; // Select
+                    }
+                    renderCategoryPills(mode); // Re-render to update UI state
+                    updateResetButtonState();
+                };
+                container.appendChild(pill);
+            });
+        }
+
+        function createPill(text, id, isActive) {
+            const btn = document.createElement('button');
+            btn.className = `cat-pill ${isActive ? 'active' : ''}`;
+            btn.textContent = text;
+            return btn;
+        }
+
+        function updateFilterVisibility(mode) {
+            const allowedFilters = FILTER_CONFIG[mode] || FILTER_CONFIG['normal'];
+
+            // Map logical names to DOM IDs
+            const filterMap = {
+                'resolution': 'resolutionWrapper',
+                'video': 'videoWrapper',
+                'audio': 'audioWrapper',
+                'country': 'countryWrapper',
+                'discount': 'discountWrapper'
+            };
+
+            Object.keys(filterMap).forEach(key => {
+                const el = document.getElementById(filterMap[key]);
+                if (allowedFilters.includes(key)) {
+                    el.style.display = 'block';
+                } else {
+                    el.style.display = 'none';
+                    // Reset value if hidden so it doesn't affect search
+                    const select = el.querySelector('select');
+                    if(select) select.value = "";
+                }
+            });
+        }
+
+        function resetFilters() {
+            // 1. Reset search box and dropdowns (Level 3)
+            document.getElementById('searchInput').value = '';
+            document.getElementById('resolutionSelect').value = '';
+            document.getElementById('videoSelect').value = '';
+            document.getElementById('audioSelect').value = '';
+            document.getElementById('countrySelect').value = '';
+            document.getElementById('discountSelect').value = '';
+
+            // 2. Reset category pills (Level 2)
+            selectedCategory = null;
+            renderCategoryPills(currentMode); // Re-render to remove highlight
+
+            // 3. Keep mode tabs (Level 1) unchanged
+            // currentMode is preserved
+
+            // 4. Execute search (refresh results)
+            executeSearch();
+        }
+
+        // ============ Search ============
+        async function executeSearch() {
+            currentPage = 1;
+            hasMore = true;
+            hasSearched = true;
+
+            // Clear existing results
+            document.getElementById('resultsBody').innerHTML = '';
+
+            // Hide initial state, show loading
+            document.getElementById('initialState').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'none';
+
+            await fetchSearchResults();
+        }
+
+        async function fetchSearchResults(append = false) {
+            if (isLoading) return;
+            isLoading = true;
+
+            if (!append) {
+                // Show Skeleton for initial search
+                document.getElementById('resultsBody').innerHTML = renderSkeleton(10);
+                document.getElementById('loadingBar').classList.add('active');
+            } else {
+                // Show loading state on Load More button
+                const loadMoreBtn = document.getElementById('loadMoreBtn');
+                loadMoreBtn.classList.add('loading');
+                loadMoreBtn.disabled = true;
+            }
+
+            updateFilterArrays();
+
+            // Prepare API Parameters
+            let apiMode = currentMode;
+            let apiCategories = null;
+
+            if (selectedCategory) {
+                // Handle comma-separated category IDs (for pills with multiple categories)
+                if (typeof selectedCategory === 'string' && selectedCategory.includes(',')) {
+                    apiCategories = selectedCategory.split(',').map(id => parseInt(id));
+                } else {
+                    apiCategories = [parseInt(selectedCategory)];
+                }
+            }
+
+            // Fallback category handling for modes without selected sub-category
+            if (currentMode === 'normal' && !apiCategories) {
+                apiCategories = NORMAL_CATEGORY_IDS;
+            }
+            if (currentMode === 'movie' && !apiCategories) {
+                apiCategories = MOVIE_CATEGORY_IDS;
+            }
+            if (currentMode === 'tvshow' && !apiCategories) {
+                apiCategories = TVSHOW_CATEGORY_IDS;
+            }
+            if (currentMode === 'adult' && !apiCategories) {
+                apiCategories = ADULT_CATEGORY_IDS;
+            }
+            // Special Handling for "Other" mode (Virtual Mode)
+            if (currentMode === 'other') {
+                apiMode = 'normal';
+                if (!apiCategories) {
+                    // If no specific pill selected, search ALL "other" categories
+                    apiCategories = OTHER_CATEGORY_IDS;
+                }
+            }
+
+            // Get filter values
+            const resolution = document.getElementById('resolutionSelect').value;
+            const video = document.getElementById('videoSelect').value;
+            const audio = document.getElementById('audioSelect').value;
+            const country = document.getElementById('countrySelect').value;
+            const discount = document.getElementById('discountSelect').value;
+
+            const payload = {
+                keyword: document.getElementById('searchInput').value.trim(),
+                mode: apiMode,
+                categories: apiCategories,
+                standards: resolution ? [parseInt(resolution)] : [],
+                videoCodecs: video ? [parseInt(video)] : [],
+                audioCodecs: audio ? [parseInt(audio)] : [],
+                sources: selectedSources,
+                countries: country ? [parseInt(country)] : [],
+                discount: discount || '',
+                sortField: 'CREATED_DATE',
+                sortDirection: 'DESC',
+                pageNumber: currentPage,
+                pageSize: 50
+            };
+
+            try {
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                
+                // Clear skeleton if it was initial load
+                if (!append) {
+                    document.getElementById('resultsBody').innerHTML = '';
+                }
+
+                if (result.success) {
+                    totalResults = result.total;
+                    document.getElementById('totalCount').textContent = totalResults;
+
+                    if (result.data.length === 0 && currentPage === 1) {
+                        document.getElementById('emptyState').style.display = 'block';
+                        document.getElementById('filteredCount').textContent = '0';
+                    } else {
+                        appendResults(result.data);
+                        hasMore = result.data.length === payload.pageSize;
+                    }
+                } else {
+                    showToast(result.message || TRANSLATIONS[currentLang].searchFailed, 'error');
+                }
+            } catch (e) {
+                showToast(TRANSLATIONS[currentLang].searchFailed, 'error');
+                console.error('Search error:', e);
+            } finally {
+                isLoading = false;
+                document.getElementById('loadingBar').classList.remove('active');
+
+                // Update Load More button state
+                const loadMoreBtn = document.getElementById('loadMoreBtn');
+                const loadMoreContainer = document.getElementById('loadMoreContainer');
+                loadMoreBtn.classList.remove('loading');
+                loadMoreBtn.disabled = false;
+
+                // Show/hide Load More button based on hasMore
+                if (hasMore && hasSearched) {
+                    loadMoreContainer.style.display = 'block';
+                } else {
+                    loadMoreContainer.style.display = 'none';
+                }
+            }
+        }
+
+        function renderSkeleton(count) {
+            let html = '';
+            for (let i = 0; i < count; i++) {
+                html += `
+                    <tr class="skeleton-row">
+                        <td><div class="skeleton-box" style="width: 80%"></div></td>
+                        <td><div class="skeleton-box" style="width: 60%"></div></td>
+                        <td><div class="skeleton-box" style="width: 40%"></div></td>
+                        <td><div class="skeleton-box" style="width: 50%"></div></td>
+                        <td><div class="skeleton-box" style="width: 70%"></div></td>
+                        <td><div class="skeleton-box" style="width: 30%"></div></td>
+                    </tr>
+                `;
+            }
+            return html;
+        }
+
+        // ============ Toast (Nothing OS Style) ============
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            // Remove any existing timer to prevent early dismissal if rapid firing
+            if (toast.dismissTimer) clearTimeout(toast.dismissTimer);
+
+            const icon = type === 'success' ? '✓ ' : '✗ ';
+            toast.textContent = icon + message;
+            toast.className = 'toast active';
+
+            // Haptic
+            if (navigator.vibrate) {
+                navigator.vibrate(type === 'success' ? 30 : [30, 30, 30]);
+            }
+
+            toast.dismissTimer = setTimeout(() => {
+                toast.classList.remove('active');
+            }, 3000);
+        }
+
+        function appendResults(torrents) {
+            const tbody = document.getElementById('resultsBody');
+
+            torrents.forEach(torrent => {
+                const tr = document.createElement('tr');
+                tr.dataset.id = torrent.id;
+                tr.dataset.name = torrent.name || '';
+                tr.dataset.size = torrent.size || 0;
+                tr.dataset.seeders = torrent.seeders || 0;
+                tr.dataset.createdDate = torrent.created_date || '';
+
+                // Format date
+                let dateDisplay = '';
+                if (torrent.created_date) {
+                    const date = new Date(torrent.created_date);
+                    dateDisplay = date.toLocaleDateString('en-US', { year: '2-digit', month: '2-digit', day: '2-digit' });
+                }
+
+                // Category badge
+                let categoryBadge = '';
+                const categoryId = torrent.category?.id || torrent.category;
+                // 查找父分类ID（如果是子分类）
+                const parentId = CHILD_TO_PARENT[categoryId] || categoryId;
+                const parentCat = PARENT_CATEGORY_NAMES[parentId];
+                if (parentCat) {
+                    categoryBadge = `<span class="badge">${parentCat[currentLang]}</span>`;
+                } else {
+                    // fallback 到原始分类名
+                    categoryBadge = `<span class="badge" style="opacity: 0.6;">${torrent.category?.name || '-'}</span>`;
+                }
+
+                // Download button state
+                const isDownloading = torrent.user_status === 'seeding' || torrent.user_status === 'leeching';
+                const downloadBtnClass = isDownloading ? 'download-btn downloaded' : 'download-btn';
+                const downloadBtnDisabled = isDownloading ? 'disabled' : '';
+
+                tr.onclick = (e) => toggleRowDetails(e, torrent.id);
+                
+                tr.innerHTML = `
+                    <td class="torrent-name">
+                        <span class="name-text" title="${escapeHtml(torrent.name)}">${escapeHtml(torrent.name)}</span>
+                        ${torrent.small_descr ? `<div class="torrent-descr">${escapeHtml(torrent.small_descr)}</div>` : ''}
+                    </td>
+                    <td>${torrent.size_display}</td>
+                    <td>
+                        <div class="peer-info">
+                            <span class="seeders">▲ ${torrent.seeders}</span>
+                            <span class="leechers">▼ ${torrent.leechers}</span>
+                        </div>
+                    </td>
+                    <td>${categoryBadge}</td>
+                    <td>${dateDisplay}</td>
+                    <td class="actions-cell">
+                        <div class="actions-wrapper">
+                            <button class="${downloadBtnClass}" onclick="downloadTorrent('${torrent.id}')" ${downloadBtnDisabled} title="下载到 qBittorrent">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M8 12l-4-4h2.5V3h3v5H12L8 12z"/>
+                                    <path d="M2 13v1h12v-1H2z"/>
+                                </svg>
+                            </button>
+                            <a href="${torrent.detail_url}" target="_blank" class="detail-link" title="查看详情">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-3h-2v2H4V4h2V2z"/>
+                                    <path d="M9 2v2h2.59L6.29 9.29l1.41 1.41L13 5.41V8h2V2H9z"/>
+                                </svg>
+                            </a>
+                        </div>
+                    </td>
+                `;
+
+                tbody.appendChild(tr);
+
+                // Create detail row
+                const detailRow = document.createElement('tr');
+                detailRow.className = 'detail-row';
+                detailRow.id = `detail-${torrent.id}`;
+                detailRow.style.display = 'none';
+                detailRow.innerHTML = `
+                    <td colspan="6">
+                        <div class="detail-content">
+                            ${renderQualityMetadata(torrent)}
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(detailRow);
+            });
+
+            // Update count
+            const currentCount = tbody.querySelectorAll('tr').length;
+            document.getElementById('filteredCount').textContent = currentCount;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ============ Expandable Row Details ============
+        function toggleRowDetails(e, torrentId) {
+            // Prevent expansion when clicking on interactive elements
+            if (e.target.closest('a') || e.target.closest('button') || e.target.closest('.download-btn')) {
+                return;
+            }
+
+            const detailRow = document.getElementById(`detail-${torrentId}`);
+            const tr = e.currentTarget;
+            const isOpening = detailRow.style.display === 'none';
+
+            if (isOpening) {
+                // Auto-collapse others
+                const expandedRows = document.querySelectorAll('tr[aria-expanded="true"]');
+                expandedRows.forEach(row => {
+                    row.setAttribute('aria-expanded', 'false');
+                    const rowId = row.dataset.id;
+                    const dRow = document.getElementById(`detail-${rowId}`);
+                    if (dRow) dRow.style.display = 'none';
+                });
+
+                // Open current
+                detailRow.style.display = '';
+                tr.setAttribute('aria-expanded', 'true');
+            } else {
+                // Close current
+                detailRow.style.display = 'none';
+                tr.setAttribute('aria-expanded', 'false');
+            }
+        }
+
+        function renderQualityMetadata(torrent) {
+            if (!torrent || !torrent.quality_metadata) return '';
+
+            const m = torrent.quality_metadata;
+            const t = TRANSLATIONS[currentLang];
+
+            // Helper: Get country flag emoji
+            const getCountryFlag = (country) => {
+                if (!country) return '';
+                const flagMap = {
+                    'China': '🇨🇳', 'Mainland China': '🇨🇳', '中国': '🇨🇳', '中国大陆': '🇨🇳',
+                    'Hong Kong': '🇭🇰', '香港': '🇭🇰',
+                    'Taiwan': '🇹🇼', '台湾': '🇹🇼',
+                    'Japan': '🇯🇵', '日本': '🇯🇵',
+                    'South Korea': '🇰🇷', 'Korea': '🇰🇷', '韩国': '🇰🇷',
+                    'United States': '🇺🇸', 'USA': '🇺🇸', 'US': '🇺🇸', 'America': '🇺🇸', '美国': '🇺🇸',
+                    'United Kingdom': '🇬🇧', 'UK': '🇬🇧', 'England': '🇬🇧', '英国': '🇬🇧',
+                    'France': '🇫🇷', '法国': '🇫🇷',
+                    'Germany': '🇩🇪', '德国': '🇩🇪',
+                    'Italy': '🇮🇹', '意大利': '🇮🇹',
+                    'Spain': '🇪🇸', '西班牙': '🇪🇸',
+                    'Russia': '🇷🇺', '俄罗斯': '🇷🇺',
+                    'India': '🇮🇳', '印度': '🇮🇳',
+                    'Thailand': '🇹🇭', '泰国': '🇹🇭',
+                    'Canada': '🇨🇦', '加拿大': '🇨🇦',
+                    'Australia': '🇦🇺', '澳大利亚': '🇦🇺',
+                    'Brazil': '🇧🇷', '巴西': '🇧🇷',
+                    'Mexico': '🇲🇽', '墨西哥': '🇲🇽'
+                };
+                // Get first country if comma-separated
+                const firstCountry = country.split(',')[0].trim();
+                return flagMap[firstCountry] || '🌍';
+            };
+
+            // Row 1: Tech Specs - only render non-empty values
+            let discountTag = '';
+            if (torrent.discount === 'FREE') {
+                discountTag = '<span class="tag discount">Free</span>';
+            } else if (torrent.discount === '_2X_FREE') {
+                discountTag = '<span class="tag discount">2xFree</span>';
+            } else if (torrent.discount && torrent.discount !== 'NORMAL') {
+                discountTag = `<span class="tag discount">${torrent.discount_label?.[currentLang] || torrent.discount}</span>`;
+            }
+
+            const techSpecs = [
+                m.standard ? `<span class="tag tech">${escapeHtml(m.standard)}</span>` : '',
+                m.video_codec ? `<span class="tag tech">${escapeHtml(m.video_codec)}</span>` : '',
+                m.audio_codec ? `<span class="tag tech">${escapeHtml(m.audio_codec)}</span>` : '',
+                m.source ? `<span class="tag tech">${escapeHtml(m.source)}</span>` : '',
+                discountTag  // Add discount at the end
+            ].filter(tag => tag).join('');
+
+            // Row 2: Metadata (Country + Labels)
+            let countryHtml = '';
+            if (m.country) {
+                const flag = getCountryFlag(m.country);
+                const translatedCountry = translateCountry(m.country);
+                countryHtml = `<span class="tag meta">
+                    <span class="tag-icon">${flag}</span>
+                    <span>${translatedCountry}</span>
+                </span>`;
+            }
+
+            let labelsHtml = '';
+            if (m.labels_new && m.labels_new.length > 0) {
+                labelsHtml = m.labels_new.map(label =>
+                    `<span class="tag label-tag">${escapeHtml(label)}</span>`
+                ).join('');
+            }
+
+            const metadataRow = countryHtml || labelsHtml
+                ? `<div class="tag-row">
+                    ${countryHtml}
+                    ${labelsHtml}
+                   </div>`
+                : '';
+
+            // Row 3: External Links
+            let imdbHtml = '<span class="btn-link disabled">IMDb</span>';
+            if (m.imdb) {
+                const imdbUrl = m.imdb.startsWith('http') ? m.imdb : `https://www.imdb.com/title/${m.imdb}`;
+                imdbHtml = `<a href="${escapeHtml(imdbUrl)}" target="_blank" rel="noopener" class="btn-link imdb">IMDb</a>`;
+            }
+
+            let doubanHtml = `<span class="btn-link disabled">${t.douban || '豆瓣'}</span>`;
+            if (m.douban) {
+                const doubanUrl = m.douban.startsWith('http') ? m.douban : `https://movie.douban.com/subject/${m.douban}`;
+                doubanHtml = `<a href="${escapeHtml(doubanUrl)}" target="_blank" rel="noopener" class="btn-link douban">${t.douban || '豆瓣'}</a>`;
+            }
+
+            return `
+                <div class="viz-dashboard">
+                    <div class="viz-dashboard-inner">
+                        <div class="viz-title">${escapeHtml(torrent.name)}</div>
+                        ${torrent.small_descr ? `<div class="viz-subtitle">${escapeHtml(torrent.small_descr)}</div>` : ''}
+                        <div class="tag-container">
+                            <!-- Row 1: Tech Specs -->
+                            ${techSpecs ? `<div class="tag-row">${techSpecs}</div>` : ''}
+
+                            <!-- Row 2: Metadata (Country + Labels) -->
+                            ${metadataRow}
+
+                            <!-- Row 3: External Links -->
+                            <div class="tag-row">
+                                ${doubanHtml}
+                                ${imdbHtml}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ============ Download ============
+        async function downloadTorrent(torrentId) {
+            // Find the button associated with this torrent
+            // If called from swipe, event might not be the button click
+            let btn;
+            if (event && event.target && event.target.closest) {
+                btn = event.target.closest('.download-btn');
+            }
+            
+            // If not found (e.g. swipe), try to find it in DOM
+            if (!btn) {
+                const row = document.querySelector(`tr[data-id="${torrentId}"]`);
+                if (row) btn = row.querySelector('.download-btn');
+            }
+
+            if (!btn || btn.disabled || btn.classList.contains('loading')) return;
+
+            btn.classList.add('loading');
+
+            try {
+                const response = await fetch('/api/search/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: torrentId })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(result.message || TRANSLATIONS[currentLang].downloadSuccess, 'success');
+                    btn.classList.add('downloaded');
+                    btn.disabled = true;
+                    // Haptic success
+                    if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+                } else {
+                    const errorMsg = result.error && TRANSLATIONS[currentLang].errors[result.error]
+                        ? TRANSLATIONS[currentLang].errors[result.error]
+                        : (result.message || TRANSLATIONS[currentLang].downloadFailed);
+                    showToast(errorMsg, 'error');
+                }
+            } catch (e) {
+                showToast(TRANSLATIONS[currentLang].downloadFailed, 'error');
+            } finally {
+                btn.classList.remove('loading');
+            }
+        }
+
+        // ============ Load More (Click-to-Load) ============
+        // Removed auto-scroll infinite loading to prevent accidental API calls
+        // Load more is now triggered by button click only
+        function handleScroll() {
+            // Empty function - kept for compatibility
+            // Scroll event only used for back-to-top button visibility
+        }
+
+
+
+        // ============ Back to Top ============
+        function scrollToTop() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        window.addEventListener('scroll', function() {
+            const backToTopBtn = document.getElementById('backToTop');
+            if (window.scrollY > 300) {
+                backToTopBtn.classList.add('visible');
+            } else {
+                backToTopBtn.classList.remove('visible');
+            }
+
+            // Infinite scroll
+            handleScroll();
+        });
+
+        // ============ Keyboard Shortcuts ============
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', function(e) {
+                // Ignore if user is typing in an input
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+                    if (e.key === 'Enter' && e.target.classList.contains('search-input')) {
+                        executeSearch();
+                    }
+                    if (e.key === 'Escape') {
+                        e.target.blur();
+                    }
+                    return;
+                }
+
+                // / - Focus search
+                if (e.key === '/') {
+                    e.preventDefault();
+                    const searchInput = document.getElementById('searchInput');
+                    if (searchInput && window.innerWidth > 768) {
+                        searchInput.focus();
+                    } else {
+                        document.getElementById('mobileSearchInput').focus();
+                    }
+                }
+
+                // T - Toggle theme
+                if (e.key === 't' || e.key === 'T') {
+                    e.preventDefault();
+                    toggleTheme();
+                }
+
+                // C - Clear filters
+                if (e.key === 'c' || e.key === 'C') {
+                    e.preventDefault();
+                    resetAllFilters();
+                }
+
+                // Escape - Close drawer
+                if (e.key === 'Escape') {
+                    const drawer = document.getElementById('filterDrawer');
+                    if (drawer && drawer.classList.contains('active')) {
+                        closeFilterDrawer();
+                    }
+                }
+            });
+        }
+
+        // ============ Initialize ============
+        document.addEventListener('DOMContentLoaded', function() {
+            try { setTheme(currentTheme); } catch(e) { console.error(e); }
+            try { setLanguage(currentLang); } catch(e) { console.error(e); }
+            try { setupKeyboardShortcuts(); } catch(e) { console.error(e); }
+            try { updateResetButtonState(); } catch(e) { console.error(e); }
+
+            // Initialize filter system
+            try { renderCategoryPills('normal'); } catch(e) { console.error(e); }
+            try { updateFilterVisibility('normal'); } catch(e) { console.error(e); }
+            try { populateCountryDropdown(); } catch(e) { console.error(e); }
+
+            // Initialize mobile components
+            try { initMobileModeTabs(); } catch(e) { console.error(e); }
+            try { renderMobileCategoryPills('normal'); } catch(e) { console.error(e); }
+            try { initDrawerPills(); } catch(e) { console.error(e); }
+            try { updateFilterIndicator(); } catch(e) { console.error(e); }
+
+            // Bind Mode Tabs
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    // UI Update
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+
+                    // Logic Update
+                    const mode = e.target.dataset.mode;
+                    currentMode = mode;
+                    selectedCategory = null; // Reset sub-cat on mode switch
+
+                    renderCategoryPills(mode);
+                    updateFilterVisibility(mode);
+                    updateResetButtonState();
+
+                    // Optional: Auto trigger search on mode switch
+                    // executeSearch();
+                });
+            });
+
+            // Enter key search
+            document.getElementById('searchInput').addEventListener('keypress', e => {
+                if(e.key === 'Enter') executeSearch();
+            });
+
+            // Load More button click handler
+            document.getElementById('loadMoreBtn').addEventListener('click', async function() {
+                if (isLoading || !hasMore) return;
+                currentPage++;
+                await fetchSearchResults(true);
+            });
+
+            // Auto-focus search input on desktop
+            if (window.innerWidth > 768) {
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput) searchInput.focus();
+            }
+
+            // Mobile search input Enter key listener
+            document.getElementById('mobileSearchInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    document.getElementById('searchInput').value = this.value;
+                    executeSearch();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,258 @@
+/* ============================================================================
+   MT-Engine - Base Styles
+   CSS Reset, Typography, Global Styles, Utility Classes
+   ============================================================================ */
+
+/* ============ CSS Reset ============ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: var(--nt-border-light) transparent;
+}
+
+/* ============ HTML & Body ============ */
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--nt-font-body);
+    background: var(--nt-bg);
+    color: var(--nt-text);
+    min-height: 100vh;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Prevent body scroll when drawer is open */
+body.drawer-open {
+    overflow: hidden;
+}
+
+/* ============ Typography ============ */
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--nt-font-dot);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    line-height: 1.2;
+}
+
+h1 { font-size: 32px; }
+h2 { font-size: 24px; }
+h3 { font-size: 20px; }
+h4 { font-size: 18px; }
+h5 { font-size: 16px; }
+h6 { font-size: 14px; }
+
+/* Typography Assignments - DotGothic16 (Nothing OS Headers) */
+.logo-text,
+.badge,
+.drawer-title,
+th,
+.pill,
+.nav-btn,
+.filter-label,
+.filter-dropdown-label,
+.drawer-section-title,
+.search-btn,
+.drawer-apply-btn,
+.drawer-reset-btn,
+.reset-filters-btn,
+.refresh-btn-subtle,
+button {
+    font-family: var(--nt-font-dot);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Typography Assignments - Roboto Mono (Data) */
+.nav-stat-value,
+td,
+.search-input,
+select,
+.total-count,
+.footer {
+    font-family: var(--nt-font-mono);
+}
+
+/* Links */
+a {
+    color: var(--nt-text);
+    text-decoration: none;
+    transition: color var(--transition-base);
+}
+
+a:hover {
+    color: var(--nt-red);
+}
+
+/* ============ Forms ============ */
+input,
+select,
+textarea,
+button {
+    font: inherit;
+    color: inherit;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: 2px solid var(--nt-red);
+    outline-offset: 2px;
+}
+
+button {
+    cursor: pointer;
+    border: none;
+    background: none;
+}
+
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* ============ Utility Classes ============ */
+
+/* Visually Hidden (Accessibility) */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
+/* Text Utilities */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.text-uppercase { text-transform: uppercase; }
+.text-lowercase { text-transform: lowercase; }
+.text-capitalize { text-transform: capitalize; }
+
+/* Display Utilities */
+.d-none { display: none !important; }
+.d-block { display: block !important; }
+.d-inline { display: inline !important; }
+.d-inline-block { display: inline-block !important; }
+.d-flex { display: flex !important; }
+.d-grid { display: grid !important; }
+
+/* Flex Utilities */
+.flex-row { flex-direction: row; }
+.flex-column { flex-direction: column; }
+.flex-wrap { flex-wrap: wrap; }
+.flex-nowrap { flex-wrap: nowrap; }
+.justify-start { justify-content: flex-start; }
+.justify-center { justify-content: center; }
+.justify-end { justify-content: flex-end; }
+.justify-between { justify-content: space-between; }
+.align-start { align-items: flex-start; }
+.align-center { align-items: center; }
+.align-end { align-items: flex-end; }
+
+/* Spacing Utilities */
+.gap-xs { gap: var(--spacing-xs); }
+.gap-sm { gap: var(--spacing-sm); }
+.gap-md { gap: var(--spacing-md); }
+.gap-lg { gap: var(--spacing-lg); }
+.gap-xl { gap: var(--spacing-xl); }
+
+/* Margin Utilities */
+.m-0 { margin: 0; }
+.mt-sm { margin-top: var(--spacing-sm); }
+.mt-md { margin-top: var(--spacing-md); }
+.mt-lg { margin-top: var(--spacing-lg); }
+.mb-sm { margin-bottom: var(--spacing-sm); }
+.mb-md { margin-bottom: var(--spacing-md); }
+.mb-lg { margin-bottom: var(--spacing-lg); }
+
+/* Padding Utilities */
+.p-0 { padding: 0; }
+.pt-sm { padding-top: var(--spacing-sm); }
+.pt-md { padding-top: var(--spacing-md); }
+.pt-lg { padding-top: var(--spacing-lg); }
+.pb-sm { padding-bottom: var(--spacing-sm); }
+.pb-md { padding-bottom: var(--spacing-md); }
+.pb-lg { padding-bottom: var(--spacing-lg); }
+
+/* ============ Animations ============ */
+
+/* Blink Animation (Terminal Cursor) */
+@keyframes blink {
+    50% {
+        opacity: 0;
+    }
+}
+
+/* Shimmer Animation (Loading Skeleton) */
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Glitch Animation (Hover Effect) */
+@keyframes glitch-skew {
+    0% { transform: skew(0deg); }
+    20% { transform: skew(-2deg); }
+    40% { transform: skew(2deg); }
+    60% { transform: skew(-1deg); }
+    80% { transform: skew(1deg); }
+    100% { transform: skew(0deg); }
+}
+
+.glitch-hover:hover {
+    animation: glitch-skew 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+    color: var(--nt-red);
+}
+
+/* ============ Scrollbar Styling ============ */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--nt-border-light);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--nt-border);
+}
+
+/* ============ Selection ============ */
+::selection {
+    background: var(--nt-text);
+    color: var(--nt-bg);
+}
+
+::-moz-selection {
+    background: var(--nt-text);
+    color: var(--nt-bg);
+}
