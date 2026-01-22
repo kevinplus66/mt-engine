@@ -810,22 +810,41 @@
             font-family: var(--nt-font-body);
         }
 
-        /* Loading Indicator */
-        .loading-more {
+        /* Load More Button */
+        .load-more-container {
             text-align: center;
-            padding: 32px;
-            color: var(--nt-text-secondary);
-            font-family: var(--nt-font-dot);
+            padding: 24px;
         }
 
-        .loading-spinner-small {
-            width: 24px;
-            height: 24px;
-            border: 2px solid var(--nt-border-light);
-            border-top-color: var(--nt-red);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 8px;
+        .load-more-btn {
+            font-family: var(--nt-font-dot);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 12px 32px;
+            background: transparent;
+            color: var(--nt-text-primary);
+            border: 1px dotted var(--nt-border-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        @media (hover: hover) {
+            .load-more-btn:hover {
+                background: var(--nt-text-primary);
+                color: var(--nt-bg-primary);
+                border-style: solid;
+            }
+        }
+
+        .load-more-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .load-more-btn.loading {
+            pointer-events: none;
+            opacity: 0.7;
         }
 
         /* ============ Data Dashboard (Expanded View) ============ */
@@ -2204,10 +2223,9 @@
                     <div class="empty-state-text" data-i18n="emptyState">没有找到匹配的结果</div>
                 </div>
 
-                <!-- Loading More -->
-                <div class="loading-more" id="loadingMore" style="display: none;">
-                    <div class="loading-spinner-small"></div>
-                    <span data-i18n="loadingMore">加载更多...</span>
+                <!-- Load More Button -->
+                <div class="load-more-container" id="loadMoreContainer" style="display: none;">
+                    <button class="load-more-btn" id="loadMoreBtn" data-i18n="loadMore">加载更多</button>
                 </div>
             </div>
         </div>
@@ -2283,6 +2301,7 @@
                 initialText: '输入关键词并点击搜索按钮',
                 emptyState: '没有找到匹配的结果',
                 loadingMore: '加载更多...',
+                loadMore: '加载更多',
                 downloadSuccess: '已添加到下载队列',
                 downloadFailed: '下载失败',
                 searchFailed: '搜索失败',
@@ -2356,6 +2375,7 @@
                 initialText: 'Enter keywords and click search',
                 emptyState: 'No results found',
                 loadingMore: 'Loading more...',
+                loadMore: 'Load More',
                 downloadSuccess: 'Added to download queue',
                 downloadFailed: 'Download failed',
                 searchFailed: 'Search failed',
@@ -3146,7 +3166,10 @@
                 document.getElementById('resultsBody').innerHTML = renderSkeleton(10);
                 document.getElementById('loadingBar').classList.add('active');
             } else {
-                document.getElementById('loadingMore').style.display = 'block';
+                // Show loading state on Load More button
+                const loadMoreBtn = document.getElementById('loadMoreBtn');
+                loadMoreBtn.classList.add('loading');
+                loadMoreBtn.disabled = true;
             }
 
             updateFilterArrays();
@@ -3243,7 +3266,19 @@
             } finally {
                 isLoading = false;
                 document.getElementById('loadingBar').classList.remove('active');
-                document.getElementById('loadingMore').style.display = 'none';
+
+                // Update Load More button state
+                const loadMoreBtn = document.getElementById('loadMoreBtn');
+                const loadMoreContainer = document.getElementById('loadMoreContainer');
+                loadMoreBtn.classList.remove('loading');
+                loadMoreBtn.disabled = false;
+
+                // Show/hide Load More button based on hasMore
+                if (hasMore && hasSearched) {
+                    loadMoreContainer.style.display = 'block';
+                } else {
+                    loadMoreContainer.style.display = 'none';
+                }
             }
         }
 
@@ -3572,17 +3607,12 @@
             }
         }
 
-        // ============ Infinite Scroll ============
+        // ============ Load More (Click-to-Load) ============
+        // Removed auto-scroll infinite loading to prevent accidental API calls
+        // Load more is now triggered by button click only
         function handleScroll() {
-            if (isLoading || !hasMore || !hasSearched) return;
-
-            const scrollPosition = window.innerHeight + window.scrollY;
-            const threshold = document.body.offsetHeight - 500;
-
-            if (scrollPosition >= threshold) {
-                currentPage++;
-                fetchSearchResults(true);
-            }
+            // Empty function - kept for compatibility
+            // Scroll event only used for back-to-top button visibility
         }
 
 
@@ -3693,6 +3723,13 @@
             // Enter key search
             document.getElementById('searchInput').addEventListener('keypress', e => {
                 if(e.key === 'Enter') executeSearch();
+            });
+
+            // Load More button click handler
+            document.getElementById('loadMoreBtn').addEventListener('click', async function() {
+                if (isLoading || !hasMore) return;
+                currentPage++;
+                await fetchSearchResults(true);
             });
 
             // Auto-focus search input on desktop
