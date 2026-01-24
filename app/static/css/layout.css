@@ -218,7 +218,7 @@
     pointer-events: none;
 }
 
-.skeleton-box {
+.skeleton {
     height: 16px;
     background: linear-gradient(
         90deg,
@@ -230,6 +230,15 @@
     animation: shimmer 1.5s infinite;
     border-radius: 2px;
     opacity: 0.3;
+}
+
+.skeleton--text {
+    width: 80%;
+}
+
+.skeleton--button {
+    width: 60px;
+    height: 28px;
 }
 
 /* ============ Action Bar ============ */

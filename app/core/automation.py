@@ -88,9 +88,14 @@ class AutomationManager:
             logger.error(f"Failed to check disk space: {e}")
             return True  # Allow downloads on error to avoid blocking
 
-    async def run_download_cycle(self):
-        """Execute one download cycle"""
-        if not self.config.download.enabled:
+    async def run_download_cycle(self, force: bool = False):
+        """
+        Execute one download cycle
+
+        Args:
+            force: If True, run even if download is disabled (for manual triggers)
+        """
+        if not force and not self.config.download.enabled:
             logger.debug("Download cycle skipped: disabled")
             return
 
@@ -196,9 +201,14 @@ class AutomationManager:
             logger.error(f"Failed to add torrent to qBittorrent: {name}")
             return False
 
-    async def run_cleanup_cycle(self):
-        """Execute one cleanup cycle"""
-        if not self.config.cleanup.enabled:
+    async def run_cleanup_cycle(self, force: bool = False):
+        """
+        Execute one cleanup cycle
+
+        Args:
+            force: If True, run even if cleanup is disabled (for manual triggers)
+        """
+        if not force and not self.config.cleanup.enabled:
             logger.debug("Cleanup cycle skipped: disabled")
             return
 

@@ -22,7 +22,9 @@ export function initTable() {
     document.querySelectorAll('[data-sort]').forEach(btn => {
         btn.addEventListener('click', () => {
             const column = btn.getAttribute('data-sort');
-            sortTable(column);
+            if (window.sortTable) {
+                window.sortTable(column);
+            }
         });
     });
 
@@ -55,8 +57,9 @@ function handleTableClick(e) {
         const row = downloadBtn.closest('tr');
         const torrentId = row.dataset.id;
 
-        // Determine if we are on search page or seeder page based on URL or context
-        const isSearch = window.location.pathname.includes('/search');
+        // Determine if we are on search page or seeder page based on URL
+        // Search page is at root (/), Free Hunter page is at /seeder
+        const isSearch = !window.location.pathname.includes('/seeder');
 
         // Call the download function
         downloadTorrent(torrentId, downloadBtn, isSearch);
@@ -229,7 +232,7 @@ function createTorrentRow(torrent, isSearch) {
                         <span class="leechers">${torrent.leechers || 0}</span>
                     </div>
                     <div class="mobile-meta-item">
-                        <span class="value">${isSearch ? formatDate(addedDate) : (col4Content.includes('span') ? col4Content : '')}</span>
+                        <span class="value">${isSearch ? formatDate(addedDate) : (torrent.remaining && torrent.remaining.display ? escapeHtml(torrent.remaining.display) : '-')}</span>
                     </div>
                 </div>
             </td>
@@ -250,17 +253,19 @@ function createTorrentRow(torrent, isSearch) {
                 ${col5Content}
             </td>
             <td class="action-cell">
-                <button class="btn btn--download" 
-                    ${torrent.downloaded || torrent.user_status === 'seeding' || torrent.user_status === 'leeching' ? 'data-downloaded="true"' : ''}>
-                    <span class="btn-icon">${torrent.downloaded || torrent.user_status === 'seeding' || torrent.user_status === 'leeching' ? '✓' : '↓'}</span>
-                    <span class="btn-text">${torrent.downloaded || torrent.user_status === 'seeding' || torrent.user_status === 'leeching' ? t('downloaded') : t('download')}</span>
-                </button>
-                <a href="${escapeHtml(detailUrl)}" target="_blank" rel="noopener noreferrer" class="detail-link" title="${t('view_details')}">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                        <path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-3h-2v2H4V4h2V2z"/>
-                        <path d="M9 2v2h2.59L6.29 9.29l1.41 1.41L13 5.41V8h2V2H9z"/>
-                    </svg>
-                </a>
+                <div class="actions-wrapper">
+                    <button class="btn btn--download download-btn"
+                        ${torrent.downloaded || torrent.user_status === 'seeding' || torrent.user_status === 'leeching' ? 'data-downloaded="true"' : ''}>
+                        <span class="btn-icon">${torrent.downloaded || torrent.user_status === 'seeding' || torrent.user_status === 'leeching' ? '✓' : '↓'}</span>
+                        <span class="btn-text">${torrent.downloaded || torrent.user_status === 'seeding' || torrent.user_status === 'leeching' ? t('downloaded') : t('download')}</span>
+                    </button>
+                    <a href="${escapeHtml(detailUrl)}" target="_blank" rel="noopener noreferrer" class="detail-link" title="${t('view_details')}">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-3h-2v2H4V4h2V2z"/>
+                            <path d="M9 2v2h2.59L6.29 9.29l1.41 1.41L13 5.41V8h2V2H9z"/>
+                        </svg>
+                    </a>
+                </div>
             </td>
         </tr>
     `;
@@ -393,6 +398,27 @@ export function toggleRowExpansion(row) {
 
     const isExpanded = row.classList.contains('expanded');
 
+    // If expanding, first close all other expanded rows
+    if (!isExpanded) {
+        const tbody = row.closest('tbody');
+        if (tbody) {
+            tbody.querySelectorAll('tr.expanded').forEach(expandedRow => {
+                const expandedDetailRow = expandedRow.nextElementSibling;
+                const expandedToggle = expandedRow.querySelector('.expand-toggle');
+
+                expandedRow.classList.remove('expanded');
+                if (expandedDetailRow && expandedDetailRow.classList.contains('detail-row')) {
+                    expandedDetailRow.classList.remove('expanded');
+                }
+                if (expandedToggle) {
+                    expandedToggle.textContent = '▼';
+                    expandedToggle.setAttribute('aria-label', t('expand_details'));
+                }
+            });
+        }
+    }
+
+    // Toggle current row
     if (isExpanded) {
         row.classList.remove('expanded');
         detailRow.classList.remove('expanded');

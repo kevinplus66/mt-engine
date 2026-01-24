@@ -8,8 +8,42 @@ import { hapticFeedback } from '../utils.js';
 export function initDrawer() {
     // Initialize drawer event listeners
     const overlay = document.getElementById('drawerOverlay');
+    const filterToggleBtn = document.getElementById('filterToggleBtn');
+    const drawerClose = document.querySelector('.drawer-close');
+    const drawerApplyBtn = document.querySelector('.drawer-apply-btn');
+    const drawerResetBtn = document.querySelector('.drawer-reset-btn');
+
     if (overlay) {
         overlay.addEventListener('click', closeFilterDrawer);
+    }
+
+    // Open drawer button
+    if (filterToggleBtn) {
+        filterToggleBtn.addEventListener('click', openFilterDrawer);
+    }
+
+    // Close drawer button
+    if (drawerClose) {
+        drawerClose.addEventListener('click', closeFilterDrawer);
+    }
+
+    // Apply filters button
+    if (drawerApplyBtn) {
+        drawerApplyBtn.addEventListener('click', () => {
+            if (window.applyDrawerFilters) {
+                window.applyDrawerFilters();
+            }
+            closeFilterDrawer();
+        });
+    }
+
+    // Reset filters button
+    if (drawerResetBtn) {
+        drawerResetBtn.addEventListener('click', () => {
+            if (window.resetDrawerFilters) {
+                window.resetDrawerFilters();
+            }
+        });
     }
 }
 

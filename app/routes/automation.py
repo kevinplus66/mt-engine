@@ -132,7 +132,7 @@ async def trigger_download():
     """
     logger.info("Manual download cycle triggered via API")
     try:
-        await auto_manager.run_download_cycle()
+        await auto_manager.run_download_cycle(force=True)
         return {"status": "completed", "message": "Download cycle completed"}
     except Exception as e:
         logger.error(f"Manual download cycle failed: {e}", exc_info=True)
@@ -152,7 +152,7 @@ async def trigger_cleanup():
     """
     logger.info("Manual cleanup cycle triggered via API")
     try:
-        await auto_manager.run_cleanup_cycle()
+        await auto_manager.run_cleanup_cycle(force=True)
         return {"status": "completed", "message": "Cleanup cycle completed"}
     except Exception as e:
         logger.error(f"Manual cleanup cycle failed: {e}", exc_info=True)

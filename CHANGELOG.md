@@ -28,6 +28,13 @@ Fully-automated torrent management system for M-Team free torrents.
 
 **Frontend**: New `/automation` page with Dashboard and Rules tabs
 
+### Bug Fixes (2026-01-24)
+
+**CSS Layout Fixes**:
+- Fixed desktop table column gap (column widths now total 100%)
+- Fixed mobile card layout (added `width: 100%` to content cell)
+- Fixed skeleton loading CSS class mismatch (`skeleton-box` → `skeleton`)
+
 ---
 
 ## [4.0.0] - 2026-01

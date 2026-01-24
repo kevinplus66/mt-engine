@@ -22,6 +22,14 @@ let searchState = {
     results: []
 };
 
+let sortState = {
+    column: '',
+    direction: 'desc'
+};
+
+let lastSortTime = 0;
+const SORT_THROTTLE_MS = 1000;
+
 export function initSearchPage() {
     // Set current page for title
     setCurrentPage('search');
@@ -220,6 +228,47 @@ export async function executeSearch() {
             const currentCount = (result.pageNumber || 1) * (result.pageSize || 50);
             searchState.hasMore = currentCount < (result.total || 0);
 
+            // Sort results if column is selected
+            if (sortState.column && searchState.results.length > 0) {
+                searchState.results.sort((a, b) => {
+                    let aVal, bVal;
+                    switch (sortState.column) {
+                        case 'name':
+                            aVal = a.name || '';
+                            bVal = b.name || '';
+                            break;
+                        case 'size':
+                            aVal = a.size_num || a.size || 0;
+                            bVal = b.size_num || b.size || 0;
+                            break;
+                        case 'seeders':
+                            aVal = a.seeders || 0;
+                            bVal = b.seeders || 0;
+                            break;
+                        case 'leechers':
+                            aVal = a.leechers || 0;
+                            bVal = b.leechers || 0;
+                            break;
+                        case 'category':
+                            aVal = a.cat_id || a.category || 0;
+                            bVal = b.cat_id || b.category || 0;
+                            break;
+                        case 'createdDate':
+                            aVal = a.added_timestamp || (a.created_date ? new Date(a.created_date).getTime() / 1000 : 0);
+                            bVal = b.added_timestamp || (b.created_date ? new Date(b.created_date).getTime() / 1000 : 0);
+                            break;
+                        default:
+                            return 0;
+                    }
+                    if (typeof aVal === 'string') {
+                        return sortState.direction === 'asc'
+                            ? aVal.localeCompare(bVal)
+                            : bVal.localeCompare(aVal);
+                    }
+                    return sortState.direction === 'asc' ? aVal - bVal : bVal - aVal;
+                });
+            }
+
             // Hide initial state, show table or empty state
             const initialState = document.getElementById('initialState');
             const emptyState = document.getElementById('emptyState');
@@ -374,3 +423,107 @@ window.resetDrawerFilters = () => {
 // Make functions globally available
 window.toggleTheme = toggleTheme;
 window.toggleLanguage = toggleLanguage;
+
+// Sort existing results locally and re-render (no API call)
+function sortAndRenderResults() {
+    if (sortState.column && searchState.results.length > 0) {
+        searchState.results.sort((a, b) => {
+            let aVal, bVal;
+            switch (sortState.column) {
+                case 'name':
+                    aVal = a.name || '';
+                    bVal = b.name || '';
+                    break;
+                case 'size':
+                    aVal = a.size_num || a.size || 0;
+                    bVal = b.size_num || b.size || 0;
+                    break;
+                case 'seeders':
+                    aVal = a.seeders || 0;
+                    bVal = b.seeders || 0;
+                    break;
+                case 'leechers':
+                    aVal = a.leechers || 0;
+                    bVal = b.leechers || 0;
+                    break;
+                case 'category':
+                    aVal = a.cat_id || a.category || 0;
+                    bVal = b.cat_id || b.category || 0;
+                    break;
+                case 'createdDate':
+                    aVal = a.added_timestamp || (a.created_date ? new Date(a.created_date).getTime() / 1000 : 0);
+                    bVal = b.added_timestamp || (b.created_date ? new Date(b.created_date).getTime() / 1000 : 0);
+                    break;
+                default:
+                    return 0;
+            }
+            if (typeof aVal === 'string') {
+                return sortState.direction === 'asc'
+                    ? aVal.localeCompare(bVal)
+                    : bVal.localeCompare(aVal);
+            }
+            return sortState.direction === 'asc' ? aVal - bVal : bVal - aVal;
+        });
+    }
+    renderTorrents(searchState.results, true);
+}
+
+window.sortTable = (column) => {
+    // Throttle check to prevent rapid API calls
+    const now = Date.now();
+    if (now - lastSortTime < SORT_THROTTLE_MS) {
+        return; // Ignore rapid clicks
+    }
+    lastSortTime = now;
+
+    // Special handling for peers column (cycles: seeders desc -> seeders asc -> leechers desc -> leechers asc)
+    if (column === 'seeders') {
+        if (sortState.column === 'seeders' && sortState.direction === 'desc') {
+            sortState.direction = 'asc';
+        } else if (sortState.column === 'seeders' && sortState.direction === 'asc') {
+            sortState.column = 'leechers';
+            sortState.direction = 'desc';
+        } else if (sortState.column === 'leechers' && sortState.direction === 'desc') {
+            sortState.direction = 'asc';
+        } else if (sortState.column === 'leechers' && sortState.direction === 'asc') {
+            sortState.column = 'seeders';
+            sortState.direction = 'desc';
+        } else {
+            sortState.column = 'seeders';
+            sortState.direction = 'desc';
+        }
+    } else {
+        // Normal column handling
+        if (sortState.column === column) {
+            sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            sortState.column = column;
+            sortState.direction = 'desc';
+        }
+    }
+
+    // Update sort icons
+    document.querySelectorAll('[data-sort]').forEach(btn => {
+        const icon = btn.querySelector('.sort-icon');
+        if (icon) {
+            // For peers column, check both seeders and leechers
+            const btnColumn = btn.getAttribute('data-sort');
+            if (btnColumn === 'seeders' && (sortState.column === 'seeders' || sortState.column === 'leechers')) {
+                icon.textContent = sortState.direction === 'asc' ? '↑' : '↓';
+                icon.style.opacity = '1';
+            } else if (btnColumn === column) {
+                icon.textContent = sortState.direction === 'asc' ? '↑' : '↓';
+                icon.style.opacity = '1';
+            } else {
+                icon.textContent = '↕';
+                icon.style.opacity = '0.3';
+            }
+        }
+    });
+
+    // If we have results, sort locally and re-render (NO API call)
+    if (searchState.results.length > 0) {
+        sortAndRenderResults();
+    }
+    // If no results, do nothing (user needs to search first)
+};

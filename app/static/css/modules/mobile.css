@@ -87,6 +87,15 @@
         color: var(--nt-bg);
         border-color: var(--nt-text);
     }
+
+    .mobile-mode-tab:focus {
+        outline: none;
+    }
+
+    .mobile-mode-tab:focus-visible {
+        outline: 2px solid var(--nt-red);
+        outline-offset: -2px;
+    }
 }
 
 /* ============ Mobile Category Pills (Level 2 Navigation) ============ */
@@ -132,6 +141,15 @@
         background: var(--nt-text);
         color: var(--nt-bg);
         border-color: var(--nt-text);
+    }
+
+    .mobile-cat-pill:focus {
+        outline: none;
+    }
+
+    .mobile-cat-pill:focus-visible {
+        outline: 2px solid var(--nt-red);
+        outline-offset: -2px;
     }
 }
 

@@ -146,10 +146,13 @@
 }
 
 .filter-card__tab:focus,
+.tab-btn:focus {
+    outline: none;
+}
+
 .filter-card__tab:focus-visible,
-.tab-btn:focus,
 .tab-btn:focus-visible {
-    outline: 2px solid var(--nt-text);
+    outline: 2px solid var(--nt-red);
     outline-offset: -2px;
 }
 
@@ -404,6 +407,7 @@
     }
 
     .mobile-status-tabs .mobile-mode-tab.active {
+        background: transparent;
         color: var(--nt-text);
         border-bottom-color: var(--nt-red);
         font-weight: 600;

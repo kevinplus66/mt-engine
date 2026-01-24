@@ -245,41 +245,6 @@ function setupEventListeners() {
         drawerAutoDeleteToggle.addEventListener('change', () => handleToggleAutoDelete('drawerAutoDeleteToggle'));
     }
 
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-        // Skip if typing in input
-        if (e.target.tagName === 'INPUT') {
-            if (e.key === 'Escape') {
-                e.target.blur();
-            }
-            return;
-        }
-
-        // Focus search with '/'
-        if (e.key === '/') {
-            e.preventDefault();
-            const input = window.innerWidth > 768 ? searchInput : mobileSearchInput;
-            if (input) input.focus();
-        }
-
-        // Toggle theme with 't'
-        if (e.key === 't' || e.key === 'T') {
-            e.preventDefault();
-            toggleTheme();
-        }
-
-        // Clear filters with 'c'
-        if (e.key === 'c' || e.key === 'C') {
-            e.preventDefault();
-            resetAllFilters();
-        }
-
-        // Close drawer with Escape
-        if (e.key === 'Escape') {
-            closeFilterDrawer();
-        }
-    });
-
     // Back to top button (throttled for performance)
     window.addEventListener('scroll', throttle(() => {
         const btn = document.getElementById('backToTop');
@@ -371,6 +336,48 @@ function applyFilters() {
 
         return true;
     });
+
+    // Sort filtered results
+    if (sortState.column) {
+        filtered.sort((a, b) => {
+            let aVal, bVal;
+            switch (sortState.column) {
+                case 'name':
+                    aVal = a.name || '';
+                    bVal = b.name || '';
+                    break;
+                case 'size':
+                    aVal = a.size_num || a.size || 0;
+                    bVal = b.size_num || b.size || 0;
+                    break;
+                case 'seeders':
+                    aVal = a.seeders || 0;
+                    bVal = b.seeders || 0;
+                    break;
+                case 'leechers':
+                    aVal = a.leechers || 0;
+                    bVal = b.leechers || 0;
+                    break;
+                case 'remaining':
+                    aVal = a.remaining?.hours || 9999;
+                    bVal = b.remaining?.hours || 9999;
+                    break;
+                case 'status':
+                    const statusOrder = { seeding: 0, leeching: 1, none: 2 };
+                    aVal = statusOrder[a.user_status] ?? 2;
+                    bVal = statusOrder[b.user_status] ?? 2;
+                    break;
+                default:
+                    return 0;
+            }
+            if (typeof aVal === 'string') {
+                return sortState.direction === 'asc'
+                    ? aVal.localeCompare(bVal)
+                    : bVal.localeCompare(aVal);
+            }
+            return sortState.direction === 'asc' ? aVal - bVal : bVal - aVal;
+        });
+    }
 
     renderTorrents(filtered, false);
 
@@ -697,6 +704,48 @@ window.toggleTheme = toggleTheme;
 window.toggleLanguage = toggleLanguage;
 window.scrollToTop = scrollToTop;
 window.sortTable = (column) => {
-    // Sorting logic would go here
-    console.log('Sort by:', column);
+    // Special handling for peers column (cycles: seeders desc -> seeders asc -> leechers desc -> leechers asc)
+    if (column === 'seeders') {
+        if (sortState.column === 'seeders' && sortState.direction === 'desc') {
+            sortState.direction = 'asc';
+        } else if (sortState.column === 'seeders' && sortState.direction === 'asc') {
+            sortState.column = 'leechers';
+            sortState.direction = 'desc';
+        } else if (sortState.column === 'leechers' && sortState.direction === 'desc') {
+            sortState.direction = 'asc';
+        } else if (sortState.column === 'leechers' && sortState.direction === 'asc') {
+            sortState.column = 'seeders';
+            sortState.direction = 'desc';
+        } else {
+            sortState.column = 'seeders';
+            sortState.direction = 'desc';
+        }
+    } else {
+        // Normal column handling
+        if (sortState.column === column) {
+            sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            sortState.column = column;
+            sortState.direction = 'desc';
+        }
+    }
+    // Update sort icons
+    document.querySelectorAll('[data-sort]').forEach(btn => {
+        const icon = btn.querySelector('.sort-icon');
+        if (icon) {
+            // For peers column, check both seeders and leechers
+            const btnColumn = btn.getAttribute('data-sort');
+            if (btnColumn === 'seeders' && (sortState.column === 'seeders' || sortState.column === 'leechers')) {
+                icon.textContent = sortState.direction === 'asc' ? '↑' : '↓';
+                icon.style.opacity = '1';
+            } else if (btnColumn === column) {
+                icon.textContent = sortState.direction === 'asc' ? '↑' : '↓';
+                icon.style.opacity = '1';
+            } else {
+                icon.textContent = '↕';
+                icon.style.opacity = '0.3';
+            }
+        }
+    });
+    applyFilters();
 };

@@ -6,35 +6,41 @@
 <div class="drawer-section">
     <div class="drawer-section-title" data-i18n="resolution">清晰度</div>
     <div class="drawer-pills" id="drawerResolutionPills">
-        <!-- JS will render pills from filter_options.standards -->
+        <button class="drawer-pill active" data-value="" data-group="resolution" data-i18n="filterAll">全部</button>
+        {% for std in filter_options.standards %}
+        <button class="drawer-pill" data-value="{{ std.id }}" data-group="resolution">{{ std.name }}</button>
+        {% endfor %}
     </div>
 </div>
 
 <div class="drawer-section">
     <div class="drawer-section-title" data-i18n="videoFormat">视频编码</div>
     <div class="drawer-pills" id="drawerVideoPills">
-        <!-- JS will render pills from filter_options.videoCodecs -->
+        <button class="drawer-pill active" data-value="" data-group="video" data-i18n="filterAll">全部</button>
+        {% for codec in filter_options.videoCodecs %}
+        <button class="drawer-pill" data-value="{{ codec.id }}" data-group="video">{{ codec.name }}</button>
+        {% endfor %}
     </div>
 </div>
 
 <div class="drawer-section">
     <div class="drawer-section-title" data-i18n="audioFormat">音频格式</div>
     <div class="drawer-pills" id="drawerAudioPills">
-        <!-- JS will render pills from filter_options.audioCodecs -->
-    </div>
-</div>
-
-<div class="drawer-section">
-    <div class="drawer-section-title" data-i18n="country">国家/地区</div>
-    <div class="drawer-pills" id="drawerCountryPills">
-        <!-- JS will render top 8 countries -->
+        <button class="drawer-pill active" data-value="" data-group="audio" data-i18n="filterAll">全部</button>
+        {% for codec in filter_options.audioCodecs %}
+        <button class="drawer-pill" data-value="{{ codec.id }}" data-group="audio">{{ codec.name }}</button>
+        {% endfor %}
     </div>
 </div>
 
 <div class="drawer-section">
     <div class="drawer-section-title" data-i18n="colDiscount">优惠</div>
     <div class="drawer-pills" id="drawerDiscountPills">
-        <!-- JS will render discount options -->
+        <button class="drawer-pill active" data-value="" data-group="discount" data-i18n="filterAll">全部</button>
+        <button class="drawer-pill" data-value="FREE" data-group="discount" data-i18n="discountFree">免费</button>
+        <button class="drawer-pill" data-value="_2X_FREE" data-group="discount" data-i18n="discount2xFree">2x免费</button>
+        <button class="drawer-pill" data-value="_2X" data-group="discount" data-i18n="discount2xUp">2x上传</button>
+        <button class="drawer-pill" data-value="PERCENT_50" data-group="discount" data-i18n="discountHalf">50%</button>
     </div>
 </div>
 {% endblock %}
@@ -170,7 +176,10 @@
                             <span data-i18n="colPeers">做种/下载</span>
                             <span class="sort-icon">↕</span>
                         </th>
-                        <th data-i18n="colCategory">分类</th>
+                        <th data-sort="category" style="cursor: pointer;" aria-sort="none">
+                            <span data-i18n="colCategory">分类</span>
+                            <span class="sort-icon">↕</span>
+                        </th>
                         <th data-sort="createdDate" style="cursor: pointer;" class="sorted" aria-sort="descending">
                             <span data-i18n="colDate">上传时间</span>
                             <span class="sort-icon">↓</span>

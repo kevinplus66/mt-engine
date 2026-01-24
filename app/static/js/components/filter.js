@@ -26,6 +26,9 @@ export function initFilters() {
 
     // Initialize filter visibility
     updateFilterVisibility(filterState.mode);
+
+    // Initialize drawer pills for search page
+    initDrawerPills();
 }
 
 function initModeTabs() {
@@ -36,6 +39,41 @@ function initModeTabs() {
             if (mode) {
                 setMode(mode);
             }
+        });
+    });
+}
+
+function initDrawerPills() {
+    // Initialize drawer filter pills (resolution, video, audio, discount)
+    const drawerPillContainers = [
+        { id: 'drawerResolutionPills', group: 'resolution', stateKey: 'resolution' },
+        { id: 'drawerVideoPills', group: 'video', stateKey: 'video' },
+        { id: 'drawerAudioPills', group: 'audio', stateKey: 'audio' },
+        { id: 'drawerDiscountPills', group: 'discount', stateKey: 'discount' }
+    ];
+
+    drawerPillContainers.forEach(container => {
+        const element = document.getElementById(container.id);
+        if (!element) return;
+
+        const pills = element.querySelectorAll('.drawer-pill');
+        pills.forEach(pill => {
+            pill.addEventListener('click', () => {
+                const value = pill.getAttribute('data-value') || '';
+                const group = pill.getAttribute('data-group');
+
+                // Remove active class from all pills in this group
+                pills.forEach(p => p.classList.remove('active'));
+
+                // Add active class to clicked pill
+                pill.classList.add('active');
+
+                // Update filter state
+                filterState[container.stateKey] = value;
+
+                // Update reset button state
+                updateResetButtonState();
+            });
         });
     });
 }
@@ -177,6 +215,16 @@ export function resetFilters() {
 
     document.querySelectorAll('.filter-select').forEach(select => {
         select.value = '';
+    });
+
+    // Reset drawer pills to "All" (first pill with data-value="")
+    document.querySelectorAll('.drawer-pill').forEach(pill => {
+        const value = pill.getAttribute('data-value') || '';
+        if (value === '') {
+            pill.classList.add('active');
+        } else {
+            pill.classList.remove('active');
+        }
     });
 
     updateResetButtonState();

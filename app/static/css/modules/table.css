@@ -87,7 +87,7 @@ th:nth-child(2), td:nth-child(2) { width: 10%; white-space: nowrap; } /* Size */
 th:nth-child(3), td:nth-child(3) { width: 12%; } /* Peers */
 th:nth-child(4), td:nth-child(4) { width: 10%; } /* Category/Discount */
 th:nth-child(5), td:nth-child(5) { width: 15%; } /* Date */
-th:nth-child(6), td:nth-child(6) { width: 13%; } /* Actions */
+th:nth-child(6), td:nth-child(6) { width: 13%; min-width: 80px; text-align: right; padding-right: 16px; } /* Actions */
 
 tbody tr:not(.detail-row) {
     cursor: pointer;
@@ -157,8 +157,15 @@ tbody tr:not(.detail-row) {
 }
 
 /* ============ Actions Cell ============ */
+td.action-cell {
+    text-align: right;
+    white-space: nowrap;
+}
+
 .actions-wrapper {
-    display: flex;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
     gap: 8px;
 }
 
@@ -691,7 +698,8 @@ tr.swipe-trigger-download {
 
     /* === Title Zone === */
     td:nth-child(1) {
-        padding: 14px 56px 10px 14px;
+        width: 100% !important;
+        padding: 14px 70px 10px 14px;
         border-bottom: 1px dotted var(--nt-border-light);
     }
 
@@ -718,6 +726,19 @@ tr.swipe-trigger-download {
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
+        word-break: break-word;
+        white-space: normal;
+    }
+
+    .torrent-name .name-text {
+        font-size: 14px;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        word-break: break-word;
+        white-space: normal;
     }
 
     .torrent-descr {
@@ -786,6 +807,7 @@ tr.swipe-trigger-download {
         top: 12px;
         right: 12px;
         display: flex;
+        flex-direction: row;
         gap: 6px;
         padding: 0;
         width: auto !important;
