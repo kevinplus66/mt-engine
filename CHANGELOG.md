@@ -30,10 +30,13 @@ Fully-automated torrent management system for M-Team free torrents.
 
 ### Bug Fixes (2026-01-24)
 
-**CSS Layout Fixes**:
-- Fixed desktop table column gap (column widths now total 100%)
-- Fixed mobile card layout (added `width: 100%` to content cell)
-- Fixed skeleton loading CSS class mismatch (`skeleton-box` → `skeleton`)
+**Table CSS Improvements**:
+- Fixed table column disappearing with long content (added min-width to columns)
+- Added name column max-width: 1100px (desktop), 400px (tablet)
+- Fixed arrow and title on separate lines (flexbox layout for .torrent-name)
+- Added title ellipsis for overflow handling
+- Shortened English status text ("Downloading" → "DL", "Not Downloaded" → "None")
+- Centered peer count "/" separator
 
 ---
 

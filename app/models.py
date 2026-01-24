@@ -52,32 +52,32 @@ class RuleConfig(BaseModel):
 
     # Scoring weights (bounded to prevent extreme values)
     weight_size: float = Field(0.0, ge=-10, le=10)
-    weight_free_time: float = Field(0.5, ge=-10, le=10)
-    weight_age: float = Field(0.5, ge=-10, le=10)
-    weight_seeders: float = Field(-0.5, ge=-10, le=10)
+    weight_free_time: float = Field(0.0, ge=-10, le=10)
+    weight_age: float = Field(0.0, ge=-10, le=10)
+    weight_seeders: float = Field(0.0, ge=-10, le=10)
 
 
 class DownloadPolicy(BaseModel):
     """Download policy configuration"""
-    enabled: bool = False
-    max_active_tasks: int = Field(5, ge=1, le=50)
-    interval_seconds: int = Field(600, ge=60)
+    enabled: bool = True
+    max_active_tasks: int = Field(20, ge=1, le=50)
+    interval_seconds: int = Field(300, ge=60)
     save_path: str = "/downloads/mt_free_farm"
-    disk_usage_threshold: float = Field(0.80, ge=0.5, le=0.95)
+    disk_usage_threshold: float = Field(0.90, ge=0.5, le=0.95)
     rules: RuleConfig = Field(default_factory=RuleConfig)
 
 
 class CleanupPolicy(BaseModel):
     """Cleanup policy configuration"""
-    enabled: bool = False
+    enabled: bool = True
     delete_on_expired: bool = True
     min_share_ratio: float = Field(0.0, ge=0)
-    min_seed_time_hours: int = Field(2, ge=0)  # H&R protection
+    min_seed_time_hours: int = Field(1, ge=0)  # H&R protection
     max_download_time_hours: int = Field(12, ge=0)  # Zombie task timeout
 
     # Advanced cleanup conditions (0 = disabled)
     min_current_users: int = Field(10, ge=0)  # Delete if seeders + leechers < this
-    min_upload_speed_kbps: int = Field(100, ge=0)  # Delete if avg upload speed < this (KB/s)
+    min_upload_speed_kbps: int = Field(300, ge=0)  # Delete if avg upload speed < this (KB/s)
     upload_speed_check_minutes: int = Field(10, ge=1, le=1440)  # Time window for speed check
 
 

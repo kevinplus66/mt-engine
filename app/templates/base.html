@@ -60,15 +60,49 @@
     <nav class="navbar">
         <div class="navbar-content">
             <div class="logo-switcher">
-                <a href="/" class="logo-link {% if active_page == 'search' %}active{% endif %}" title="Search Engine">
-                    <img src="/static/search-logo.png" alt="Search Engine" class="logo-icon">
-                </a>
-                <a href="/seeder" class="logo-link {% if active_page == 'seeder' %}active{% endif %}" title="Free Hunter">
-                    <img src="/static/seeder-logo.png" alt="Free Hunter" class="logo-icon">
-                </a>
-                <a href="/automation" class="logo-link {% if active_page == 'automation' %}active{% endif %}" title="AutoFarm">
-                    <img src="/static/automation-logo.png" alt="AutoFarm" class="logo-icon">
-                </a>
+                <!-- Desktop: All three logos -->
+                <div class="logo-switcher-desktop">
+                    <a href="/" class="logo-link {% if active_page == 'search' %}active{% endif %}" title="Search Engine">
+                        <img src="/static/search-logo.png" alt="Search Engine" class="logo-icon">
+                    </a>
+                    <a href="/seeder" class="logo-link {% if active_page == 'seeder' %}active{% endif %}" title="Free Hunter">
+                        <img src="/static/seeder-logo.png" alt="Free Hunter" class="logo-icon">
+                    </a>
+                    <a href="/automation" class="logo-link {% if active_page == 'automation' %}active{% endif %}" title="AutoFarm">
+                        <img src="/static/automation-logo.png" alt="AutoFarm" class="logo-icon">
+                    </a>
+                </div>
+
+                <!-- Mobile/Tablet: Current logo + Dropdown -->
+                <div class="logo-switcher-mobile">
+                    <button class="logo-dropdown-trigger" id="logoDropdownTrigger" aria-label="Navigation menu" aria-expanded="false">
+                        {% if active_page == 'search' %}
+                        <img src="/static/search-logo.png" alt="Search Engine" class="logo-icon-current">
+                        {% elif active_page == 'seeder' %}
+                        <img src="/static/seeder-logo.png" alt="Free Hunter" class="logo-icon-current">
+                        {% elif active_page == 'automation' %}
+                        <img src="/static/automation-logo.png" alt="AutoFarm" class="logo-icon-current">
+                        {% endif %}
+                        <svg class="dropdown-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none">
+                            <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"/>
+                        </svg>
+                    </button>
+
+                    <div class="logo-dropdown-menu" id="logoDropdownMenu" role="menu" aria-hidden="true">
+                        <a href="/" class="logo-dropdown-item {% if active_page == 'search' %}active{% endif %}" role="menuitem">
+                            <img src="/static/search-logo.png" alt="Search Engine" class="logo-icon-dropdown">
+                            <span class="dropdown-arrow-icon">→</span>
+                        </a>
+                        <a href="/seeder" class="logo-dropdown-item {% if active_page == 'seeder' %}active{% endif %}" role="menuitem">
+                            <img src="/static/seeder-logo.png" alt="Free Hunter" class="logo-icon-dropdown">
+                            <span class="dropdown-arrow-icon">→</span>
+                        </a>
+                        <a href="/automation" class="logo-dropdown-item {% if active_page == 'automation' %}active{% endif %}" role="menuitem">
+                            <img src="/static/automation-logo.png" alt="AutoFarm" class="logo-icon-dropdown">
+                            <span class="dropdown-arrow-icon">→</span>
+                        </a>
+                    </div>
+                </div>
             </div>
             <div class="nav-right">
                 <div class="nav-stats">
@@ -106,6 +140,9 @@
 
     <!-- Back to Top Button -->
     <button class="back-to-top" id="backToTop" aria-label="Back to top">↑</button>
+
+    <!-- Core JS -->
+    <script src="/static/js/components/nav-dropdown.js"></script>
 
     {% block extra_scripts %}{% endblock %}
 </body>

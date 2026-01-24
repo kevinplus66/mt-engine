@@ -236,6 +236,32 @@
     }
 }
 
+/* Tablet - Dashboard Topbar Layout (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .automation-topbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .automation-topbar-stats {
+        justify-content: flex-start;
+        gap: var(--spacing-lg);
+    }
+
+    .automation-topbar-toggles {
+        margin-left: 0;
+        justify-content: flex-start;
+        padding-top: var(--spacing-md);
+        border-top: 1px dotted var(--nt-border-light);
+    }
+
+    .automation-topbar-actions {
+        justify-content: flex-start;
+        padding-top: var(--spacing-md);
+        border-top: 1px dotted var(--nt-border-light);
+    }
+}
+
 /* Mobile Responsive */
 @media (max-width: 768px) {
     .automation-topbar {

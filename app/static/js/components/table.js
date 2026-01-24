@@ -217,7 +217,7 @@ function createTorrentRow(torrent, isSearch) {
             data-mode="${torrent.mode || 'normal'}">
             <td class="name-cell">
                 <div class="torrent-name">
-                    <button class="expand-toggle" aria-label="${t('expand_details')}">▼</button>
+                    <button class="expand-toggle" aria-label="${t('expand_details')}">▶</button>
                     <span class="torrent-link">${escapeHtml(torrent.name)}</span>
                 </div>
                 <div class="torrent-descr">${escapeHtml(torrent.small_descr || '')}</div>
@@ -411,7 +411,7 @@ export function toggleRowExpansion(row) {
                     expandedDetailRow.classList.remove('expanded');
                 }
                 if (expandedToggle) {
-                    expandedToggle.textContent = '▼';
+                    expandedToggle.textContent = '▶';
                     expandedToggle.setAttribute('aria-label', t('expand_details'));
                 }
             });
@@ -422,12 +422,12 @@ export function toggleRowExpansion(row) {
     if (isExpanded) {
         row.classList.remove('expanded');
         detailRow.classList.remove('expanded');
-        if (toggle) toggle.textContent = '▼';
+        if (toggle) toggle.textContent = '▶';
         if (toggle) toggle.setAttribute('aria-label', t('expand_details'));
     } else {
         row.classList.add('expanded');
         detailRow.classList.add('expanded');
-        if (toggle) toggle.textContent = '▲';
+        if (toggle) toggle.textContent = '▼';
         if (toggle) toggle.setAttribute('aria-label', t('collapse_details'));
     }
 }

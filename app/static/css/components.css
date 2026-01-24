@@ -381,30 +381,28 @@
 
 /* Tech Tags (Resolution, Video Codec, Audio Codec) */
 .tag--tech {
-    background: rgba(142, 154, 175, 0.08);
+    background: rgba(142, 154, 175, 0.15);
     color: #8E9AAF;
-    border-color: rgba(142, 154, 175, 0.25);
-    opacity: 0.85;
+    border-color: rgba(142, 154, 175, 0.4);
 }
 
 [data-theme="light"] .tag--tech {
-    background: rgba(107, 122, 143, 0.06);
+    background: rgba(107, 122, 143, 0.12);
     color: #6B7A8F;
-    border-color: rgba(107, 122, 143, 0.2);
+    border-color: rgba(107, 122, 143, 0.35);
 }
 
 /* Meta Tags (Source, Team, Country) */
 .tag--meta {
-    background: rgba(163, 177, 138, 0.08);
+    background: rgba(163, 177, 138, 0.15);
     color: #A3B18A;
-    border-color: rgba(163, 177, 138, 0.25);
-    opacity: 0.85;
+    border-color: rgba(163, 177, 138, 0.4);
 }
 
 [data-theme="light"] .tag--meta {
-    background: rgba(107, 142, 107, 0.06);
+    background: rgba(107, 142, 107, 0.12);
     color: #6B8E6B;
-    border-color: rgba(107, 142, 107, 0.2);
+    border-color: rgba(107, 142, 107, 0.35);
 }
 
 .tag--meta .tag-icon {
@@ -414,30 +412,28 @@
 
 /* Discount Tags (Free, 2xFree, 50%) */
 .tag--discount {
-    background: rgba(212, 165, 165, 0.08);
+    background: rgba(212, 165, 165, 0.15);
     color: #D4A5A5;
-    border-color: rgba(212, 165, 165, 0.25);
-    opacity: 0.85;
+    border-color: rgba(212, 165, 165, 0.4);
 }
 
 [data-theme="light"] .tag--discount {
-    background: rgba(176, 136, 136, 0.06);
+    background: rgba(176, 136, 136, 0.12);
     color: #B08888;
-    border-color: rgba(176, 136, 136, 0.2);
+    border-color: rgba(176, 136, 136, 0.35);
 }
 
 /* Label Tags (System Labels: 中字, HDR, DoVi) */
 .tag--label {
-    background: rgba(184, 169, 201, 0.08);
+    background: rgba(184, 169, 201, 0.15);
     color: #B8A9C9;
-    border-color: rgba(184, 169, 201, 0.25);
-    opacity: 0.85;
+    border-color: rgba(184, 169, 201, 0.4);
 }
 
 [data-theme="light"] .tag--label {
-    background: rgba(139, 123, 158, 0.06);
+    background: rgba(139, 123, 158, 0.12);
     color: #8B7B9E;
-    border-color: rgba(139, 123, 158, 0.2);
+    border-color: rgba(139, 123, 158, 0.35);
 }
 
 /* ============ External Link Buttons (IMDb, Douban) ============ */

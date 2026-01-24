@@ -21,6 +21,7 @@ def get_search_page(request: Request) -> HTMLResponse:
         "index.html",
         {
             "request": request,
+            "active_page": "search",
             "site_url": MT_SITE_URL,
             "user_profile": user_profile,
             "rival_profile": rival_profile,
@@ -35,6 +36,7 @@ def get_dashboard_page(request: Request) -> HTMLResponse:
         "seeder.html",
         {
             "request": request,
+            "active_page": "seeder",
             "data": state.cached_data,
             "refresh_interval": REFRESH_INTERVAL,
             "site_url": MT_SITE_URL,
