@@ -5,7 +5,7 @@
 ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
 ![Docker](https://img.shields.io/badge/docker-ready-blue.svg)
 
-M-Team 引擎 - 免费种子猎手 + 全能搜索引擎
+M-Team 引擎 - 雷达 RADAR / 声呐 SONAR / 领航 PILOT
 
 ---
 
@@ -14,17 +14,17 @@ M-Team 引擎 - 免费种子猎手 + 全能搜索引擎
 ## 简介
 
 **M-Team Engine (MT 引擎)** 是一个三功能 M-Team 工具：
-1. **免费猎手** - 自动追踪 Free/2xFree 限时免费种子
-2. **搜索引擎** - 全能种子搜索，支持高级筛选和一键下载
-3. **AutoFarm** - 自动农场，规则化自动下载和管理免费种子
+1. **声呐 (SONAR)** - 自动追踪 Free/2xFree 限时免费种子
+2. **雷达 (RADAR)** - 全能种子搜索，支持高级筛选和一键下载
+3. **领航 (PILOT)** - 规则化自动下载和管理免费种子
 
 ### 主要功能
 
 | 功能 |
 |------|
-| **免费猎手** - 自动搜索 Free/2xFree 种子 |
-| **搜索引擎** - 电影/电视剧/成人内容搜索 |
-| **AutoFarm** - 规则化自动农场管理系统 |
+| **声呐 (SONAR)** - 自动搜索 Free/2xFree 种子 |
+| **雷达 (RADAR)** - 电影/电视剧/成人内容搜索 |
+| **领航 (PILOT)** - 规则化自动管理系统 |
 | 高级筛选（分辨率/视频编码/音频编码/来源） |
 | 可展开行显示质量元数据（分辨率、编码、音频、来源、制作组） |
 | 一键下载到 qBittorrent（带标签分类） |
@@ -310,15 +310,15 @@ docker compose up -d
 
 ## 更新日志
 
-### v5.0.0 (2026-01) - AutoFarm 自动农场模块
-**全新 AutoFarm 功能**
+### v5.0.0 (2026-01) - PILOT 领航模块
+**全新 PILOT 功能**
 - 基于规则的自动种子管理系统，专为 M-Team 免费种子设计
 - 智能评分引擎：大小、免费时间、种子年龄、做种人数等多维度加权评分
 - 磁盘空间检测：自动停止下载防止磁盘满载
 - 重复下载防护：防止同一种子多次下载
 - 僵尸任务检测：自动删除长时间停滞的下载任务
 - H&R 保护：最小做种时间保护，防止 Hit and Run
-- 路径隔离：独立下载目录，使用 `MT_AUTO` 标签管理
+- 路径隔离：独立下载目录，使用 `PILOT` 标签管理
 
 **安全性**
 - HTTP Basic Auth 认证保护（防时序攻击）
@@ -326,7 +326,7 @@ docker compose up -d
 - 环境变量存储凭证（不在配置文件中存储）
 
 **前端**
-- 全新 `/automation` 页面，包含仪表板和规则配置标签页
+- 全新 `/pilot` 页面，包含仪表板和规则配置标签页
 
 **查看完整更新历史**: [GitHub Releases](https://github.com/kevinplus66/MT-Engine/releases)
 
