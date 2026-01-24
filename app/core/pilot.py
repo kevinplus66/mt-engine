@@ -41,6 +41,16 @@ class PilotManager:
 
     def _load_config(self) -> AutomationConfig:
         """Load config from JSON file or return defaults"""
+        # Auto-migrate from old automation.json to pilot.json
+        old_config_path = Path("/app/data/automation.json")
+        if old_config_path.exists() and not CONFIG_PATH.exists():
+            try:
+                logger.info("Migrating configuration from automation.json to pilot.json")
+                shutil.move(str(old_config_path), str(CONFIG_PATH))
+                logger.info("✅ Configuration migrated successfully")
+            except Exception as e:
+                logger.error(f"Failed to migrate config: {e}")
+
         if CONFIG_PATH.exists():
             try:
                 with open(CONFIG_PATH) as f:
