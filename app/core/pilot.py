@@ -1,5 +1,5 @@
 """
-Automation manager - download/cleanup cycles and background loop (AutoFarm)
+Pilot manager - download/cleanup cycles and background loop (领航)
 """
 import asyncio
 import os
@@ -16,11 +16,11 @@ from app.services.qbittorrent import (
 from app.config import logger
 import app.state as state
 
-CONFIG_PATH = Path("/app/data/automation.json")
+CONFIG_PATH = Path("/app/data/pilot.json")
 
 
-class AutomationManager:
-    """Main automation controller"""
+class PilotManager:
+    """Main pilot controller"""
 
     def __init__(self):
         self.config: AutomationConfig = self._load_config()
@@ -45,11 +45,11 @@ class AutomationManager:
             try:
                 with open(CONFIG_PATH) as f:
                     data = json.load(f)
-                logger.info("Loaded automation config from file")
+                logger.info("Loaded pilot config from file")
                 return AutomationConfig(**data)
             except Exception as e:
-                logger.error(f"Failed to load automation config: {e}")
-        logger.info("Using default automation config")
+                logger.error(f"Failed to load pilot config: {e}")
+        logger.info("Using default pilot config")
         return AutomationConfig()
 
     def save_config(self):
@@ -58,9 +58,9 @@ class AutomationManager:
             CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
             with open(CONFIG_PATH, "w") as f:
                 json.dump(self.config.model_dump(), f, indent=2)
-            logger.info("Saved automation config to file")
+            logger.info("Saved pilot config to file")
         except Exception as e:
-            logger.error(f"Failed to save automation config: {e}")
+            logger.error(f"Failed to save pilot config: {e}")
 
     def check_disk_space(self) -> bool:
         """
@@ -137,7 +137,7 @@ class AutomationManager:
             return
 
         current_tasks = await qb_get_torrents(sid)
-        auto_tasks = [t for t in current_tasks if 'MT_AUTO' in t.get('tags', '')]
+        auto_tasks = [t for t in current_tasks if 'PILOT' in t.get('tags', '')]
         max_tasks = self.config.download.max_active_tasks
         available_slots = max_tasks - len(auto_tasks)
 
@@ -218,7 +218,7 @@ class AutomationManager:
             return
 
         tasks = await qb_get_torrents(sid)
-        auto_tasks = [t for t in tasks if 'MT_AUTO' in t.get('tags', '')]
+        auto_tasks = [t for t in tasks if 'PILOT' in t.get('tags', '')]
 
         if not auto_tasks:
             logger.debug("No MT_AUTO tasks to clean up")
@@ -278,23 +278,23 @@ def calculate_torrent_score(torrent: dict) -> float:
         float: Calculated score
     """
     from app.core.rules import calculate_score
-    return calculate_score(torrent, auto_manager.config.download.rules)
+    return calculate_score(torrent, pilot_manager.config.download.rules)
 
 
 # Global singleton
-auto_manager = AutomationManager()
+pilot_manager = PilotManager()
 
 
-async def automation_loop():
+async def pilot_loop():
     """Independent background loop task"""
     logger.info("Automation loop started")
 
     while True:
         try:
-            await auto_manager.run_download_cycle()
-            await auto_manager.run_cleanup_cycle()
+            await pilot_manager.run_download_cycle()
+            await pilot_manager.run_cleanup_cycle()
         except Exception as e:
             logger.error(f"Automation cycle error: {e}", exc_info=True)
 
-        interval = auto_manager.config.download.interval_seconds
+        interval = pilot_manager.config.download.interval_seconds
         await asyncio.sleep(interval)

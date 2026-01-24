@@ -11,7 +11,7 @@ from app.core.torrent import fetch_all_free_torrents
 from app.services.qbittorrent import (
     download_torrent_file, qb_login, qb_add_torrent_file
 )
-from app.constants import QB_TAG_FREE_SEED
+from app.constants import QB_TAG_SONAR
 from app.config import QBITTORRENT_URL, QBITTORRENT_USER, QBITTORRENT_PASSWORD, logger
 import app.state as state
 
@@ -76,8 +76,8 @@ async def api_download_torrent(request: Request, data: DownloadRequest, check_ra
     if not sid:
         return {"success": False, "error": "qb_connection_failed", "message": "qBittorrent 连接失败"}
 
-    # 添加种子文件 (使用"免费做种"标签)
-    success = await qb_add_torrent_file(torrent_content, sid, tag=QB_TAG_FREE_SEED)
+    # 添加种子文件 (使用"声呐做种"标签)
+    success = await qb_add_torrent_file(torrent_content, sid, tag=QB_TAG_SONAR)
 
     if success:
         return {"success": True, "message": "已添加到下载队列"}

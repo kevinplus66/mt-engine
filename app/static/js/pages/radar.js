@@ -1,5 +1,5 @@
 /* ============================================================================
-   MT-Engine - Search Page
+   MT-Engine - RADAR Page
    Search page initialization and main logic
    ============================================================================ */
 
@@ -14,7 +14,7 @@ import { t, updatePageLanguage, currentLang, setCurrentPage } from '../i18n.js';
 import { debounce, hapticFeedback } from '../utils.js';
 
 // Page state
-let searchState = {
+let radarState = {
     keyword: '',
     page: 1,
     hasMore: false,
@@ -30,9 +30,9 @@ let sortState = {
 let lastSortTime = 0;
 const SORT_THROTTLE_MS = 1000;
 
-export function initSearchPage() {
+export function initRadarPage() {
     // Set current page for title
-    setCurrentPage('search');
+    setCurrentPage('radar');
 
     // Initialize all components
     initTheme();
@@ -69,8 +69,8 @@ function setupEventListeners() {
             const filters = getActiveFilters();
             updateCategoryPills(filters.mode);
             // Re-render table if we have results
-            if (searchState.results.length > 0) {
-                renderTorrents(searchState.results, true);
+            if (radarState.results.length > 0) {
+                renderTorrents(radarState.results, true);
             }
         });
     }
@@ -81,8 +81,8 @@ function setupEventListeners() {
         searchBtn.addEventListener('click', () => {
             const input = document.getElementById('searchInput');
             if (input) {
-                searchState.keyword = input.value.trim();
-                executeSearch();
+                radarState.keyword = input.value.trim();
+                executeRadar();
             }
         });
     }
@@ -92,8 +92,8 @@ function setupEventListeners() {
     if (searchInput) {
         searchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-                searchState.keyword = searchInput.value.trim();
-                executeSearch();
+                radarState.keyword = searchInput.value.trim();
+                executeRadar();
             }
         });
     }
@@ -104,8 +104,8 @@ function setupEventListeners() {
         mobileSearchBtn.addEventListener('click', () => {
             const input = document.getElementById('mobileSearchInput');
             if (input) {
-                searchState.keyword = input.value.trim();
-                executeSearch();
+                radarState.keyword = input.value.trim();
+                executeRadar();
             }
         });
     }
@@ -115,8 +115,8 @@ function setupEventListeners() {
     if (mobileSearchInput) {
         mobileSearchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-                searchState.keyword = mobileSearchInput.value.trim();
-                executeSearch();
+                radarState.keyword = mobileSearchInput.value.trim();
+                executeRadar();
             }
         });
     }
@@ -127,8 +127,8 @@ function setupEventListeners() {
         resetBtn.addEventListener('click', () => {
             resetFilters();
             // Re-execute search if we have results
-            if (searchState.results.length > 0) {
-                executeSearch();
+            if (radarState.results.length > 0) {
+                executeRadar();
             }
         });
     }
@@ -154,8 +154,8 @@ function setupEventListeners() {
             updateResetButtonState();
 
             // Re-execute search if we have results
-            if (searchState.results.length > 0) {
-                executeSearch();
+            if (radarState.results.length > 0) {
+                executeRadar();
             }
         });
     });
@@ -168,7 +168,7 @@ function setupEventListeners() {
 
     // Infinite scroll
     window.addEventListener('scroll', debounce(() => {
-        if (searchState.hasMore && !searchState.loading) {
+        if (radarState.hasMore && !radarState.loading) {
             const scrollPosition = window.innerHeight + window.scrollY;
             const threshold = document.documentElement.scrollHeight - 500;
 
@@ -179,11 +179,11 @@ function setupEventListeners() {
     }, 200));
 }
 
-export async function executeSearch() {
-    if (searchState.loading) return;
+export async function executeRadar() {
+    if (radarState.loading) return;
 
     const filters = getActiveFilters();
-    const keyword = searchState.keyword;
+    const keyword = radarState.keyword;
 
     // Validate search (filters.categories is now an integer array)
     if (!keyword && (!filters.categories || filters.categories.length === 0)) {
@@ -192,8 +192,8 @@ export async function executeSearch() {
     }
 
     // Reset to page 1
-    searchState.page = 1;
-    searchState.loading = true;
+    radarState.page = 1;
+    radarState.loading = true;
 
     // Show loading skeleton
     showLoadingSkeleton();
@@ -224,13 +224,13 @@ export async function executeSearch() {
         const result = await searchTorrents(params);
 
         if (result.success) {
-            searchState.results = result.data || [];
+            radarState.results = result.data || [];
             const currentCount = (result.pageNumber || 1) * (result.pageSize || 50);
-            searchState.hasMore = currentCount < (result.total || 0);
+            radarState.hasMore = currentCount < (result.total || 0);
 
             // Sort results if column is selected
-            if (sortState.column && searchState.results.length > 0) {
-                searchState.results.sort((a, b) => {
+            if (sortState.column && radarState.results.length > 0) {
+                radarState.results.sort((a, b) => {
                     let aVal, bVal;
                     switch (sortState.column) {
                         case 'name':
@@ -273,11 +273,11 @@ export async function executeSearch() {
             const initialState = document.getElementById('initialState');
             const emptyState = document.getElementById('emptyState');
 
-            if (searchState.results.length > 0) {
+            if (radarState.results.length > 0) {
                 // Show results
                 if (initialState) initialState.style.display = 'none';
                 if (emptyState) emptyState.style.display = 'none';
-                renderTorrents(searchState.results, true);
+                renderTorrents(radarState.results, true);
             } else {
                 // Show empty state
                 if (initialState) initialState.style.display = 'none';
@@ -286,14 +286,14 @@ export async function executeSearch() {
             }
 
             // Show load more if needed
-            if (searchState.hasMore && loadMoreBtn) {
+            if (radarState.hasMore && loadMoreBtn) {
                 loadMoreBtn.style.display = 'block';
             }
 
             // Update result count
             const resultCount = document.getElementById('resultCount');
             if (resultCount) {
-                const count = searchState.results.length;
+                const count = radarState.results.length;
                 resultCount.textContent = t('search_results').replace('{count}', count);
             }
 
@@ -312,16 +312,16 @@ export async function executeSearch() {
         showToast(t('search_failed'));
         renderTorrents([], true);
     } finally {
-        searchState.loading = false;
+        radarState.loading = false;
     }
 }
 
 export async function loadMore() {
-    if (searchState.loading || !searchState.hasMore) return;
+    if (radarState.loading || !radarState.hasMore) return;
 
     const filters = getActiveFilters();
-    searchState.page++;
-    searchState.loading = true;
+    radarState.page++;
+    radarState.loading = true;
 
     const loadMoreBtn = document.getElementById('loadMoreBtn');
     if (loadMoreBtn) {
@@ -331,7 +331,7 @@ export async function loadMore() {
 
     try {
         const params = {
-            keyword: searchState.keyword,
+            keyword: radarState.keyword,
             mode: filters.mode,
             categories: filters.categories,
             standards: filters.standards,
@@ -342,7 +342,7 @@ export async function loadMore() {
             discount: filters.discount,
             sortField: 'CREATED_DATE',
             sortDirection: 'DESC',
-            pageNumber: searchState.page,
+            pageNumber: radarState.page,
             pageSize: 50
         };
 
@@ -350,9 +350,9 @@ export async function loadMore() {
 
         if (result.success) {
             const newTorrents = result.data || [];
-            searchState.results = [...searchState.results, ...newTorrents];
-            const currentCount = (result.pageNumber || searchState.page) * (result.pageSize || 50);
-            searchState.hasMore = currentCount < (result.total || 0);
+            radarState.results = [...radarState.results, ...newTorrents];
+            const currentCount = (result.pageNumber || radarState.page) * (result.pageSize || 50);
+            radarState.hasMore = currentCount < (result.total || 0);
 
             // Append new items instead of re-rendering entire table
             appendTorrents(newTorrents, true);
@@ -360,23 +360,23 @@ export async function loadMore() {
             // Update result count
             const resultCount = document.getElementById('resultCount');
             if (resultCount) {
-                const count = searchState.results.length;
+                const count = radarState.results.length;
                 resultCount.textContent = t('search_results').replace('{count}', count);
             }
 
-            if (!searchState.hasMore && loadMoreBtn) {
+            if (!radarState.hasMore && loadMoreBtn) {
                 loadMoreBtn.style.display = 'none';
             }
         } else {
             showToast(result.error || t('load_more_failed'));
-            searchState.page--; // Revert page increment
+            radarState.page--; // Revert page increment
         }
     } catch (error) {
         console.error('Load more error:', error);
         showToast(t('load_more_failed'));
-        searchState.page--; // Revert page increment
+        radarState.page--; // Revert page increment
     } finally {
-        searchState.loading = false;
+        radarState.loading = false;
         if (loadMoreBtn) {
             loadMoreBtn.disabled = false;
             loadMoreBtn.textContent = t('load_more');
@@ -403,8 +403,8 @@ function checkUrlParams() {
         if (searchInput) searchInput.value = keyword;
         if (mobileSearchInput) mobileSearchInput.value = keyword;
 
-        searchState.keyword = keyword;
-        executeSearch();
+        radarState.keyword = keyword;
+        executeRadar();
     }
 }
 
@@ -412,12 +412,12 @@ function checkUrlParams() {
 window.openFilterDrawer = openFilterDrawer;
 window.closeFilterDrawer = closeFilterDrawer;
 window.applyDrawerFilters = () => {
-    executeSearch();
+    executeRadar();
     closeFilterDrawer();
 };
 window.resetDrawerFilters = () => {
     resetFilters();
-    executeSearch();
+    executeRadar();
 };
 
 // Make functions globally available
@@ -426,8 +426,8 @@ window.toggleLanguage = toggleLanguage;
 
 // Sort existing results locally and re-render (no API call)
 function sortAndRenderResults() {
-    if (sortState.column && searchState.results.length > 0) {
-        searchState.results.sort((a, b) => {
+    if (sortState.column && radarState.results.length > 0) {
+        radarState.results.sort((a, b) => {
             let aVal, bVal;
             switch (sortState.column) {
                 case 'name':
@@ -465,7 +465,7 @@ function sortAndRenderResults() {
             return sortState.direction === 'asc' ? aVal - bVal : bVal - aVal;
         });
     }
-    renderTorrents(searchState.results, true);
+    renderTorrents(radarState.results, true);
 }
 
 window.sortTable = (column) => {
@@ -522,7 +522,7 @@ window.sortTable = (column) => {
     });
 
     // If we have results, sort locally and re-render (NO API call)
-    if (searchState.results.length > 0) {
+    if (radarState.results.length > 0) {
         sortAndRenderResults();
     }
     // If no results, do nothing (user needs to search first)

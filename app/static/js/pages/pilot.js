@@ -1,5 +1,5 @@
 /* ============================================================================
-   MT-Engine - Automation Page (AutoFarm)
+   MT-Engine - PILOT Page
    Automation management page initialization and logic
    ============================================================================ */
 
@@ -22,9 +22,9 @@ const getColorVariables = () => {
 let currentConfig = null;
 let currentStats = null;
 
-export async function initAutomationPage() {
+export async function initPilotPage() {
     // Set current page for title
-    setCurrentPage('automation');
+    setCurrentPage('pilot');
 
     // Initialize components
     initTheme();
@@ -128,7 +128,7 @@ async function fetchAPI(url, options = {}) {
 
 async function loadConfig() {
     try {
-        currentConfig = await fetchAPI('/api/automation/config');
+        currentConfig = await fetchAPI('/api/pilot/config');
         renderConfigForm();
         updateToggles();
         console.log('Config loaded:', currentConfig);
@@ -140,7 +140,7 @@ async function loadConfig() {
 
 async function loadStats() {
     try {
-        currentStats = await fetchAPI('/api/automation/stats');
+        currentStats = await fetchAPI('/api/pilot/stats');
         renderStats();
     } catch (error) {
         console.error('Failed to load stats:', error);
@@ -150,7 +150,7 @@ async function loadStats() {
 
 async function saveConfig() {
     try {
-        const result = await fetchAPI('/api/automation/config', {
+        const result = await fetchAPI('/api/pilot/config', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(currentConfig)
@@ -211,7 +211,7 @@ async function runDryRun() {
     btn.textContent = t('autoRunning');
 
     try {
-        const result = await fetchAPI('/api/automation/dry-run');
+        const result = await fetchAPI('/api/pilot/dry-run');
 
         // Render results using CSS classes instead of inline styles
         let html = '';
@@ -273,7 +273,7 @@ async function triggerDownload() {
     btn.textContent = t('autoRunning');
 
     try {
-        const result = await fetchAPI('/api/automation/run-download', { method: 'POST' });
+        const result = await fetchAPI('/api/pilot/run-download', { method: 'POST' });
         showToast(result.message || t('autoDownloadTriggered'), 'success');
         await loadStats();
     } catch (error) {
@@ -292,7 +292,7 @@ async function triggerCleanup() {
     btn.textContent = t('autoRunning');
 
     try {
-        const result = await fetchAPI('/api/automation/run-cleanup', { method: 'POST' });
+        const result = await fetchAPI('/api/pilot/run-cleanup', { method: 'POST' });
         showToast(result.message || t('autoCleanupTriggered'), 'success');
         await loadStats();
     } catch (error) {

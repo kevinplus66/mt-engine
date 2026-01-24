@@ -11,9 +11,9 @@ export const TRANSLATIONS = {
     'zh': {
         appName: 'MT 引擎',
         pageTitle: {
-            search: '搜索引擎',
-            seeder: '做种助手',
-            automation: '自动农场'
+            radar: '雷达',
+            sonar: '声呐',
+            pilot: '领航'
         },
         searchBtn: '搜索',
         resetFilters: '重置',
@@ -229,9 +229,9 @@ export const TRANSLATIONS = {
     'en': {
         appName: 'MT-Engine',
         pageTitle: {
-            search: 'Search',
-            seeder: 'Free Hunter',
-            automation: 'AutoFarm'
+            radar: 'RADAR',
+            sonar: 'SONAR',
+            pilot: 'PILOT'
         },
         searchBtn: 'Search',
         resetFilters: 'Reset',

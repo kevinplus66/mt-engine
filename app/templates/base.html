@@ -22,7 +22,7 @@
     <link rel="stylesheet" href="/static/css/modules/table.css">
     <link rel="stylesheet" href="/static/css/modules/drawer.css">
     <link rel="stylesheet" href="/static/css/modules/toast.css">
-    <link rel="stylesheet" href="/static/css/modules/automation.css">
+    <link rel="stylesheet" href="/static/css/modules/pilot.css">
     <link rel="stylesheet" href="/static/css/modules/mobile.css">
 
     {% block extra_css %}{% endblock %}
@@ -62,26 +62,26 @@
             <div class="logo-switcher">
                 <!-- Desktop: All three logos -->
                 <div class="logo-switcher-desktop">
-                    <a href="/" class="logo-link {% if active_page == 'search' %}active{% endif %}" title="Search Engine">
-                        <img src="/static/search-logo.png" alt="Search Engine" class="logo-icon">
+                    <a href="/" class="logo-link {% if active_page == 'radar' %}active{% endif %}" title="RADAR">
+                        <img src="/static/radar-logo.png" alt="RADAR" class="logo-icon">
                     </a>
-                    <a href="/seeder" class="logo-link {% if active_page == 'seeder' %}active{% endif %}" title="Free Hunter">
-                        <img src="/static/seeder-logo.png" alt="Free Hunter" class="logo-icon">
+                    <a href="/sonar" class="logo-link {% if active_page == 'sonar' %}active{% endif %}" title="SONAR">
+                        <img src="/static/sonar-logo.png" alt="SONAR" class="logo-icon">
                     </a>
-                    <a href="/automation" class="logo-link {% if active_page == 'automation' %}active{% endif %}" title="AutoFarm">
-                        <img src="/static/automation-logo.png" alt="AutoFarm" class="logo-icon">
+                    <a href="/pilot" class="logo-link {% if active_page == 'pilot' %}active{% endif %}" title="PILOT">
+                        <img src="/static/pilot-logo.png" alt="PILOT" class="logo-icon">
                     </a>
                 </div>
 
                 <!-- Mobile/Tablet: Current logo + Dropdown -->
                 <div class="logo-switcher-mobile">
                     <button class="logo-dropdown-trigger" id="logoDropdownTrigger" aria-label="Navigation menu" aria-expanded="false">
-                        {% if active_page == 'search' %}
-                        <img src="/static/search-logo.png" alt="Search Engine" class="logo-icon-current">
-                        {% elif active_page == 'seeder' %}
-                        <img src="/static/seeder-logo.png" alt="Free Hunter" class="logo-icon-current">
-                        {% elif active_page == 'automation' %}
-                        <img src="/static/automation-logo.png" alt="AutoFarm" class="logo-icon-current">
+                        {% if active_page == 'radar' %}
+                        <img src="/static/radar-logo.png" alt="RADAR" class="logo-icon-current">
+                        {% elif active_page == 'sonar' %}
+                        <img src="/static/sonar-logo.png" alt="SONAR" class="logo-icon-current">
+                        {% elif active_page == 'pilot' %}
+                        <img src="/static/pilot-logo.png" alt="PILOT" class="logo-icon-current">
                         {% endif %}
                         <svg class="dropdown-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none">
                             <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="square"/>
@@ -89,16 +89,16 @@
                     </button>
 
                     <div class="logo-dropdown-menu" id="logoDropdownMenu" role="menu" aria-hidden="true">
-                        <a href="/" class="logo-dropdown-item {% if active_page == 'search' %}active{% endif %}" role="menuitem">
-                            <img src="/static/search-logo.png" alt="Search Engine" class="logo-icon-dropdown">
+                        <a href="/" class="logo-dropdown-item {% if active_page == 'radar' %}active{% endif %}" role="menuitem">
+                            <img src="/static/radar-logo.png" alt="RADAR" class="logo-icon-dropdown">
                             <span class="dropdown-arrow-icon">→</span>
                         </a>
-                        <a href="/seeder" class="logo-dropdown-item {% if active_page == 'seeder' %}active{% endif %}" role="menuitem">
-                            <img src="/static/seeder-logo.png" alt="Free Hunter" class="logo-icon-dropdown">
+                        <a href="/sonar" class="logo-dropdown-item {% if active_page == 'sonar' %}active{% endif %}" role="menuitem">
+                            <img src="/static/sonar-logo.png" alt="SONAR" class="logo-icon-dropdown">
                             <span class="dropdown-arrow-icon">→</span>
                         </a>
-                        <a href="/automation" class="logo-dropdown-item {% if active_page == 'automation' %}active{% endif %}" role="menuitem">
-                            <img src="/static/automation-logo.png" alt="AutoFarm" class="logo-icon-dropdown">
+                        <a href="/pilot" class="logo-dropdown-item {% if active_page == 'pilot' %}active{% endif %}" role="menuitem">
+                            <img src="/static/pilot-logo.png" alt="PILOT" class="logo-icon-dropdown">
                             <span class="dropdown-arrow-icon">→</span>
                         </a>
                     </div>

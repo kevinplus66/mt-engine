@@ -3,11 +3,11 @@
 """
 
 # ============ qBittorrent 标签常量 ============
-QB_TAG_PERSONAL = "个人下载"    # Search Engine 下载使用的标签
-QB_TAG_FREE_SEED = "免费做种"   # Free Hunter 免费种子使用的标签
+QB_TAG_RADAR = "雷达下载"       # RADAR 下载使用的标签
+QB_TAG_SONAR = "声呐做种"       # SONAR 免费种子使用的标签
 
 
-# ============ 搜索引擎筛选选项 ============
+# ============ 雷达筛选选项 ============
 # 使用 M-Team API 实际返回的 ID（已验证）
 FILTER_OPTIONS = {
     "standards": [

@@ -1,5 +1,5 @@
 /* ============================================================================
-   MT-Engine - Seeder Page (Free Hunter)
+   MT-Engine - SONAR Page
    Seeder page initialization and filtering logic
    ============================================================================ */
 
@@ -40,9 +40,9 @@ let sortState = {
 let autoRefreshInterval = null;
 const REFRESH_INTERVAL = 60000; // 1 minute
 
-export function initSeederPage() {
+export function initSonarPage() {
     // Set current page for title
-    setCurrentPage('seeder');
+    setCurrentPage('sonar');
 
     // Initialize all components
     initTheme();

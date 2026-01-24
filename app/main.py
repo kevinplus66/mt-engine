@@ -1,6 +1,6 @@
 """
-MT-Engine - M-Team 免费种子猎手
-自动搜索当前所有 Free / 2xFree 种子
+MT-Engine - M-Team 工具引擎
+雷达 RADAR / 声呐 SONAR / 领航 PILOT
 """
 
 __version__ = "5.0.0"
@@ -18,16 +18,16 @@ from app.config import logger, SEARCH_MIN_INTERVAL
 from app.services.http_client import http_client, get_http_client
 from app.services.mteam_api import fetch_country_list
 from app.core.torrent import background_refresh
-from app.routes.pages import get_search_page, get_dashboard_page
+from app.routes.pages import get_radar_page, get_sonar_page
 from app.routes.torrents import (
     api_torrents, api_refresh, api_download_torrent,
     api_auto_delete_toggle, api_auto_delete_status, api_categories
 )
-from app.routes.search import (
-    api_filter_options, api_search, search_download_torrent
+from app.routes.radar import (
+    api_filter_options, api_radar, radar_download_torrent
 )
-from app.routes.automation import router as automation_router
-from app.core.automation import automation_loop
+from app.routes.pilot import router as pilot_router
+from app.core.pilot import pilot_loop
 from app.models import DownloadRequest, SearchRequest
 import app.state as state
 
@@ -38,7 +38,7 @@ RATE_LIMIT_REQUESTS = 30  # requests
 RATE_LIMIT_WINDOW = 60    # seconds
 
 # Search throttling (防止频繁搜索触发 M-Team API 限制)
-search_last_request: Dict[str, float] = {}
+radar_last_request: Dict[str, float] = {}
 
 
 def check_rate_limit(client_ip: str) -> bool:
@@ -65,14 +65,14 @@ def check_rate_limit(client_ip: str) -> bool:
     return True
 
 
-def search_throttle(client_ip: str) -> bool:
+def radar_throttle(client_ip: str) -> bool:
     """Check search throttling. Returns True if allowed."""
-    global search_last_request
-    last_search = search_last_request.get(client_ip, 0)
+    global radar_last_request
+    last_search = radar_last_request.get(client_ip, 0)
     now = datetime.now().timestamp()
     if now - last_search < SEARCH_MIN_INTERVAL:
         return False
-    search_last_request[client_ip] = now
+    radar_last_request[client_ip] = now
     return True
 
 
@@ -91,20 +91,20 @@ async def lifespan(app: FastAPI):
     # 启动后台刷新任务（会立即执行第一次刷新）
     refresh_task = asyncio.create_task(background_refresh())
 
-    # 启动自动化后台任务
-    automation_task = asyncio.create_task(automation_loop())
+    # 启动领航后台任务
+    pilot_task = asyncio.create_task(pilot_loop())
 
     yield
 
     # 关闭时清理
     refresh_task.cancel()
-    automation_task.cancel()
+    pilot_task.cancel()
     try:
         await refresh_task
     except asyncio.CancelledError:
         pass
     try:
-        await automation_task
+        await pilot_task
     except asyncio.CancelledError:
         pass
 
@@ -158,30 +158,30 @@ except Exception:
 
 # ============ 页面路由 ============
 @app.get("/", response_class=None)
-async def search_page(request: Request):
-    """搜索引擎页面"""
-    return get_search_page(request)
+async def radar_page(request: Request):
+    """雷达页面"""
+    return get_radar_page(request)
 
 
-@app.get("/seeder", response_class=None)
-async def dashboard(request: Request):
-    """Free Hunter 主仪表盘页面"""
-    return get_dashboard_page(request)
+@app.get("/sonar", response_class=None)
+async def sonar_page(request: Request):
+    """声呐页面"""
+    return get_sonar_page(request)
 
 
-@app.get("/automation", response_class=None)
-async def automation_page(request: Request):
-    """AutoFarm automation management page"""
+@app.get("/pilot", response_class=None)
+async def pilot_page(request: Request):
+    """领航页面"""
     from app.routes.pages import templates
     from app.state import user_profile
     return templates.TemplateResponse(
-        "automation.html",
-        {"request": request, "active_page": "automation", "user_profile": user_profile}
+        "pilot.html",
+        {"request": request, "active_page": "pilot", "user_profile": user_profile}
     )
 
 
-# ============ 自动化 API ============
-app.include_router(automation_router)
+# ============ 领航 API ============
+app.include_router(pilot_router)
 
 
 # ============ 种子 API ============
@@ -227,23 +227,23 @@ async def categories():
     return await api_categories()
 
 
-# ============ 搜索 API ============
+# ============ 雷达 API ============
 @app.get("/api/filter-options")
 async def filter_options():
     """获取搜索筛选选项"""
     return await api_filter_options()
 
 
-@app.post("/api/search")
-async def search(request: Request, data: SearchRequest):
-    """搜索种子"""
-    return await api_search(request, data, check_rate_limit, search_throttle)
+@app.post("/api/radar")
+async def radar(request: Request, data: SearchRequest):
+    """雷达搜索种子"""
+    return await api_radar(request, data, check_rate_limit, radar_throttle)
 
 
-@app.post("/api/search/download")
-async def search_download(request: Request, data: DownloadRequest):
-    """从搜索结果下载种子"""
-    return await search_download_torrent(request, data, check_rate_limit)
+@app.post("/api/radar/download")
+async def radar_download(request: Request, data: DownloadRequest):
+    """从雷达结果下载种子"""
+    return await radar_download_torrent(request, data, check_rate_limit)
 
 
 # ============ 健康检查 ============

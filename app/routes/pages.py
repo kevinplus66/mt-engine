@@ -15,13 +15,13 @@ import app.state as state
 templates = Jinja2Templates(directory="app/templates")
 
 
-def get_search_page(request: Request) -> HTMLResponse:
-    """搜索引擎页面"""
+def get_radar_page(request: Request) -> HTMLResponse:
+    """雷达页面"""
     return templates.TemplateResponse(
         "index.html",
         {
             "request": request,
-            "active_page": "search",
+            "active_page": "radar",
             "site_url": MT_SITE_URL,
             "user_profile": user_profile,
             "rival_profile": rival_profile,
@@ -30,13 +30,13 @@ def get_search_page(request: Request) -> HTMLResponse:
     )
 
 
-def get_dashboard_page(request: Request) -> HTMLResponse:
-    """Free Hunter 主仪表盘页面"""
+def get_sonar_page(request: Request) -> HTMLResponse:
+    """声呐页面"""
     return templates.TemplateResponse(
-        "seeder.html",
+        "sonar.html",
         {
             "request": request,
-            "active_page": "seeder",
+            "active_page": "sonar",
             "data": state.cached_data,
             "refresh_interval": REFRESH_INTERVAL,
             "site_url": MT_SITE_URL,

@@ -1,10 +1,10 @@
 """
-Automation API endpoints (AutoFarm)
+Pilot API endpoints (领航)
 """
 from fastapi import APIRouter, HTTPException, status
 
 from app.models import AutomationConfig
-from app.core.automation import auto_manager
+from app.core.pilot import pilot_manager
 from app.core.rules import RuleEngine
 from app.services.qbittorrent import qb_login, qb_get_torrents
 from app.config import logger
@@ -13,25 +13,25 @@ import app.state as state
 
 # Router without authentication
 router = APIRouter(
-    prefix="/api/automation"
+    prefix="/api/pilot"
 )
 
 
 @router.get("/config")
 async def get_config():
     """
-    Get current automation configuration
+    Get current pilot configuration
 
     Returns:
         dict: Current configuration
     """
-    return auto_manager.config.model_dump()
+    return pilot_manager.config.model_dump()
 
 
 @router.post("/config")
 async def update_config(config: AutomationConfig):
     """
-    Update automation configuration
+    Update pilot configuration
 
     Args:
         config: New configuration
@@ -39,10 +39,10 @@ async def update_config(config: AutomationConfig):
     Returns:
         dict: Status message
     """
-    auto_manager.config = config
-    auto_manager.rule_engine = RuleEngine(config)
-    auto_manager.save_config()
-    logger.info("Automation config updated via API")
+    pilot_manager.config = config
+    pilot_manager.rule_engine = RuleEngine(config)
+    pilot_manager.save_config()
+    logger.info("Pilot config updated via API")
     return {"status": "ok", "message": "Configuration updated successfully"}
 
 
@@ -60,10 +60,10 @@ async def get_stats():
 
     return {
         "active_tasks": len(auto_tasks),
-        "pending_downloads": len(auto_manager.pending_downloads),
-        "download_enabled": auto_manager.config.download.enabled,
-        "cleanup_enabled": auto_manager.config.cleanup.enabled,
-        "interval_seconds": auto_manager.config.download.interval_seconds,
+        "pending_downloads": len(pilot_manager.pending_downloads),
+        "download_enabled": pilot_manager.config.download.enabled,
+        "cleanup_enabled": pilot_manager.config.cleanup.enabled,
+        "interval_seconds": pilot_manager.config.download.interval_seconds,
     }
 
 
@@ -81,10 +81,10 @@ async def dry_run():
 
     for t in torrents:
         tid = t.get('id', '')
-        if tid in auto_manager.pending_downloads:
+        if tid in pilot_manager.pending_downloads:
             continue
 
-        should_dl, score, reason = auto_manager.rule_engine.evaluate_download(t)
+        should_dl, score, reason = pilot_manager.rule_engine.evaluate_download(t)
         if should_dl:
             download_candidates.append({
                 "id": tid,
@@ -104,8 +104,8 @@ async def dry_run():
     cleanup_candidates = []
 
     for task in auto_tasks:
-        meta = auto_manager._get_torrent_meta(task)
-        should_delete, reason = auto_manager.rule_engine.evaluate_cleanup(task, meta)
+        meta = pilot_manager._get_torrent_meta(task)
+        should_delete, reason = pilot_manager.rule_engine.evaluate_cleanup(task, meta)
         if should_delete:
             cleanup_candidates.append({
                 "name": task.get('name', ''),
@@ -132,7 +132,7 @@ async def trigger_download():
     """
     logger.info("Manual download cycle triggered via API")
     try:
-        await auto_manager.run_download_cycle(force=True)
+        await pilot_manager.run_download_cycle(force=True)
         return {"status": "completed", "message": "Download cycle completed"}
     except Exception as e:
         logger.error(f"Manual download cycle failed: {e}", exc_info=True)
@@ -152,7 +152,7 @@ async def trigger_cleanup():
     """
     logger.info("Manual cleanup cycle triggered via API")
     try:
-        await auto_manager.run_cleanup_cycle(force=True)
+        await pilot_manager.run_cleanup_cycle(force=True)
         return {"status": "completed", "message": "Cleanup cycle completed"}
     except Exception as e:
         logger.error(f"Manual cleanup cycle failed: {e}", exc_info=True)

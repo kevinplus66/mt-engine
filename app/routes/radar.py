@@ -1,5 +1,5 @@
 """
-搜索相关 API 路由
+雷达相关 API 路由
 """
 
 from datetime import datetime
@@ -10,7 +10,7 @@ from app.config import (
     MT_TOKEN, MT_SEARCH_URL, MT_SITE_URL, QBITTORRENT_URL,
     QBITTORRENT_USER, QBITTORRENT_PASSWORD, logger
 )
-from app.constants import FILTER_OPTIONS, QUALITY_LABELS, QB_TAG_PERSONAL
+from app.constants import FILTER_OPTIONS, QUALITY_LABELS, QB_TAG_RADAR
 from app.state import user_torrent_status, COUNTRY_LABELS
 from app.utils import is_api_success, format_size, get_discount_label, _safe_int
 from app.services.http_client import get_http_client, get_headers
@@ -18,19 +18,19 @@ from app.services.qbittorrent import download_torrent_file, qb_login, qb_add_tor
 
 
 async def api_filter_options():
-    """获取搜索筛选选项"""
+    """获取雷达筛选选项"""
     return FILTER_OPTIONS
 
 
-async def api_search(request: Request, data: SearchRequest, check_rate_limit_func, search_throttle_func):
-    """搜索种子"""
+async def api_radar(request: Request, data: SearchRequest, check_rate_limit_func, radar_throttle_func):
+    """雷达搜索种子"""
     # Rate limiting
     client_ip = request.client.host if request.client else "unknown"
     if not check_rate_limit_func(client_ip):
         raise HTTPException(status_code=429, detail="Too many requests")
 
     # Search throttling (防止频繁搜索触发 M-Team API 限制)
-    if not search_throttle_func(client_ip):
+    if not radar_throttle_func(client_ip):
         return {"success": False, "message": "搜索过于频繁，请稍后再试", "data": [], "total": 0}
 
     if not MT_TOKEN:
@@ -182,7 +182,7 @@ async def api_search(request: Request, data: SearchRequest, check_rate_limit_fun
         return {"success": False, "message": str(e), "data": [], "total": 0}
 
 
-async def search_download_torrent(request: Request, data: DownloadRequest, check_rate_limit_func):
+async def radar_download_torrent(request: Request, data: DownloadRequest, check_rate_limit_func):
     """从搜索结果下载种子到 qBittorrent (标签: 个人下载)"""
     # Rate limiting
     client_ip = request.client.host if request.client else "unknown"
@@ -203,8 +203,8 @@ async def search_download_torrent(request: Request, data: DownloadRequest, check
     if not sid:
         return {"success": False, "error": "qb_connection_failed", "message": "qBittorrent 连接失败"}
 
-    # 添加种子文件 (使用"个人下载"标签)
-    success = await qb_add_torrent_file(torrent_content, sid, tag=QB_TAG_PERSONAL)
+    # 添加种子文件 (使用"雷达下载"标签)
+    success = await qb_add_torrent_file(torrent_content, sid, tag=QB_TAG_RADAR)
 
     if success:
         return {"success": True, "message": "已添加到下载队列"}
