@@ -9,7 +9,7 @@ from typing import Dict, Optional
 from datetime import datetime
 
 from app.config import logger
-from app.services.panel_db import get_latest_stats
+from app.services.panel_db import get_latest_stats, get_traffic_history, get_share_ratio_history, aggregate_data
 from app.services.mteam_api import fetch_user_profile
 from app.services.qbittorrent import qb_login, qb_get_mteam_stats
 from app.utils import format_size
@@ -123,4 +123,121 @@ async def get_panel_stats() -> Dict:
             "qbittorrent": {},
             "user": {},
             "last_update": int(datetime.utcnow().timestamp())
+        }
+
+
+@router.get("/api/panel/history")
+async def get_panel_history(range: str = "24h") -> Dict:
+    """获取流量历史数据
+
+    Args:
+        range: 时间范围，可选值: 24h, 7d, 30d
+
+    Returns:
+        {
+            "range": "24h",
+            "aggregation": "5min",
+            "data_points": [...]
+        }
+    """
+    try:
+        # 解析时间范围
+        range_hours = {
+            "24h": 24,
+            "7d": 168,  # 7 * 24
+            "30d": 720  # 30 * 24
+        }
+
+        if range not in range_hours:
+            return {
+                "error": "Invalid range parameter. Use 24h, 7d, or 30d",
+                "range": range,
+                "data_points": []
+            }
+
+        hours = range_hours[range]
+
+        # 获取原始数据
+        raw_data = get_traffic_history(hours)
+
+        # 确定聚合间隔
+        aggregation_map = {
+            "24h": {"seconds": 0, "label": "none"},  # 不聚合
+            "7d": {"seconds": 3600, "label": "1hour"},  # 1小时
+            "30d": {"seconds": 86400, "label": "1day"}  # 1天
+        }
+
+        agg_config = aggregation_map[range]
+        aggregation_label = agg_config["label"]
+
+        # 应用聚合
+        if agg_config["seconds"] > 0:
+            data_points = aggregate_data(raw_data, agg_config["seconds"])
+        else:
+            data_points = raw_data
+
+        return {
+            "range": range,
+            "aggregation": aggregation_label,
+            "data_points": data_points
+        }
+
+    except Exception as e:
+        logger.error(f"获取历史数据失败: {e}")
+        return {
+            "error": str(e),
+            "range": range,
+            "data_points": []
+        }
+
+
+@router.get("/api/panel/share-ratio")
+async def get_panel_share_ratio(range: str = "24h") -> Dict:
+    """获取分享率历史数据
+
+    Args:
+        range: 时间范围，可选值: 24h, 7d, 30d
+
+    Returns:
+        {
+            "range": "24h",
+            "data_points": [...],
+            "current": 1.23,
+            "highest": 1.50,
+            "lowest": 1.00,
+            "change_24h": 0.05
+        }
+    """
+    try:
+        # 解析时间范围
+        range_hours = {
+            "24h": 24,
+            "7d": 168,
+            "30d": 720
+        }
+
+        if range not in range_hours:
+            return {
+                "error": "Invalid range parameter. Use 24h, 7d, or 30d",
+                "range": range,
+                "data_points": []
+            }
+
+        hours = range_hours[range]
+
+        # 获取数据
+        data_points, stats = get_share_ratio_history(hours)
+
+        return {
+            "range": range,
+            "data_points": data_points,
+            **stats
+        }
+
+    except Exception as e:
+        logger.error(f"获取分享率历史失败: {e}")
+        return {
+            "error": str(e),
+            "range": range,
+            "data_points": []
         }

@@ -215,3 +215,208 @@ async def get_latest_stats() -> Optional[Dict]:
     except Exception as e:
         logger.error(f"获取最新统计失败: {e}")
         return None
+
+
+def get_traffic_history(hours: int) -> List[Dict]:
+    """获取流量历史数据
+
+    Args:
+        hours: 查询的小时数
+
+    Returns:
+        数据点列表，格式: [
+            {
+                "timestamp": 1234567890,
+                "mteam": {"uploaded": 123, "downloaded": 456},
+                "qbittorrent": {"uploaded": 789, "downloaded": 101112}
+            }
+        ]
+    """
+    try:
+        cutoff_timestamp = int((datetime.utcnow() - timedelta(hours=hours)).timestamp())
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # 查询指定时间范围内的所有数据点
+        cursor.execute("""
+            SELECT timestamp, source, uploaded, downloaded
+            FROM traffic_stats
+            WHERE timestamp >= ?
+            ORDER BY timestamp ASC
+        """, (cutoff_timestamp,))
+
+        rows = cursor.fetchall()
+        conn.close()
+
+        # 按时间戳组织数据
+        data_by_timestamp = {}
+        for row in rows:
+            timestamp = row["timestamp"]
+            source = row["source"]
+
+            if timestamp not in data_by_timestamp:
+                data_by_timestamp[timestamp] = {
+                    "timestamp": timestamp,
+                    "mteam": {"uploaded": 0, "downloaded": 0},
+                    "qbittorrent": {"uploaded": 0, "downloaded": 0}
+                }
+
+            data_by_timestamp[timestamp][source] = {
+                "uploaded": row["uploaded"],
+                "downloaded": row["downloaded"]
+            }
+
+        # 转换为列表并排序
+        result = sorted(data_by_timestamp.values(), key=lambda x: x["timestamp"])
+        return result
+
+    except Exception as e:
+        logger.error(f"获取流量历史失败: {e}")
+        return []
+
+
+def get_share_ratio_history(hours: int) -> Tuple[List[Dict], Dict]:
+    """获取分享率历史数据
+
+    Args:
+        hours: 查询的小时数
+
+    Returns:
+        (数据点列表, 统计信息)
+        数据点格式: [{"timestamp": 1234567890, "share_ratio": 1.23}]
+        统计信息格式: {
+            "current": 1.23,
+            "highest": 1.50,
+            "lowest": 1.00,
+            "change_24h": 0.05
+        }
+    """
+    try:
+        cutoff_timestamp = int((datetime.utcnow() - timedelta(hours=hours)).timestamp())
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # 查询指定时间范围内的分享率数据
+        cursor.execute("""
+            SELECT timestamp, share_ratio
+            FROM user_stats
+            WHERE timestamp >= ?
+            ORDER BY timestamp ASC
+        """, (cutoff_timestamp,))
+
+        rows = cursor.fetchall()
+        conn.close()
+
+        if not rows:
+            return [], {}
+
+        # 转换为列表
+        data_points = [
+            {"timestamp": row["timestamp"], "share_ratio": row["share_ratio"]}
+            for row in rows
+        ]
+
+        # 计算统计信息
+        ratios = [point["share_ratio"] for point in data_points]
+        current = ratios[-1] if ratios else 0
+        highest = max(ratios) if ratios else 0
+        lowest = min(ratios) if ratios else 0
+
+        # 计算24小时变化
+        change_24h = 0
+        timestamp_24h_ago = int((datetime.utcnow() - timedelta(hours=24)).timestamp())
+        # 找到最接近24小时前的数据点
+        past_ratio = None
+        for point in data_points:
+            if point["timestamp"] >= timestamp_24h_ago:
+                if past_ratio is None:
+                    # 使用前一个点作为24小时前的值（如果存在）
+                    past_idx = data_points.index(point)
+                    if past_idx > 0:
+                        past_ratio = data_points[past_idx - 1]["share_ratio"]
+                    else:
+                        past_ratio = point["share_ratio"]
+                break
+
+        if past_ratio is not None:
+            change_24h = current - past_ratio
+
+        stats = {
+            "current": round(current, 3),
+            "highest": round(highest, 3),
+            "lowest": round(lowest, 3),
+            "change_24h": round(change_24h, 3)
+        }
+
+        return data_points, stats
+
+    except Exception as e:
+        logger.error(f"获取分享率历史失败: {e}")
+        return [], {}
+
+
+def aggregate_data(data_points: List[Dict], interval_seconds: int) -> List[Dict]:
+    """聚合数据点
+
+    将数据点按时间间隔分组，每组取最大值（因为是累计值）
+
+    Args:
+        data_points: 原始数据点列表
+        interval_seconds: 聚合间隔（秒）
+
+    Returns:
+        聚合后的数据点列表
+    """
+    if not data_points or interval_seconds <= 0:
+        return data_points
+
+    try:
+        # 按时间桶分组
+        buckets = {}
+        for point in data_points:
+            timestamp = point["timestamp"]
+            bucket_key = (timestamp // interval_seconds) * interval_seconds
+
+            if bucket_key not in buckets:
+                buckets[bucket_key] = []
+            buckets[bucket_key].append(point)
+
+        # 对每个桶内的数据取最大值
+        result = []
+        for bucket_timestamp in sorted(buckets.keys()):
+            bucket_points = buckets[bucket_timestamp]
+
+            # 根据数据结构决定如何聚合
+            if "share_ratio" in bucket_points[0]:
+                # 分享率数据：取最大值
+                max_ratio = max(p["share_ratio"] for p in bucket_points)
+                result.append({
+                    "timestamp": bucket_timestamp,
+                    "share_ratio": max_ratio
+                })
+            elif "mteam" in bucket_points[0]:
+                # 流量数据：取最大值
+                max_mteam_up = max(p["mteam"]["uploaded"] for p in bucket_points)
+                max_mteam_down = max(p["mteam"]["downloaded"] for p in bucket_points)
+                max_qb_up = max(p["qbittorrent"]["uploaded"] for p in bucket_points)
+                max_qb_down = max(p["qbittorrent"]["downloaded"] for p in bucket_points)
+
+                result.append({
+                    "timestamp": bucket_timestamp,
+                    "mteam": {
+                        "uploaded": max_mteam_up,
+                        "downloaded": max_mteam_down
+                    },
+                    "qbittorrent": {
+                        "uploaded": max_qb_up,
+                        "downloaded": max_qb_down
+                    }
+                })
+
+        return result
+
+    except Exception as e:
+        logger.error(f"聚合数据失败: {e}")
+        return data_points
