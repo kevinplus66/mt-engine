@@ -30,6 +30,8 @@ from app.routes.pilot import router as pilot_router
 from app.core.pilot import pilot_loop
 from app.models import DownloadRequest, SearchRequest
 import app.state as state
+from app.services.panel_db import init_database
+from app.services.panel_collector import collect_panel_data, cleanup_panel_data
 
 
 # ============ 速率限制 ============
@@ -76,6 +78,17 @@ def radar_throttle(client_ip: str) -> bool:
     return True
 
 
+async def daily_cleanup():
+    """每日清理旧数据"""
+    while True:
+        try:
+            await asyncio.sleep(86400)  # 24小时
+            await cleanup_panel_data()
+            logger.info("PANEL 数据清理完成")
+        except Exception as e:
+            logger.error(f"PANEL 数据清理异常: {e}")
+
+
 # ============ 生命周期管理 ============
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -88,23 +101,35 @@ async def lifespan(app: FastAPI):
     state.COUNTRY_LABELS = country_labels
     logger.info(f"已加载 {len(country_labels)} 个国家映射")
 
+    # 初始化 PANEL 数据库
+    init_database()
+    logger.info("PANEL 数据库已初始化")
+
     # 启动后台刷新任务（会立即执行第一次刷新）
     refresh_task = asyncio.create_task(background_refresh())
 
     # 启动领航后台任务
     pilot_task = asyncio.create_task(pilot_loop())
 
+    # 启动每日清理任务
+    cleanup_task = asyncio.create_task(daily_cleanup())
+
     yield
 
     # 关闭时清理
     refresh_task.cancel()
     pilot_task.cancel()
+    cleanup_task.cancel()
     try:
         await refresh_task
     except asyncio.CancelledError:
         pass
     try:
         await pilot_task
+    except asyncio.CancelledError:
+        pass
+    try:
+        await cleanup_task
     except asyncio.CancelledError:
         pass
 

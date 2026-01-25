@@ -200,6 +200,14 @@ async def background_refresh():
     while True:
         start_time = asyncio.get_event_loop().time()
         await fetch_all_free_torrents()
+
+        # 采集 PANEL 数据
+        try:
+            from app.services.panel_collector import collect_panel_data
+            await collect_panel_data()
+        except Exception as e:
+            logger.error(f"PANEL 数据采集异常: {e}")
+
         elapsed = asyncio.get_event_loop().time() - start_time
         sleep_time = max(60, REFRESH_INTERVAL - elapsed)  # 至少等待60秒
         logger.info(f"数据刷新完成，耗时 {elapsed:.1f}秒，下次刷新在 {sleep_time:.0f}秒后")
