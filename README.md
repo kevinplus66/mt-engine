@@ -5,7 +5,7 @@
 ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
 ![Docker](https://img.shields.io/badge/docker-ready-blue.svg)
 
-M-Team 引擎 - 雷达 RADAR / 声呐 SONAR / 领航 PILOT
+M-Team 引擎 - 雷达 RADAR / 声呐 SONAR / 领航 PILOT / 面板 PANEL
 
 ---
 
@@ -13,10 +13,11 @@ M-Team 引擎 - 雷达 RADAR / 声呐 SONAR / 领航 PILOT
 
 ## 简介
 
-**M-Team Engine (MT 引擎)** 是一个三功能 M-Team 工具：
+**M-Team Engine (MT 引擎)** 是一个四功能 M-Team 工具：
 1. **声呐 (SONAR)** - 自动追踪 Free/2xFree 限时免费种子
 2. **雷达 (RADAR)** - 全能种子搜索，支持高级筛选和一键下载
 3. **领航 (PILOT)** - 规则化自动下载和管理免费种子
+4. **面板 (PANEL)** - 个人数据仪表盘，可视化历史趋势和统计
 
 ### 主要功能
 
@@ -25,6 +26,7 @@ M-Team 引擎 - 雷达 RADAR / 声呐 SONAR / 领航 PILOT
 | **声呐 (SONAR)** - 自动搜索 Free/2xFree 种子 |
 | **雷达 (RADAR)** - 电影/电视剧/成人内容搜索 |
 | **领航 (PILOT)** - 规则化自动管理系统 |
+| **面板 (PANEL)** - 数据可视化和趋势分析仪表盘 |
 | 高级筛选（分辨率/视频编码/音频编码/来源） |
 | 可展开行显示质量元数据（分辨率、编码、音频、来源、制作组） |
 | 一键下载到 qBittorrent（带标签分类） |
@@ -43,6 +45,31 @@ M-Team 引擎 - 雷达 RADAR / 声呐 SONAR / 领航 PILOT
 | 安全加固（XSS防护、速率限制）|
 | PushPlus 微信推送预警 |
 | qBittorrent 集成与自动删除 |
+
+### PANEL (面板) - 数据可视化仪表盘
+
+**实时统计卡片：**
+- 分享率（带 24 小时趋势线）
+- 上传/下载总量（MB/GB/TB）
+- 魔力值（魔力值）
+- 做种数/下载数
+- 用户等级
+- 最后更新时间
+
+**历史趋势图表：**
+- 上传/下载趋势图（4 线叠加对比 qBittorrent 和 M-Team）
+- 每日总量柱状图（过去 30 天）
+- 分享率变化折线图（显示最高/最低点）
+- 时间范围切换（24H/7D/30D）
+- 智能数据聚合（24H=5分钟/7D=1小时/30D=1天）
+
+**技术特性：**
+- SQLite 时序数据库（30 天自动清理）
+- Chart.js 4.4.0 可视化
+- UTC 存储，北京时间显示 (Asia/Shanghai, UTC+8)
+- 每 5 分钟自动采集数据
+- 自动刷新仪表盘
+- Nothing OS 设计系统，响应式布局
 
 ---
 
