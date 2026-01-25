@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PANEL - MT-Engine</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Inter:wght@400;500;600&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/variables.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/layout.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/components.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/modules/navbar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/modules/toast.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/modules/panel.css') }}">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', path='/favicon.png') }}">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-left">
+                <span class="navbar-title">MT-ENGINE</span>
+                <span class="navbar-subtitle">PANEL</span>
+            </div>
+            <div class="navbar-right">
+                <button id="theme-toggle" class="icon-button" aria-label="Toggle theme">
+                    <span class="theme-icon">◐</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container">
+        <!-- Stats Cards Grid -->
+        <section class="stats-grid">
+            <!-- Card: Share Ratio -->
+            <div class="stat-card" id="card-share-ratio">
+                <div class="stat-label">分享率</div>
+                <div class="stat-value">--</div>
+                <div class="stat-trend">
+                    <svg class="mini-chart"></svg>
+                    <span class="stat-change">--</span>
+                </div>
+            </div>
+
+            <!-- Card: Uploaded -->
+            <div class="stat-card" id="card-uploaded">
+                <div class="stat-label">总上传量</div>
+                <div class="stat-value">--</div>
+                <div class="stat-subvalue">M-Team</div>
+            </div>
+
+            <!-- Card: Downloaded -->
+            <div class="stat-card" id="card-downloaded">
+                <div class="stat-label">总下载量</div>
+                <div class="stat-value">--</div>
+                <div class="stat-subvalue">M-Team</div>
+            </div>
+
+            <!-- Card: Bonus -->
+            <div class="stat-card" id="card-bonus">
+                <div class="stat-label">魔力值</div>
+                <div class="stat-value">--</div>
+            </div>
+
+            <!-- Card: Seeding -->
+            <div class="stat-card" id="card-seeding">
+                <div class="stat-label">做种数</div>
+                <div class="stat-value">--</div>
+            </div>
+
+            <!-- Card: Leeching -->
+            <div class="stat-card" id="card-leeching">
+                <div class="stat-label">下载数</div>
+                <div class="stat-value">--</div>
+            </div>
+
+            <!-- Card: User Level -->
+            <div class="stat-card" id="card-level">
+                <div class="stat-label">用户等级</div>
+                <div class="stat-value">--</div>
+            </div>
+
+            <!-- Card: Last Update -->
+            <div class="stat-card" id="card-update">
+                <div class="stat-label">最后更新</div>
+                <div class="stat-value last-update-time">--</div>
+            </div>
+        </section>
+
+        <!-- Chart Controls -->
+        <section class="chart-controls">
+            <div class="range-buttons">
+                <button class="range-btn active" data-range="24h">24H</button>
+                <button class="range-btn" data-range="7d">7D</button>
+                <button class="range-btn" data-range="30d">30D</button>
+            </div>
+        </section>
+
+        <!-- Traffic Trend Chart -->
+        <section class="chart-container">
+            <h3 class="chart-title">上传/下载趋势</h3>
+            <canvas id="traffic-chart"></canvas>
+        </section>
+
+        <!-- Daily Total Chart -->
+        <section class="chart-container">
+            <h3 class="chart-title">每日总量对比</h3>
+            <canvas id="daily-chart"></canvas>
+        </section>
+
+        <!-- Share Ratio Chart -->
+        <section class="chart-container">
+            <h3 class="chart-title">分享率变化</h3>
+            <canvas id="ratio-chart"></canvas>
+        </section>
+    </main>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', path='/js/config.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/utils.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/components/theme.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/components/toast.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/components/chart.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/components/stats-card.js') }}"></script>
+    <script src="{{ url_for('static', path='/js/pages/panel.js') }}"></script>
+</body>
+</html>
