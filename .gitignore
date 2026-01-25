@@ -56,3 +56,7 @@ tests/
 *.bak
 *.tmp
 *.backup
+
+# PANEL Database
+data/panel.db
+data/panel.db-journal
