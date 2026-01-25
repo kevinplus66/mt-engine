@@ -308,7 +308,7 @@ export async function executeRadar() {
             // Close mobile drawer if open
             closeFilterDrawer();
         } else {
-            showToast(result.error || t('search_failed'));
+            showToast(result.error || t('searchFailed'));
             const initialState = document.getElementById('initialState');
             const emptyState = document.getElementById('emptyState');
             if (initialState) initialState.style.display = 'none';
@@ -317,7 +317,7 @@ export async function executeRadar() {
         }
     } catch (error) {
         console.error('Search error:', error);
-        showToast(t('search_failed'));
+        showToast(t('searchFailed'));
         renderTorrents([], true);
     } finally {
         radarState.loading = false;
@@ -387,7 +387,7 @@ export async function loadMore() {
         radarState.loading = false;
         if (loadMoreBtn) {
             loadMoreBtn.disabled = false;
-            loadMoreBtn.textContent = t('load_more');
+            loadMoreBtn.textContent = t('loadMore');
         }
     }
 }

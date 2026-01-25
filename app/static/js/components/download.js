@@ -36,14 +36,14 @@ export async function downloadTorrent(id, btn, isSearch = true) {
 
         if (result.success) {
             markAsDownloaded(btn);
-            showToast(result.message || t('downloadSuccess'));
+            showToast(t('downloadSuccess'));
         } else {
             // Restore button state on failure
             btn.disabled = false;
             btn.classList.remove('btn--loading');
             if (icon) icon.textContent = originalIcon;
             if (text) text.textContent = originalText;
-            showToast(result.error || t('downloadFailed'));
+            showToast(result.error ? t('errors.' + result.error) : t('downloadFailed'));
         }
     } catch (error) {
         console.error('Download error:', error);
@@ -51,7 +51,7 @@ export async function downloadTorrent(id, btn, isSearch = true) {
         btn.classList.remove('btn--loading');
         if (icon) icon.textContent = originalIcon;
         if (text) text.textContent = originalText;
-        showToast(t('download_failed'));
+        showToast(t('downloadFailed'));
     }
 }
 

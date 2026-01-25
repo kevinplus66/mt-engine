@@ -43,10 +43,10 @@ export async function initPilotPage() {
     await loadStats();
     await loadConfig();
 
-    // Auto-refresh stats every 10 seconds
+    // Auto-refresh stats every 60 seconds
     setInterval(() => {
         loadStats();
-    }, 10000);
+    }, 60000);
 
     console.log('Pilot page initialized');
 }
@@ -156,7 +156,7 @@ async function saveConfig() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(currentConfig)
         });
-        showToast(result.message || t('autoConfigSaved'));
+        showToast(t('autoConfigSaved'));
         await loadStats(); // Refresh stats after config change
     } catch (error) {
         console.error('Failed to save config:', error);
@@ -172,7 +172,7 @@ async function saveConfigFromForm() {
     currentConfig.download.max_active_tasks = parseInt(formData.get('maxActiveTasks'));
     currentConfig.download.interval_seconds = parseInt(formData.get('intervalSeconds'));
     currentConfig.download.save_path = formData.get('savePath');
-    currentConfig.download.disk_usage_threshold = parseInt(formData.get('diskThreshold')) / 100;
+    currentConfig.download.disk_usage_threshold = parseInt(formData.get('diskThreshold'));
 
     // Rules
     currentConfig.download.rules.min_size_gb = parseFloat(formData.get('minSizeGb'));
@@ -198,7 +198,7 @@ async function saveConfigFromForm() {
     currentConfig.cleanup.dead_seed_max_ratio = parseFloat(formData.get('deadSeedMaxRatio'));
     currentConfig.cleanup.min_current_users = parseInt(formData.get('minCurrentUsers'));
     currentConfig.cleanup.min_upload_speed_kbps = parseInt(formData.get('minUploadSpeedKbps'));
-    currentConfig.cleanup.elimination_ratio = parseInt(formData.get('eliminationRatio')) / 100;
+    currentConfig.cleanup.elimination_ratio = parseInt(formData.get('eliminationRatio'));
 
     await saveConfig();
 }
@@ -276,7 +276,7 @@ async function triggerDownload() {
 
     try {
         const result = await fetchAPI('/api/pilot/run-download', { method: 'POST' });
-        showToast(result.message || t('autoDownloadTriggered'));
+        showToast(t('autoDownloadTriggered'));
         await loadStats();
     } catch (error) {
         console.error('Download trigger failed:', error);
@@ -295,7 +295,7 @@ async function triggerCleanup() {
 
     try {
         const result = await fetchAPI('/api/pilot/run-cleanup', { method: 'POST' });
-        showToast(result.message || t('autoCleanupTriggered'));
+        showToast(t('autoCleanupTriggered'));
         await loadStats();
     } catch (error) {
         console.error('Cleanup trigger failed:', error);
@@ -353,13 +353,13 @@ function renderConfigForm() {
     form.maxActiveTasks.value = currentConfig.download.max_active_tasks;
     form.intervalSeconds.value = currentConfig.download.interval_seconds;
     form.savePath.value = currentConfig.download.save_path;
-    form.diskThreshold.value = Math.round(currentConfig.download.disk_usage_threshold * 100);
+    form.diskThreshold.value = currentConfig.download.disk_usage_threshold;
 
     // Rules
     form.minSizeGb.value = currentConfig.download.rules.min_size_gb;
     form.maxSizeGb.value = currentConfig.download.rules.max_size_gb;
-    form.maxSeeders.value = currentConfig.download.rules.max_seeders || 0;
-    form.minLeechers.value = currentConfig.download.rules.min_leechers || 0;
+    form.maxSeeders.value = currentConfig.download.rules.max_seeders;
+    form.minLeechers.value = currentConfig.download.rules.min_leechers;
     form.includeKeywords.value = currentConfig.download.rules.include_keywords.join(', ');
     form.excludeKeywords.value = currentConfig.download.rules.exclude_keywords.join(', ');
 
@@ -373,11 +373,11 @@ function renderConfigForm() {
     form.minShareRatio.value = currentConfig.cleanup.min_share_ratio;
     form.minSeedTimeHours.value = currentConfig.cleanup.min_seed_time_hours;
     form.maxDownloadTimeHours.value = currentConfig.cleanup.max_download_time_hours;
-    form.deadSeedMinutes.value = currentConfig.cleanup.dead_seed_minutes || 30;
-    form.deadSeedMaxRatio.value = currentConfig.cleanup.dead_seed_max_ratio || 0.01;
-    form.minCurrentUsers.value = currentConfig.cleanup.min_current_users || 0;
-    form.minUploadSpeedKbps.value = currentConfig.cleanup.min_upload_speed_kbps || 0;
-    form.eliminationRatio.value = Math.round((currentConfig.cleanup.elimination_ratio || 0.2) * 100);
+    form.deadSeedMinutes.value = currentConfig.cleanup.dead_seed_minutes;
+    form.deadSeedMaxRatio.value = currentConfig.cleanup.dead_seed_max_ratio;
+    form.minCurrentUsers.value = currentConfig.cleanup.min_current_users;
+    form.minUploadSpeedKbps.value = currentConfig.cleanup.min_upload_speed_kbps;
+    form.eliminationRatio.value = currentConfig.cleanup.elimination_ratio;
 }
 
 function escapeHtml(text) {

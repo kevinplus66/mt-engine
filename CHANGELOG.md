@@ -2,6 +2,26 @@
 
 All notable changes to M-Team Engine.
 
+## [5.1.0] - 2026-01 - PILOT 优化与性能提升
+
+### Architecture Optimization
+**PILOT 前后端分离优化**:
+- 前端移除所有 config 数据转换逻辑，所有数值由后端统一提供
+- 百分比字段整数化：`disk_usage_threshold` 和 `elimination_ratio` 改为整数存储 (90 而非 0.90)
+- 自动配置迁移：旧配置文件自动迁移到新格式，无需手动处理
+
+### New Features
+- 僵尸种子检测：新增 `dead_seed_minutes` 和 `dead_seed_max_ratio` 配置项
+- 末位淘汰优化：基于综合评分（速度、体积、做种人数）智能清理
+
+### Performance Optimization
+- 后端 M-Team API 刷新间隔：10分钟 → 5分钟
+- SONAR 前端轮询优化：1分钟 → 5分钟 (与后端同步)
+- PILOT stats 轮询优化：10秒 → 1分钟
+- 减少无效请求，降低系统负载
+
+---
+
 ## [5.0.0] - 2026-01 - PILOT (领航) Module
 
 ### New Feature: PILOT

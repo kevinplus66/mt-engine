@@ -66,7 +66,7 @@ ALERT_COOLDOWN = 1800
 
 
 # ============ 刷新与缓存配置 ============
-REFRESH_INTERVAL = safe_int(os.getenv("REFRESH_INTERVAL", "600"), 600, min_val=60, max_val=86400)
+REFRESH_INTERVAL = safe_int(os.getenv("REFRESH_INTERVAL", "300"), 300, min_val=60, max_val=86400)
 
 # 缓存间隔常量
 USER_STATUS_CACHE_HOURS = 1   # 用户状态缓存1小时

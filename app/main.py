@@ -3,7 +3,7 @@ MT-Engine - M-Team 工具引擎
 雷达 RADAR / 声呐 SONAR / 领航 PILOT
 """
 
-__version__ = "5.0.0"
+__version__ = "5.1.0"
 
 import asyncio
 from datetime import datetime

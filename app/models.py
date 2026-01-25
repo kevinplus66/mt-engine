@@ -51,10 +51,11 @@ class RuleConfig(BaseModel):
     min_leechers: int = Field(100, ge=0)  # Minimum leechers required
 
     # Scoring weights (bounded to prevent extreme values)
-    weight_size: float = Field(0.0, ge=-10, le=10)
-    weight_free_time: float = Field(0.0, ge=-10, le=10)
-    weight_age: float = Field(0.0, ge=-10, le=10)
-    weight_seeders: float = Field(0.0, ge=-10, le=10)
+    # Negative weight_size = prefer larger files
+    weight_size: float = Field(-1.0, ge=-10, le=10)
+    weight_free_time: float = Field(2.0, ge=-10, le=10)
+    weight_age: float = Field(0.5, ge=-10, le=10)
+    weight_seeders: float = Field(1.0, ge=-10, le=10)
 
 
 class DownloadPolicy(BaseModel):
@@ -63,7 +64,7 @@ class DownloadPolicy(BaseModel):
     max_active_tasks: int = Field(20, ge=1, le=50)
     interval_seconds: int = Field(300, ge=60)
     save_path: str = "/downloads/mt_free_farm"
-    disk_usage_threshold: float = Field(0.90, ge=0.5, le=0.95)
+    disk_usage_threshold: int = Field(90, ge=50, le=95)  # 百分比 50-95%
     rules: RuleConfig = Field(default_factory=RuleConfig)
 
 
@@ -74,10 +75,14 @@ class CleanupPolicy(BaseModel):
     min_seed_time_hours: int = Field(1, ge=0)  # H&R protection
     max_download_time_hours: int = Field(12, ge=0)  # Zombie task timeout
 
+    # Dead seed detection
+    dead_seed_minutes: int = Field(30, ge=5)
+    dead_seed_max_ratio: float = Field(0.01, ge=0)
+
     # Bottom performers elimination
-    min_current_users: int = Field(10, ge=0)  # Delete if seeders + leechers < this (from qB tracker)
-    min_upload_speed_kbps: int = Field(300, ge=0)  # Min average upload speed (KB/s)
-    elimination_ratio: float = Field(0.2, ge=0.0, le=0.5)  # Delete slowest X% PILOT tasks each cleanup cycle
+    min_current_users: int = Field(5, ge=0)  # Delete if seeders + leechers < this (from qB tracker)
+    min_upload_speed_kbps: int = Field(200, ge=0)  # Min average upload speed (KB/s)
+    elimination_ratio: int = Field(15, ge=0, le=50)  # Eliminate lowest 15% by score
 
 
 class AutomationConfig(BaseModel):

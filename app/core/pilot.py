@@ -56,6 +56,19 @@ class PilotManager:
                     del data['cleanup']['max_pilot_tasks_ratio']
                     logger.info(f"Migrated config: removed max_pilot_tasks_ratio={old_ratio}, will use elimination_ratio default")
 
+                # Migrate float percentages to integer percentages
+                if 'download' in data:
+                    disk_val = data['download'].get('disk_usage_threshold')
+                    if disk_val is not None and disk_val <= 1:
+                        data['download']['disk_usage_threshold'] = int(disk_val * 100)
+                        logger.info(f"Migrated disk_usage_threshold: {disk_val} -> {data['download']['disk_usage_threshold']}")
+
+                if 'cleanup' in data:
+                    elim_val = data['cleanup'].get('elimination_ratio')
+                    if elim_val is not None and elim_val <= 1:
+                        data['cleanup']['elimination_ratio'] = int(elim_val * 100)
+                        logger.info(f"Migrated elimination_ratio: {elim_val} -> {data['cleanup']['elimination_ratio']}")
+
                 logger.info("Loaded pilot config from file")
                 return AutomationConfig(**data)
             except Exception as e:
@@ -84,7 +97,7 @@ class PilotManager:
             save_path = self.config.download.save_path
             usage = shutil.disk_usage(save_path)
             current = usage.used / usage.total
-            threshold = self.config.download.disk_usage_threshold
+            threshold = self.config.download.disk_usage_threshold / 100
 
             if current >= threshold:
                 logger.warning(
@@ -253,15 +266,33 @@ class PilotManager:
                 remaining_tasks.append(task)
                 logger.debug(f"Keep: {task.get('name', '')[:50]} - {reason}")
 
-        # Phase 2: Bottom performers elimination
+        # Phase 2: Bottom performers elimination (only for mature seeds)
         if remaining_tasks:
+            # Filter mature seeds: completed + seeding_time > min_seed_time_hours
+            mature_tasks = []
+            for task in remaining_tasks:
+                progress = task.get('progress', 0)
+                seeding_time_hours = task.get('seeding_time', 0) / 3600
+
+                # Skip downloading tasks
+                if progress < 1.0:
+                    logger.debug(f"Phase2 skip (downloading): {task.get('name', '')[:50]}")
+                    continue
+
+                # Skip tasks with insufficient seeding time
+                if seeding_time_hours < cleanup.min_seed_time_hours:
+                    logger.debug(f"Phase2 skip (seeding {seeding_time_hours:.2f}h): {task.get('name', '')[:50]}")
+                    continue
+
+                mature_tasks.append(task)
+
             # Get active hashes for history cleanup
-            active_hashes = {t.get('hash', '') for t in remaining_tasks}
+            active_hashes = {t.get('hash', '') for t in mature_tasks}
             self._cleanup_upload_history(active_hashes)
 
             # Calculate sliding window speed for each task
             tasks_with_speed = []
-            for task in remaining_tasks:
+            for task in mature_tasks:
                 avg_speed = self._get_sliding_window_speed(task, window_minutes=30)
                 if avg_speed >= 0:  # Has enough data
                     task['_avg_speed_kbps'] = avg_speed
@@ -270,8 +301,12 @@ class PilotManager:
                     # Not enough history, skip this task for now
                     logger.debug(f"Skip speed check (not enough history): {task.get('name', '')[:50]}")
 
-            # Sort by average speed (lowest first)
-            tasks_with_speed.sort(key=lambda t: t['_avg_speed_kbps'])
+            # Calculate cleanup score for each task
+            for task in tasks_with_speed:
+                task['_cleanup_score'] = self._calculate_cleanup_score(task, task['_avg_speed_kbps'])
+
+            # Sort by cleanup score (lowest first - lowest score = delete first)
+            tasks_with_speed.sort(key=lambda t: t['_cleanup_score'])
 
             # Condition A: Delete tasks below speed threshold
             for task in tasks_with_speed:
@@ -280,21 +315,22 @@ class PilotManager:
                     if await self._delete_task(task, sid, f"Low speed: {avg_speed:.1f} KB/s (30min avg)"):
                         deleted_count += 1
 
-            # Condition B: Elimination ratio (delete slowest X%)
+            # Condition B: Elimination ratio (delete lowest scored X%)
             if cleanup.elimination_ratio > 0 and tasks_with_speed:
                 # Recalculate remaining after Condition A
                 remaining_after_a = len(auto_tasks) - deleted_count
                 if remaining_after_a > 1:  # Keep at least 1 task
-                    to_eliminate = max(1, int(remaining_after_a * cleanup.elimination_ratio))
+                    to_eliminate = max(1, int(remaining_after_a * cleanup.elimination_ratio / 100))
                     # Filter tasks not yet deleted by Condition A
                     still_remaining = [t for t in tasks_with_speed
                                       if t['_avg_speed_kbps'] >= cleanup.min_upload_speed_kbps]
-                    # Delete from slowest
+                    # Delete from lowest score
                     for task in still_remaining[:to_eliminate]:
                         if len(auto_tasks) - deleted_count <= 1:
                             break  # Keep at least 1
                         avg_speed = task['_avg_speed_kbps']
-                        if await self._delete_task(task, sid, f"Bottom {cleanup.elimination_ratio:.0%}: {avg_speed:.1f} KB/s"):
+                        cleanup_score = task['_cleanup_score']
+                        if await self._delete_task(task, sid, f"Bottom {cleanup.elimination_ratio}%: score={cleanup_score:.4f} ({avg_speed:.1f} KB/s)"):
                             deleted_count += 1
 
         if deleted_count > 0:
@@ -387,6 +423,42 @@ class PilotManager:
             h: data for h, data in self._upload_history.items()
             if h in active_hashes
         }
+
+    def _calculate_cleanup_score(self, task: dict, avg_speed_kbps: float) -> float:
+        """
+        Calculate cleanup score - higher score means keep the task
+
+        Weight preference: size priority (keep large files)
+        - Speed: weight 0.3 (normalized to 0-1, based on 1000 KB/s cap)
+        - Size: weight 0.5 (normalized to 0-1, based on 500 GB cap)
+        - Seeders: weight 0.2 (normalized, fewer seeders = higher score)
+
+        Args:
+            task: qBittorrent task dict
+            avg_speed_kbps: Average upload speed in KB/s (30-minute window)
+
+        Returns:
+            float: Cleanup score (0-1 range, higher = keep)
+        """
+        # Normalize speed (0-1000 KB/s -> 0-1)
+        speed_score = min(avg_speed_kbps / 1000, 1.0)
+
+        # Normalize size (0-500 GB -> 0-1), larger = higher score
+        size_bytes = task.get('size', 0)
+        size_gb = size_bytes / (1024**3)
+        size_score = min(size_gb / 500, 1.0)
+
+        # Normalize seeders (0-100 -> 1-0), fewer = higher score
+        seeders = task.get('num_complete', 0)
+        seeders_score = max(0, 1 - min(seeders, 100) / 100)
+
+        # Weighted sum
+        total = (
+            0.3 * speed_score +
+            0.5 * size_score +
+            0.2 * seeders_score
+        )
+        return round(total, 4)
 
 
 def calculate_torrent_score(torrent: dict) -> float:

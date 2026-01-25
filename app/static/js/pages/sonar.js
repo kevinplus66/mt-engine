@@ -38,7 +38,7 @@ let sortState = {
 };
 
 let autoRefreshInterval = null;
-const REFRESH_INTERVAL = 60000; // 1 minute
+const REFRESH_INTERVAL = 300000; // 5 minutes (same as backend)
 
 export function initSonarPage() {
     // Set current page for title
@@ -664,7 +664,7 @@ async function handleToggleAutoDelete(toggleId) {
             showToast(result.enabled ? t('autoDeleteEnabled') : t('autoDeleteDisabled'));
         } else {
             toggle.checked = originalState;
-            showToast(result.message || t('autoDeleteError'));
+            showToast(t('autoDeleteError'));
         }
     } catch (e) {
         toggle.checked = originalState;

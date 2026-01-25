@@ -192,13 +192,15 @@ class RuleEngine:
         seeding_time_hours = seeding_time_seconds / 3600
         ratio = task.get('ratio', 0)
 
-        # Priority 1: Zombie task detection
-        if cleanup.max_download_time_hours > 0:
-            if task_state in ('downloading', 'stalledDL', 'metaDL'):
-                added_time = task.get('added_on', 0)
-                hours_downloading = (time.time() - added_time) / 3600
-                if hours_downloading > cleanup.max_download_time_hours:
-                    return (True, f"Zombie: downloading {hours_downloading:.1f}h")
+        # Priority 1: Downloading task protection
+        progress = task.get('progress', 0)
+        if progress < 1.0:  # Task is downloading
+            added_time = task.get('added_on', 0)
+            hours_since_added = (time.time() - added_time) / 3600
+            if hours_since_added < cleanup.max_download_time_hours:
+                return (False, f"Downloading: {hours_since_added:.1f}h < {cleanup.max_download_time_hours}h")
+            else:
+                return (True, f"Zombie download: {hours_since_added:.1f}h")
 
         # Priority 2: H&R protection
         if seeding_time_hours < cleanup.min_seed_time_hours:
