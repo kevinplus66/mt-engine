@@ -1,12 +1,13 @@
 /* ============================================================================
    MT-Engine - PILOT Page
-   Automation management page initialization and logic
+   Pilot management page initialization and logic
    ============================================================================ */
 
 import { initTheme, toggleTheme } from '../components/theme.js';
 import { initLanguage, toggleLanguage } from '../components/language.js';
 import { showToast } from '../components/toast.js';
 import { t, setCurrentPage } from '../i18n.js';
+import { debounce } from '../utils.js';
 
 // Get CSS variables for colors (Nothing OS design system)
 const getColorVariables = () => {
@@ -21,6 +22,11 @@ const getColorVariables = () => {
 // Page state
 let currentConfig = null;
 let currentStats = null;
+
+// Auto-save with debounce (500ms)
+const autoSave = debounce(async () => {
+    await saveConfigFromForm();
+}, 500);
 
 export async function initPilotPage() {
     // Set current page for title
@@ -42,7 +48,7 @@ export async function initPilotPage() {
         loadStats();
     }, 10000);
 
-    console.log('Automation page initialized');
+    console.log('Pilot page initialized');
 }
 
 function setupEventListeners() {
@@ -79,21 +85,16 @@ function setupEventListeners() {
         });
     }
 
-    // Form submission
+    // Auto-save on form input change
     const rulesForm = document.getElementById('rulesForm');
     if (rulesForm) {
-        rulesForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            await saveConfigFromForm();
-        });
-    }
-
-    // Cancel button
-    const cancelBtn = document.getElementById('cancelBtn');
-    if (cancelBtn) {
-        cancelBtn.addEventListener('click', () => {
-            renderConfigForm();
-            showToast(t('autoChangesCancelled'));
+        // Listen to all input changes
+        rulesForm.querySelectorAll('input').forEach(input => {
+            input.addEventListener('change', autoSave);
+            // For text inputs, also listen to input events (real-time typing)
+            if (input.type === 'text') {
+                input.addEventListener('input', autoSave);
+            }
         });
     }
 
@@ -134,7 +135,7 @@ async function loadConfig() {
         console.log('Config loaded:', currentConfig);
     } catch (error) {
         console.error('Failed to load config:', error);
-        showToast(t('autoConfigLoadFailed'), 'error');
+        showToast(t('autoConfigLoadFailed'));
     }
 }
 
@@ -155,11 +156,11 @@ async function saveConfig() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(currentConfig)
         });
-        showToast(result.message || t('autoConfigSaved'), 'success');
+        showToast(result.message || t('autoConfigSaved'));
         await loadStats(); // Refresh stats after config change
     } catch (error) {
         console.error('Failed to save config:', error);
-        showToast(t('autoConfigSaveFailed'), 'error');
+        showToast(t('autoConfigSaveFailed'));
     }
 }
 
@@ -190,13 +191,14 @@ async function saveConfigFromForm() {
     currentConfig.download.rules.weight_seeders = parseFloat(formData.get('weightSeeders'));
 
     // Cleanup
-    currentConfig.cleanup.delete_on_expired = formData.get('deleteOnExpired') === 'on';
     currentConfig.cleanup.min_share_ratio = parseFloat(formData.get('minShareRatio'));
     currentConfig.cleanup.min_seed_time_hours = parseInt(formData.get('minSeedTimeHours'));
     currentConfig.cleanup.max_download_time_hours = parseInt(formData.get('maxDownloadTimeHours'));
+    currentConfig.cleanup.dead_seed_minutes = parseInt(formData.get('deadSeedMinutes'));
+    currentConfig.cleanup.dead_seed_max_ratio = parseFloat(formData.get('deadSeedMaxRatio'));
     currentConfig.cleanup.min_current_users = parseInt(formData.get('minCurrentUsers'));
     currentConfig.cleanup.min_upload_speed_kbps = parseInt(formData.get('minUploadSpeedKbps'));
-    currentConfig.cleanup.upload_speed_check_minutes = parseInt(formData.get('uploadSpeedCheckMinutes'));
+    currentConfig.cleanup.elimination_ratio = parseInt(formData.get('eliminationRatio')) / 100;
 
     await saveConfig();
 }
@@ -256,10 +258,10 @@ async function runDryRun() {
 
         contentDiv.innerHTML = html;
         resultsDiv.classList.remove('hidden');
-        showToast(t('autoDryRunCompleted'), 'success');
+        showToast(t('autoDryRunCompleted'));
     } catch (error) {
         console.error('Dry run failed:', error);
-        showToast(t('autoDryRunFailed'), 'error');
+        showToast(t('autoDryRunFailed'));
     } finally {
         btn.disabled = false;
         btn.textContent = originalText;
@@ -274,11 +276,11 @@ async function triggerDownload() {
 
     try {
         const result = await fetchAPI('/api/pilot/run-download', { method: 'POST' });
-        showToast(result.message || t('autoDownloadTriggered'), 'success');
+        showToast(result.message || t('autoDownloadTriggered'));
         await loadStats();
     } catch (error) {
         console.error('Download trigger failed:', error);
-        showToast(t('autoDownloadTriggerFailed'), 'error');
+        showToast(t('autoDownloadTriggerFailed'));
     } finally {
         btn.disabled = false;
         btn.textContent = originalText;
@@ -293,11 +295,11 @@ async function triggerCleanup() {
 
     try {
         const result = await fetchAPI('/api/pilot/run-cleanup', { method: 'POST' });
-        showToast(result.message || t('autoCleanupTriggered'), 'success');
+        showToast(result.message || t('autoCleanupTriggered'));
         await loadStats();
     } catch (error) {
         console.error('Cleanup trigger failed:', error);
-        showToast(t('autoCleanupTriggerFailed'), 'error');
+        showToast(t('autoCleanupTriggerFailed'));
     } finally {
         btn.disabled = false;
         btn.textContent = originalText;
@@ -368,13 +370,14 @@ function renderConfigForm() {
     form.weightSeeders.value = currentConfig.download.rules.weight_seeders;
 
     // Cleanup
-    form.deleteOnExpired.checked = currentConfig.cleanup.delete_on_expired;
     form.minShareRatio.value = currentConfig.cleanup.min_share_ratio;
     form.minSeedTimeHours.value = currentConfig.cleanup.min_seed_time_hours;
     form.maxDownloadTimeHours.value = currentConfig.cleanup.max_download_time_hours;
+    form.deadSeedMinutes.value = currentConfig.cleanup.dead_seed_minutes || 30;
+    form.deadSeedMaxRatio.value = currentConfig.cleanup.dead_seed_max_ratio || 0.01;
     form.minCurrentUsers.value = currentConfig.cleanup.min_current_users || 0;
     form.minUploadSpeedKbps.value = currentConfig.cleanup.min_upload_speed_kbps || 0;
-    form.uploadSpeedCheckMinutes.value = currentConfig.cleanup.upload_speed_check_minutes || 10;
+    form.eliminationRatio.value = Math.round((currentConfig.cleanup.elimination_ratio || 0.2) * 100);
 }
 
 function escapeHtml(text) {

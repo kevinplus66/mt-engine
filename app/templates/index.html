@@ -155,6 +155,10 @@
         <div class="results-info">
             <span data-i18n="showing">显示</span> <strong id="filteredCount">0</strong> / <strong id="totalCount">0</strong> <span data-i18n="results">个结果</span>
         </div>
+        <!-- Filter Badge -->
+        <div class="filter-count-badge" id="filterCountBadge">
+            <!-- JS will update this -->
+        </div>
     </div>
 
     <!-- Results Table -->
@@ -184,7 +188,6 @@
                             <span data-i18n="colDate">上传时间</span>
                             <span class="sort-icon">↓</span>
                         </th>
-                        <th data-i18n="colActions">操作</th>
                     </tr>
                 </thead>
                 <tbody id="resultsBody">
@@ -216,7 +219,7 @@
 <!-- Footer -->
 <footer class="footer">
     <div class="container">
-        <p>MT-Engine · RADAR</p>
+        <p><span data-i18n="footerBranding">MT-Engine</span> · <span data-i18n="pageTitle.radar">RADAR</span></p>
         <p style="margin-top: 8px; font-size: 11px; color: var(--nt-text-secondary);">v5.0.0</p>
     </div>
 </footer>
@@ -224,13 +227,13 @@
 
 {% block extra_scripts %}
 <script type="module">
-    import { initSearchPage } from '/static/js/pages/search.js';
+    import { initRadarPage } from '/static/js/pages/radar.js';
 
     // Initialize the search page when DOM is ready
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initSearchPage);
+        document.addEventListener('DOMContentLoaded', initRadarPage);
     } else {
-        initSearchPage();
+        initRadarPage();
     }
 </script>
 {% endblock %}

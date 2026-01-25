@@ -18,11 +18,11 @@
 <div class="drawer-section">
     <div class="drawer-section-title" data-i18n="filterSeeders">做种</div>
     <div class="drawer-pills" id="drawerSeederPills">
-        <button class="drawer-pill active" data-value="all" data-group="seeder" data-i18n="filterAll">全部</button>
-        <button class="drawer-pill" data-value="hot" data-group="seeder">&gt; 10</button>
-        <button class="drawer-pill" data-value="normal" data-group="seeder">5 - 10</button>
-        <button class="drawer-pill" data-value="rare" data-group="seeder">1 - 5</button>
-        <button class="drawer-pill" data-value="dead" data-group="seeder">0</button>
+        <button class="drawer-pill active" data-value="all" data-group="sonar" data-i18n="filterAll">全部</button>
+        <button class="drawer-pill" data-value="hot" data-group="sonar">&gt; 10</button>
+        <button class="drawer-pill" data-value="normal" data-group="sonar">5 - 10</button>
+        <button class="drawer-pill" data-value="rare" data-group="sonar">1 - 5</button>
+        <button class="drawer-pill" data-value="dead" data-group="sonar">0</button>
     </div>
 </div>
 
@@ -83,7 +83,7 @@
         </div>
 
         <!-- Level 2: Quick Filter Pills -->
-        <div class="seeder-quick-filters">
+        <div class="sonar-quick-filters">
             <div class="quick-filter-group">
                 <span class="quick-filter-label" data-i18n="filterSize">大小</span>
                 <div class="quick-filter-pills">
@@ -97,11 +97,11 @@
             <div class="quick-filter-group">
                 <span class="quick-filter-label" data-i18n="filterSeeders">做种</span>
                 <div class="quick-filter-pills">
-                    <button class="cat-pill seeder-pill active" data-filter="seeder" data-value="all" data-i18n="filterAll">全部</button>
-                    <button class="cat-pill seeder-pill" data-filter="seeder" data-value="hot">&gt;10</button>
-                    <button class="cat-pill seeder-pill" data-filter="seeder" data-value="normal">5-10</button>
-                    <button class="cat-pill seeder-pill" data-filter="seeder" data-value="rare">1-5</button>
-                    <button class="cat-pill seeder-pill" data-filter="seeder" data-value="dead">0</button>
+                    <button class="cat-pill sonar-pill active" data-filter="sonar" data-value="all" data-i18n="filterAll">全部</button>
+                    <button class="cat-pill sonar-pill" data-filter="sonar" data-value="hot">&gt;10</button>
+                    <button class="cat-pill sonar-pill" data-filter="sonar" data-value="normal">5-10</button>
+                    <button class="cat-pill sonar-pill" data-filter="sonar" data-value="rare">1-5</button>
+                    <button class="cat-pill sonar-pill" data-filter="sonar" data-value="dead">0</button>
                 </div>
             </div>
         </div>
@@ -196,7 +196,6 @@
                             <span data-i18n="colStatus">状态</span>
                             <span class="sort-icon">↕</span>
                         </th>
-                        <th data-i18n="colActions">操作</th>
                     </tr>
                 </thead>
                 <tbody id="torrentBody">
@@ -215,19 +214,18 @@
 <!-- Footer -->
 <footer class="footer">
     <div class="container">
-        <p>MT-Engine · <span data-i18n="autoRefresh">自动刷新间隔</span> {{ refresh_interval // 60 }} <span data-i18n="minutes">分钟</span> · <span data-i18n="lastRefresh">上次刷新</span> {{ (data.last_update if data.last_update else '-') | e }}</p>
+        <p><span data-i18n="footerBranding">MT-Engine</span> · <span data-i18n="autoRefresh">自动刷新间隔</span> {{ refresh_interval // 60 }} <span data-i18n="minutes">分钟</span> · <span data-i18n="lastRefresh">上次刷新</span> {{ (data.last_update if data.last_update else '-') | e }}</p>
         <p style="margin-top: 8px; font-size: 13px;">
-            <span data-i18n="rivalRatio">对手分享率</span>: <span style="color: var(--nt-red); font-weight: 600;">{% if rival_profile.share_ratio > 9999 %}∞{% else %}{{ "%.2f"|format(rival_profile.share_ratio) }}{% endif %}</span>
-            ·
-            <span data-i18n="ratioDiff">差距</span>:
-            {% set diff = user_profile.share_ratio - rival_profile.share_ratio %}
-            {% if diff > 0 %}
-            <span style="color: #2ecc71; font-weight: 600;">+{{ "%.2f"|format(diff) }}</span>
-            {% elif diff < 0 %}
-            <span style="color: var(--nt-red); font-weight: 600;">{{ "%.2f"|format(diff) }}</span>
-            {% else %}
-            <span style="color: var(--nt-text-tertiary); font-weight: 600;">0.00</span>
-            {% endif %}
+            <span data-i18n="rivalData">对手数据</span>&nbsp;&nbsp;
+            <span data-i18n="ratio">分享率</span>：<span style="color: var(--nt-red); font-weight: 600;">{% if rival_profile.share_ratio > 9999 %}∞{% else %}{{ "%.2f"|format(rival_profile.share_ratio) }}{% endif %}</span> ·
+            <span data-i18n="uploadAmount">上传量</span>：<span style="font-weight: 600;">{{ rival_profile.uploaded_display|e }}</span> ·
+            <span data-i18n="downloadAmount">下载量</span>：<span style="font-weight: 600;">{{ rival_profile.downloaded_display|e }}</span>
+        </p>
+        <p style="margin-top: 4px; font-size: 13px;">
+            <span data-i18n="selfData">自己数据</span>&nbsp;&nbsp;
+            <span data-i18n="ratio">分享率</span>：<span style="color: #2ecc71; font-weight: 600;">{% if user_profile.share_ratio > 9999 %}∞{% else %}{{ "%.2f"|format(user_profile.share_ratio) }}{% endif %}</span> ·
+            <span data-i18n="uploadAmount">上传量</span>：<span style="font-weight: 600;">{{ user_profile.uploaded_display|e }}</span> ·
+            <span data-i18n="downloadAmount">下载量</span>：<span style="font-weight: 600;">{{ user_profile.downloaded_display|e }}</span>
         </p>
         <p style="margin-top: 8px; font-size: 11px; color: var(--nt-text-secondary);">v5.0.0</p>
     </div>
@@ -236,13 +234,13 @@
 
 {% block extra_scripts %}
 <script type="module">
-    import { initSeederPage } from '/static/js/pages/seeder.js';
+    import { initSonarPage } from '/static/js/pages/sonar.js';
 
-    // Initialize the seeder page when DOM is ready
+    // Initialize the sonar page when DOM is ready
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initSeederPage);
+        document.addEventListener('DOMContentLoaded', initSonarPage);
     } else {
-        initSeederPage();
+        initSonarPage();
     }
 </script>
 {% endblock %}

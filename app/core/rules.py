@@ -1,5 +1,5 @@
 """
-Automation rule engine - scoring and evaluation logic
+Pilot rule engine - scoring and evaluation logic
 """
 import time
 from typing import Tuple
@@ -177,14 +177,7 @@ class RuleEngine:
 
     def evaluate_cleanup(self, task: dict, torrent_meta: dict) -> Tuple[bool, str]:
         """
-        Evaluate if task should be cleaned up
-
-        Priority:
-        1. Zombie task detection (download timeout)
-        2. H&R protection (seeding time check)
-        3. Upload speed check (low upload activity)
-        4. Current users check (torrent is dead)
-        5. Normal cleanup (ratio or expiration)
+        Simplified cleanup evaluation
 
         Args:
             task: qBittorrent task dict
@@ -194,52 +187,35 @@ class RuleEngine:
             Tuple[bool, str]: (should_delete, reason)
         """
         cleanup = self.config.cleanup
+        task_state = task.get('state', '')
+        seeding_time_seconds = task.get('seeding_time', 0)
+        seeding_time_hours = seeding_time_seconds / 3600
+        ratio = task.get('ratio', 0)
 
         # Priority 1: Zombie task detection
         if cleanup.max_download_time_hours > 0:
-            task_state = task.get('state', '')
             if task_state in ('downloading', 'stalledDL', 'metaDL'):
                 added_time = task.get('added_on', 0)
                 hours_downloading = (time.time() - added_time) / 3600
                 if hours_downloading > cleanup.max_download_time_hours:
-                    return (True, f"Zombie task: downloading for {hours_downloading:.1f}h")
+                    return (True, f"Zombie: downloading {hours_downloading:.1f}h")
 
         # Priority 2: H&R protection
-        seeding_time = task.get('seeding_time', 0) / 3600  # seconds -> hours
-        if seeding_time < cleanup.min_seed_time_hours:
-            return (False, f"H&R protection: {seeding_time:.1f}h < {cleanup.min_seed_time_hours}h")
+        if seeding_time_hours < cleanup.min_seed_time_hours:
+            return (False, f"H&R: {seeding_time_hours:.2f}h < {cleanup.min_seed_time_hours}h")
 
-        # Priority 3: Upload speed check
-        if cleanup.min_upload_speed_kbps > 0:
-            seeding_time_seconds = task.get('seeding_time', 0)
-            # Only check if seeded for longer than check window
-            if seeding_time_seconds > cleanup.upload_speed_check_minutes * 60:
-                uploaded = task.get('uploaded', 0)
-                # Calculate average upload speed during seeding time
-                avg_speed_kbps = (uploaded / seeding_time_seconds) / 1024 if seeding_time_seconds > 0 else 0
-                if avg_speed_kbps < cleanup.min_upload_speed_kbps:
-                    return (True, f"Low upload: avg {avg_speed_kbps:.1f} KB/s < {cleanup.min_upload_speed_kbps}")
-
-        # Priority 4: Current users check (requires torrent_meta)
-        if cleanup.min_current_users > 0 and torrent_meta:
-            status_info = torrent_meta.get('status', {})
-            seeders = status_info.get('seeders', 0)
-            leechers = status_info.get('leechers', 0)
+        # Priority 3: Current users check (from qBittorrent tracker data)
+        if cleanup.min_current_users > 0:
+            # Use tracker-reported data from qBittorrent (more reliable than M-Team cache)
+            seeders = task.get('num_complete', 0)
+            leechers = task.get('num_incomplete', 0)
             current_users = seeders + leechers
             if current_users < cleanup.min_current_users:
-                return (True, f"Low activity: {current_users} users < {cleanup.min_current_users}")
+                return (True, f"Low users: {current_users} < {cleanup.min_current_users}")
 
-        # Priority 5: Normal cleanup conditions
-        ratio = task.get('ratio', 0)
+        # Priority 4: Ratio protection (seeds below target are protected)
+        if cleanup.min_share_ratio > 0 and ratio < cleanup.min_share_ratio:
+            return (False, f"Protected: ratio {ratio:.2f} < target {cleanup.min_share_ratio}")
 
-        # 5a. Target ratio reached
-        if ratio >= cleanup.min_share_ratio:
-            return (True, f"Target ratio reached: {ratio:.2f} >= {cleanup.min_share_ratio}")
-
-        # 5b. Discount expired (if enabled)
-        if cleanup.delete_on_expired and torrent_meta:
-            discount_end = torrent_meta.get('status', {}).get('discount_endTime', '')
-            if is_discount_expired(discount_end):
-                return (True, "Discount expired")
-
-        return (False, "No cleanup conditions met")
+        # Pass to Phase 2 (bottom performers elimination)
+        return (False, "Eligible for Phase 2")

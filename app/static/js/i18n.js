@@ -10,6 +10,7 @@ import { escapeHtml } from './utils.js';
 export const TRANSLATIONS = {
     'zh': {
         appName: 'MT 引擎',
+        footerBranding: 'MT-Engine',
         pageTitle: {
             radar: '雷达',
             sonar: '声呐',
@@ -30,8 +31,8 @@ export const TRANSLATIONS = {
         modeAdult: '成人',
         all: '全部',
         filterResolution: '清晰度',
-        filterVideo: '视频编码',
-        filterAudio: '音频编码',
+        filterVideo: '视频',
+        filterAudio: '音频',
         filterCountry: '国家/地区',
         filterDiscount: '优惠',
         countryChina: '中国大陆',
@@ -79,6 +80,11 @@ export const TRANSLATIONS = {
         statUpload: '上传',
         statDownload: '下载',
         rivalRatio: '对手分享率',
+        rivalData: '对手数据',
+        selfData: '自己数据',
+        ratio: '分享率',
+        uploadAmount: '上传量',
+        downloadAmount: '下载量',
         metaQuality: '质量',
         metaTeam: '制作组',
         metaCompleted: '完成',
@@ -95,11 +101,13 @@ export const TRANSLATIONS = {
         files: '文件',
         already_downloaded: '已下载',
         downloading: '下载中...',
+        sendToQbit: '发送到 QB 下载',
+        openInMteam: '打开 MT 链接',
         // Search
-        enter_keyword: '请输入搜索关键词',
+        enter_keyword: '请输入关键词或选择筛选条件',
         search_results: '搜索结果',
         load_more_failed: '加载更多失败',
-        // Seeder page
+        // Sonar page
         filtersActive: '筛选已激活',
         autoDeleteEnabled: '自动删除已启用',
         autoDeleteDisabled: '自动删除已禁用',
@@ -116,7 +124,7 @@ export const TRANSLATIONS = {
         weeksAgo: '周前',
         monthsAgo: '月前',
         yearsAgo: '年前',
-        // Seeder page - missing keys
+        // Sonar page - missing keys
         colDiscount: '优惠',
         filterAll: '全部',
         filterSize: '大小',
@@ -130,7 +138,7 @@ export const TRANSLATIONS = {
         autoDelete: '自动删除',
         autoDeleteDesc: '免费变节时删除未完成下载',
         refresh: '刷新数据',
-        colRemaining: '剩余时间',
+        colRemaining: '剩余',
         colStatus: '状态',
         autoRefresh: '自动刷新间隔',
         minutes: '分钟',
@@ -149,7 +157,7 @@ export const TRANSLATIONS = {
         qualityResolution: '分辨率',
         qualitySource: '来源',
         qualityCountry: '国家',
-        // Automation page
+        // Pilot page
         autoDashboard: '仪表板',
         autoRules: '规则',
         autoActiveTasks: '活动任务',
@@ -184,12 +192,15 @@ export const TRANSLATIONS = {
         autoWeightFreeTime: '免费时间权重 (剩余越多 = 越高分)',
         autoWeightAge: '年龄权重 (越新 = 越高分)',
         autoWeightSeeders: '做种数权重 (越少 = 越高分)',
-        autoDeleteOnExpired: '优惠过期时删除',
         autoMinShareRatio: '最小分享率',
         autoMinSeedTime: '最小做种时间 (小时)',
         autoMinSeedTimeHint: 'H&R 保护: 在此时间之前不会删除',
         autoMaxDownloadTime: '最大下载时间 (小时, 0=禁用)',
         autoMaxDownloadTimeHint: '僵尸任务检测: 下载超过此时间则删除',
+        autoDeadSeedMinutes: '死种超时 (分钟)',
+        autoDeadSeedMinutesHint: '停止上传超过此时间且分享率低时删除',
+        autoDeadSeedMaxRatio: '死种最大分享率',
+        autoDeadSeedMaxRatioHint: '死种检测的分享率阈值',
         autoMaxSeeders: '最大做种数 (0=不限制)',
         autoMaxSeedersHint: '只下载做种人数低于此值的种子',
         autoMinLeechers: '最小下载数 (0=不限制)',
@@ -197,14 +208,14 @@ export const TRANSLATIONS = {
         autoMinCurrentUsers: '最小当前用户数 (0=禁用)',
         autoMinCurrentUsersHint: '做种+下载人数低于此值时删除',
         autoMinUploadSpeed: '最小上传速度 (KB/s, 0=禁用)',
-        autoMinUploadSpeedHint: '平均上传速度低于此值时删除',
-        autoUploadSpeedCheckMinutes: '速度检查窗口 (分钟)',
-        autoUploadSpeedCheckHint: '计算平均上传速度的时间窗口',
+        autoMinUploadSpeedHint: '末位淘汰: 30分钟平均上传速度低于此值时删除',
+        autoEliminationRatio: '末位淘汰比例 (%)',
+        autoEliminationRatioHint: '每次清理删除速度最慢的 X% PILOT 任务',
         autoSaveConfig: '💾 保存配置',
         autoCancel: '取消',
         autoEnabled: '✅ 已启用',
         autoDisabled: '⏸️ 已禁用',
-        // Automation toast messages
+        // Pilot toast messages
         autoConfigSaved: '配置已保存',
         autoConfigSaveFailed: '保存配置失败',
         autoConfigLoadFailed: '加载配置失败',
@@ -216,7 +227,7 @@ export const TRANSLATIONS = {
         autoCleanupTriggerFailed: '触发清理失败',
         autoChangesCancelled: '已取消更改',
         autoRunning: '运行中…',
-        // Automation dry run results
+        // Pilot dry run results
         autoTopCandidates: '前',
         autoOfCandidates: '个候选，共',
         autoNoCandidates: '无下载候选',
@@ -228,6 +239,7 @@ export const TRANSLATIONS = {
     },
     'en': {
         appName: 'MT-Engine',
+        footerBranding: 'MT-Engine',
         pageTitle: {
             radar: 'RADAR',
             sonar: 'SONAR',
@@ -248,8 +260,8 @@ export const TRANSLATIONS = {
         modeAdult: 'Adult',
         all: 'All',
         filterResolution: 'Resolution',
-        filterVideo: 'Video Codec',
-        filterAudio: 'Audio Codec',
+        filterVideo: 'Video',
+        filterAudio: 'Audio',
         filterCountry: 'Country',
         filterDiscount: 'Discount',
         countryChina: 'China',
@@ -297,6 +309,11 @@ export const TRANSLATIONS = {
         statUpload: 'Upload',
         statDownload: 'Download',
         rivalRatio: 'Rival Ratio',
+        rivalData: 'Rival',
+        selfData: 'Self',
+        ratio: 'Ratio',
+        uploadAmount: 'Upload',
+        downloadAmount: 'Download',
         metaQuality: 'Quality',
         metaTeam: 'Team',
         metaCompleted: 'Completed',
@@ -313,11 +330,13 @@ export const TRANSLATIONS = {
         files: 'Files',
         already_downloaded: 'Downloaded',
         downloading: 'Downloading...',
+        sendToQbit: 'SEND TO QBIT',
+        openInMteam: 'OPEN IN M-TEAM',
         // Search
-        enter_keyword: 'Enter keyword',
+        enter_keyword: 'Enter keyword or select filters',
         search_results: 'Search Results',
         load_more_failed: 'Failed to load more',
-        // Seeder page
+        // Sonar page
         filtersActive: 'Filters Active',
         autoDeleteEnabled: 'Auto-delete enabled',
         autoDeleteDisabled: 'Auto-delete disabled',
@@ -334,7 +353,7 @@ export const TRANSLATIONS = {
         weeksAgo: 'weeks ago',
         monthsAgo: 'months ago',
         yearsAgo: 'years ago',
-        // Seeder page - missing keys
+        // Sonar page - missing keys
         colDiscount: 'Discount',
         filterAll: 'All',
         filterSize: 'Size',
@@ -348,7 +367,7 @@ export const TRANSLATIONS = {
         autoDelete: 'Auto Delete',
         autoDeleteDesc: 'Delete incomplete when free ends',
         refresh: 'Refresh',
-        colRemaining: 'Remaining',
+        colRemaining: 'LEFT',
         colStatus: 'Status',
         autoRefresh: 'Auto refresh interval',
         minutes: 'min',
@@ -367,7 +386,7 @@ export const TRANSLATIONS = {
         qualityResolution: 'Resolution',
         qualitySource: 'Source',
         qualityCountry: 'Country',
-        // Automation page
+        // Pilot page
         autoDashboard: 'Dashboard',
         autoRules: 'Rules',
         autoActiveTasks: 'Active Tasks',
@@ -402,12 +421,15 @@ export const TRANSLATIONS = {
         autoWeightFreeTime: 'Free Time Weight (more remaining = higher)',
         autoWeightAge: 'Age Weight (newer = higher)',
         autoWeightSeeders: 'Seeders Weight (fewer = higher)',
-        autoDeleteOnExpired: 'Delete when discount expires',
         autoMinShareRatio: 'Minimum Share Ratio',
         autoMinSeedTime: 'Minimum Seed Time (hours)',
         autoMinSeedTimeHint: 'H&R protection: won\'t delete before this time',
         autoMaxDownloadTime: 'Max Download Time (hours, 0=disabled)',
         autoMaxDownloadTimeHint: 'Zombie task detection: delete if downloading exceeds this time',
+        autoDeadSeedMinutes: 'Dead Seed Timeout (min)',
+        autoDeadSeedMinutesHint: 'Delete if stalledUP > this time and ratio is low',
+        autoDeadSeedMaxRatio: 'Dead Seed Max Ratio',
+        autoDeadSeedMaxRatioHint: 'Ratio threshold for dead seed detection',
         autoMaxSeeders: 'Max Seeders (0=no limit)',
         autoMaxSeedersHint: 'Only download torrents with seeders below this count',
         autoMinLeechers: 'Min Leechers (0=no limit)',
@@ -415,14 +437,14 @@ export const TRANSLATIONS = {
         autoMinCurrentUsers: 'Min Current Users (0=disabled)',
         autoMinCurrentUsersHint: 'Delete if seeders + leechers below this value',
         autoMinUploadSpeed: 'Min Upload Speed (KB/s, 0=disabled)',
-        autoMinUploadSpeedHint: 'Delete if average upload speed below this value',
-        autoUploadSpeedCheckMinutes: 'Upload Speed Check Window (min)',
-        autoUploadSpeedCheckHint: 'Time window for calculating average upload speed',
+        autoMinUploadSpeedHint: 'Bottom performers: delete if 30-min avg speed < this',
+        autoEliminationRatio: 'Elimination Ratio (%)',
+        autoEliminationRatioHint: 'Delete slowest X% PILOT tasks each cleanup cycle',
         autoSaveConfig: '💾 Save Configuration',
         autoCancel: 'Cancel',
         autoEnabled: '✅ Enabled',
         autoDisabled: '⏸️ Disabled',
-        // Automation toast messages
+        // Pilot toast messages
         autoConfigSaved: 'Configuration saved',
         autoConfigSaveFailed: 'Failed to save configuration',
         autoConfigLoadFailed: 'Failed to load configuration',
@@ -434,7 +456,7 @@ export const TRANSLATIONS = {
         autoCleanupTriggerFailed: 'Failed to trigger cleanup',
         autoChangesCancelled: 'Changes cancelled',
         autoRunning: 'Running…',
-        // Automation dry run results
+        // Pilot dry run results
         autoTopCandidates: 'Top',
         autoOfCandidates: 'of',
         autoNoCandidates: 'No download candidates',

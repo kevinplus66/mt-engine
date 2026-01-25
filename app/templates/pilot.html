@@ -9,9 +9,9 @@
 {% block content %}
 <div class="container">
     <!-- Unified Top Bar: Stats + Toggles + Actions -->
-    <div class="automation-topbar">
+    <div class="pilot-topbar">
         <!-- Compact Stats -->
-        <div class="automation-topbar-stats">
+        <div class="pilot-topbar-stats">
             <div class="stat-inline">
                 <span class="stat-inline-label" data-i18n="autoActiveTasks">Active Tasks</span>
                 <span class="stat-inline-value" id="activeTasks">-</span>
@@ -31,7 +31,7 @@
         </div>
 
         <!-- Toggles -->
-        <div class="automation-topbar-toggles">
+        <div class="pilot-topbar-toggles">
             <div class="toggle-container">
                 <label class="toggle-switch">
                     <input type="checkbox" id="downloadToggle" aria-label="Download enabled toggle">
@@ -49,7 +49,7 @@
         </div>
 
         <!-- Action Buttons -->
-        <div class="automation-topbar-actions">
+        <div class="pilot-topbar-actions">
             <button class="search-btn" id="dryRunBtn" data-i18n-zh="🔍 模拟运行" data-i18n-en="🔍 Dry Run">🔍 Dry Run</button>
             <button class="search-btn" id="runDownloadBtn" data-i18n-zh="⬇️ 执行下载" data-i18n-en="⬇️ Run Download">⬇️ Run Download</button>
             <button class="search-btn" id="runCleanupBtn" data-i18n-zh="🗑️ 执行清理" data-i18n-en="🗑️ Run Cleanup">🗑️ Run Cleanup</button>
@@ -58,12 +58,12 @@
     </div>
 
     <!-- Three-Column Form Grid -->
-    <form id="rulesForm" class="automation-form">
-        <div class="automation-form-grid-3col">
+    <form id="rulesForm" class="pilot-form">
+        <div class="pilot-form-grid-3col">
             <!-- Column 1: Filtering Rules -->
-            <div class="automation-form-column">
-                <div class="automation-form-card">
-                    <h3 class="automation-form-title" data-i18n="autoFilteringRules">Filtering Rules</h3>
+            <div class="pilot-form-column">
+                <div class="pilot-form-card">
+                    <h3 class="pilot-form-title" data-i18n="autoFilteringRules">Filtering Rules</h3>
 
                         <div class="form-row">
                             <div class="form-field">
@@ -101,7 +101,7 @@
                             <input type="text" name="excludeKeywords" id="excludeKeywords" data-placeholder-zh="例如: cam, ts…" data-placeholder-en="e.g., cam, ts…" placeholder="e.g., cam, ts…" class="form-input" autocomplete="off">
                         </div>
 
-                        <h4 class="automation-form-subtitle" data-i18n="autoScoringWeights">Scoring Weights</h4>
+                        <h4 class="pilot-form-subtitle" data-i18n="autoScoringWeights">Scoring Weights</h4>
                         <small class="form-weights-hint" data-i18n="autoWeightsHint">Adjust weights to prioritize different factors (-10 to 10)</small>
 
                         <div class="form-row">
@@ -131,9 +131,9 @@
             </div>
 
             <!-- Column 2: Download Policy -->
-            <div class="automation-form-column">
-                <div class="automation-form-card">
-                    <h3 class="automation-form-title" data-i18n="autoDownloadPolicy">Download Policy</h3>
+            <div class="pilot-form-column">
+                <div class="pilot-form-card">
+                    <h3 class="pilot-form-title" data-i18n="autoDownloadPolicy">Download Policy</h3>
 
                     <div class="form-row">
                         <div class="form-field">
@@ -161,19 +161,9 @@
             </div>
 
             <!-- Column 3: Cleanup Policy -->
-            <div class="automation-form-column">
-                <div class="automation-form-card">
-                    <h3 class="automation-form-title" data-i18n="autoCleanupPolicy">Cleanup Policy</h3>
-
-                    <div class="form-field">
-                        <div class="toggle-container">
-                            <label class="toggle-switch">
-                                <input type="checkbox" name="deleteOnExpired" aria-label="Delete on expired">
-                                <span class="toggle-slider"></span>
-                            </label>
-                            <span class="toggle-label" data-i18n="autoDeleteOnExpired">Delete when discount expires</span>
-                        </div>
-                    </div>
+            <div class="pilot-form-column">
+                <div class="pilot-form-card">
+                    <h3 class="pilot-form-title" data-i18n="autoCleanupPolicy">Cleanup Policy</h3>
 
                     <div class="form-row">
                         <div class="form-field">
@@ -194,6 +184,20 @@
                         <small class="form-hint" data-i18n="autoMaxDownloadTimeHint">Zombie task detection: delete if downloading exceeds this time</small>
                     </div>
 
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label class="form-label" for="deadSeedMinutes" data-i18n="autoDeadSeedMinutes">Dead Seed Timeout (minutes)</label>
+                            <input type="number" name="deadSeedMinutes" id="deadSeedMinutes" min="5" class="form-input" autocomplete="off">
+                            <small class="form-hint" data-i18n="autoDeadSeedMinutesHint">Delete if stalledUP > this time and ratio is low</small>
+                        </div>
+
+                        <div class="form-field">
+                            <label class="form-label" for="deadSeedMaxRatio" data-i18n="autoDeadSeedMaxRatio">Dead Seed Max Ratio</label>
+                            <input type="number" name="deadSeedMaxRatio" id="deadSeedMaxRatio" min="0" step="0.01" class="form-input" autocomplete="off">
+                            <small class="form-hint" data-i18n="autoDeadSeedMaxRatioHint">Ratio threshold for dead seed detection</small>
+                        </div>
+                    </div>
+
                     <div class="form-field">
                         <label class="form-label" for="minCurrentUsers" data-i18n="autoMinCurrentUsers">Min Current Users (0=disabled)</label>
                         <input type="number" name="minCurrentUsers" id="minCurrentUsers" min="0" class="form-input" autocomplete="off">
@@ -204,30 +208,24 @@
                         <div class="form-field">
                             <label class="form-label" for="minUploadSpeedKbps" data-i18n="autoMinUploadSpeed">Min Upload Speed (KB/s, 0=disabled)</label>
                             <input type="number" name="minUploadSpeedKbps" id="minUploadSpeedKbps" min="0" class="form-input" autocomplete="off">
-                            <small class="form-hint" data-i18n="autoMinUploadSpeedHint">Delete if average upload speed < this value</small>
+                            <small class="form-hint" data-i18n="autoMinUploadSpeedHint">Bottom performers: delete if avg speed < this</small>
                         </div>
 
                         <div class="form-field">
-                            <label class="form-label" for="uploadSpeedCheckMinutes" data-i18n="autoUploadSpeedCheckMinutes">Upload Speed Check Window (minutes)</label>
-                            <input type="number" name="uploadSpeedCheckMinutes" id="uploadSpeedCheckMinutes" min="1" max="1440" class="form-input" autocomplete="off">
-                            <small class="form-hint" data-i18n="autoUploadSpeedCheckHint">Time window for calculating average upload speed</small>
+                            <label class="form-label" for="eliminationRatio" data-i18n="autoEliminationRatio">Elimination Ratio (%)</label>
+                            <input type="number" name="eliminationRatio" id="eliminationRatio" min="0" max="50" step="5" class="form-input" autocomplete="off">
+                            <small class="form-hint" data-i18n="autoEliminationRatioHint">Delete slowest X% PILOT tasks each cleanup cycle</small>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- Save Button (Right-aligned) -->
-        <div class="automation-form-actions">
-            <button type="button" class="reset-filters-btn" id="cancelBtn" data-i18n="autoCancel">Cancel</button>
-            <button type="submit" class="search-btn" data-i18n-zh="💾 保存配置" data-i18n-en="💾 Save Configuration">💾 Save Configuration</button>
-        </div>
     </form>
 
     <!-- Dry Run Results (Bottom) -->
-    <div class="automation-dry-run hidden" id="dryRunResults">
-        <div class="automation-dry-run-header">
-            <h3 class="automation-dry-run-title" data-i18n="autoDryRunResults">Dry Run Results</h3>
+    <div class="pilot-dry-run hidden" id="dryRunResults">
+        <div class="pilot-dry-run-header">
+            <h3 class="pilot-dry-run-title" data-i18n="autoDryRunResults">Dry Run Results</h3>
         </div>
         <div id="dryRunContent"></div>
     </div>
@@ -236,7 +234,7 @@
 <!-- Footer -->
 <footer class="footer">
     <div class="container">
-        <p>MT-Engine · PILOT</p>
+        <p><span data-i18n="footerBranding">MT-Engine</span> · <span data-i18n="pageTitle.pilot">PILOT</span></p>
         <p style="margin-top: 8px; font-size: 11px; color: var(--nt-text-secondary);">v5.0.0</p>
     </div>
 </footer>
@@ -244,12 +242,12 @@
 
 {% block extra_scripts %}
 <script type="module">
-    import { initAutomationPage } from '/static/js/pages/automation.js';
+    import { initPilotPage } from '/static/js/pages/pilot.js';
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initAutomationPage);
+        document.addEventListener('DOMContentLoaded', initPilotPage);
     } else {
-        initAutomationPage();
+        initPilotPage();
     }
 </script>
 {% endblock %}

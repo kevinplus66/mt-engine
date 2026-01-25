@@ -229,8 +229,8 @@
     border-color: var(--nt-text);
 }
 
-/* ============ Seeder Quick Filters (Level 2 - Size + Seeders) ============ */
-.seeder-quick-filters {
+/* ============ Sonar Quick Filters (Level 2 - Size + Seeders) ============ */
+.sonar-quick-filters {
     display: flex;
     flex-direction: column;
     gap: 16px;
@@ -261,12 +261,11 @@
 /* ============ Technical Filters (Level 3) ============ */
 .filter-card__tech-filters,
 .tech-filters {  /* Support both BEM and legacy */
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 16px;
     padding-top: 24px;
     border-top: 1px dotted var(--nt-border-light);
-    align-items: center;
 }
 
 .filter-select-wrapper {
@@ -274,7 +273,8 @@
 }
 
 .filter-select {
-    min-width: 150px;
+    width: 100%;
+    min-width: 0;
     height: 40px;
     background: transparent;
     border: 1px solid var(--nt-border);
@@ -301,7 +301,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-left: auto;
+    grid-column: -1;
+    justify-self: end;
 }
 
 .auto-delete-inline .toggle-label {

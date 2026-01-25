@@ -185,8 +185,16 @@ export async function executeRadar() {
     const filters = getActiveFilters();
     const keyword = radarState.keyword;
 
-    // Validate search (filters.categories is now an integer array)
-    if (!keyword && (!filters.categories || filters.categories.length === 0)) {
+    // Validate search - require either keyword or any filter
+    const hasAnyFilter =
+        (filters.categories && filters.categories.length > 0) ||
+        (filters.standards && filters.standards.length > 0) ||
+        (filters.videoCodecs && filters.videoCodecs.length > 0) ||
+        (filters.audioCodecs && filters.audioCodecs.length > 0) ||
+        (filters.countries && filters.countries.length > 0) ||
+        filters.discount;
+
+    if (!keyword && !hasAnyFilter) {
         showToast(t('enter_keyword'));
         return;
     }

@@ -49,14 +49,14 @@ async def update_config(config: AutomationConfig):
 @router.get("/stats")
 async def get_stats():
     """
-    Get automation statistics
+    Get pilot statistics
 
     Returns:
         dict: Current stats (active tasks, pending downloads, etc.)
     """
     sid = await qb_login()
     tasks = await qb_get_torrents(sid) if sid else []
-    auto_tasks = [t for t in tasks if 'MT_AUTO' in t.get('tags', '')]
+    auto_tasks = [t for t in tasks if 'PILOT' in t.get('tags', '')]
 
     return {
         "active_tasks": len(auto_tasks),
@@ -89,7 +89,7 @@ async def dry_run():
             download_candidates.append({
                 "id": tid,
                 "name": t.get('name', ''),
-                "size_gb": round(t.get('size', 0) / (1024**3), 2),
+                "size_gb": round(t.get('size', 0) / (1000**3), 2),  # Decimal (1000) to match backend format_size
                 "score": score,
                 "reason": reason
             })
@@ -100,7 +100,7 @@ async def dry_run():
     # Get cleanup candidates
     sid = await qb_login()
     tasks = await qb_get_torrents(sid) if sid else []
-    auto_tasks = [t for t in tasks if 'MT_AUTO' in t.get('tags', '')]
+    auto_tasks = [t for t in tasks if 'PILOT' in t.get('tags', '')]
     cleanup_candidates = []
 
     for task in auto_tasks:

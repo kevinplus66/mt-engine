@@ -8,7 +8,7 @@ import { CONFIG } from './config.js';
 // ============ Search Torrents ============
 export async function searchTorrents(params) {
     try {
-        const response = await fetch(`${CONFIG.API_BASE}/search`, {
+        const response = await fetch(`${CONFIG.API_BASE}/radar`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -31,7 +31,7 @@ export async function searchTorrents(params) {
 // ============ Download Torrent ============
 export async function downloadTorrent(torrentId, isSearchPage = true) {
     try {
-        const endpoint = isSearchPage ? '/search/download' : '/download';
+        const endpoint = isSearchPage ? '/radar/download' : '/download';
         const response = await fetch(`${CONFIG.API_BASE}${endpoint}`, {
             method: 'POST',
             headers: {
@@ -86,7 +86,7 @@ export async function getCategories() {
     }
 }
 
-// ============ Refresh Torrents (Seeder Page) ============
+// ============ Refresh Torrents (Sonar Page) ============
 export async function refreshTorrents() {
     try {
         const response = await fetch(`${CONFIG.API_BASE}/refresh`, {

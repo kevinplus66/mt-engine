@@ -17,8 +17,6 @@ services:
       - QBITTORRENT_URL=${QBITTORRENT_URL:-}
       - QBITTORRENT_USER=${QBITTORRENT_USER:-}
       - QBITTORRENT_PASSWORD=${QBITTORRENT_PASSWORD:-}
-      - MT_AUTO_USER=${MT_AUTO_USER:-admin}
-      - MT_AUTO_PASS=${MT_AUTO_PASS:-admin}
     env_file:
       - .env
     healthcheck:

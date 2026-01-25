@@ -257,7 +257,7 @@
     border-color: var(--nt-text);
 }
 
-/* Seeder Status Badges */
+/* Sonar Status Badges */
 .badge-seeding {
     background: rgba(46, 204, 113, 0.1);
     border-color: rgba(46, 204, 113, 0.3);
@@ -278,7 +278,7 @@
 
 /* Filter Count Badge */
 .filter-count-badge {
-    display: inline-flex;
+    display: none;
     align-items: center;
     justify-content: center;
     min-width: 20px;
@@ -291,6 +291,10 @@
     font-weight: 500;
     border-radius: 10px;
     margin-left: 8px;
+}
+
+.filter-count-badge.visible {
+    display: inline-flex;
 }
 
 /* ============ Form Elements ============ */
@@ -626,7 +630,7 @@
     margin-top: 4px;
 }
 
-/* ============ Filter Components (Seeder Page) ============ */
+/* ============ Filter Components (Sonar Page) ============ */
 .filter-pills-row {
     display: flex;
     align-items: center;

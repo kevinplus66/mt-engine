@@ -57,9 +57,9 @@ function handleTableClick(e) {
         const row = downloadBtn.closest('tr');
         const torrentId = row.dataset.id;
 
-        // Determine if we are on search page or seeder page based on URL
-        // Search page is at root (/), Free Hunter page is at /seeder
-        const isSearch = !window.location.pathname.includes('/seeder');
+        // Determine if we are on radar page or sonar page based on URL
+        // Radar page is at root (/), Sonar page is at /sonar
+        const isSearch = !window.location.pathname.includes('/sonar');
 
         // Call the download function
         downloadTorrent(torrentId, downloadBtn, isSearch);
@@ -113,7 +113,7 @@ export function renderTorrents(torrents, isSearch = true) {
     if (!torrents || torrents.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="6" style="text-align: center; padding: 2rem;">
+                <td colspan="5" style="text-align: center; padding: 2rem;">
                     ${t('emptyState')}
                 </td>
             </tr>
@@ -172,7 +172,7 @@ function createTorrentRow(torrent, isSearch) {
         col5Content = formatDate(addedDate);
         col5Sort = `data-sort-value="${addedTimestamp}"`;
     } else {
-        // Seeder Page: Remaining Time & Status
+        // Sonar Page: Remaining Time & Status
         col4Class = 'remaining-cell';
         col5Class = 'status-cell';
         
@@ -192,14 +192,14 @@ function createTorrentRow(torrent, isSearch) {
         }
 
         // Status Badge
-        let statusText = t('statusNotDownloaded') || '未下载';
+        let statusText = t('statusNotDownloaded');
         let statusClass = 'badge-none';
         
         if (torrent.user_status === 'seeding') {
-            statusText = t('statusSeeding') || '做种中';
+            statusText = t('statusSeeding');
             statusClass = 'badge-seeding';
         } else if (torrent.user_status === 'leeching') {
-            statusText = t('statusLeeching') || '下载中';
+            statusText = t('statusLeeching');
             statusClass = 'badge-leeching';
         }
         
@@ -252,21 +252,6 @@ function createTorrentRow(torrent, isSearch) {
             <td class="${col5Class}" ${col5Sort}>
                 ${col5Content}
             </td>
-            <td class="action-cell">
-                <div class="actions-wrapper">
-                    <button class="btn btn--download download-btn"
-                        ${torrent.downloaded || torrent.user_status === 'seeding' || torrent.user_status === 'leeching' ? 'data-downloaded="true"' : ''}>
-                        <span class="btn-icon">${torrent.downloaded || torrent.user_status === 'seeding' || torrent.user_status === 'leeching' ? '✓' : '↓'}</span>
-                        <span class="btn-text">${torrent.downloaded || torrent.user_status === 'seeding' || torrent.user_status === 'leeching' ? t('downloaded') : t('download')}</span>
-                    </button>
-                    <a href="${escapeHtml(detailUrl)}" target="_blank" rel="noopener noreferrer" class="detail-link" title="${t('view_details')}">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-3h-2v2H4V4h2V2z"/>
-                            <path d="M9 2v2h2.59L6.29 9.29l1.41 1.41L13 5.41V8h2V2H9z"/>
-                        </svg>
-                    </a>
-                </div>
-            </td>
         </tr>
     `;
 
@@ -290,6 +275,9 @@ function getCategoryLabel(catId) {
 
 function createDetailRow(torrent, categoryId) {
     const pills = [];
+
+    // Get detail URL
+    const detailUrl = torrent.details_link || torrent.detail_url || '#';
 
     // Category pill
     if (categoryId) {
@@ -358,16 +346,27 @@ function createDetailRow(torrent, categoryId) {
 
     return `
         <tr class="detail-row" data-id="${torrent.id}">
-            <td colspan="6">
+            <td colspan="5">
                 <div class="detail-content">
-                    <div class="quality-tags-inline">
-                        ${pills.join('')}
-                    </div>
-                    ${torrent.num_files ? `
-                        <div class="file-info" style="margin-top: 8px; font-size: 12px;">
-                            <strong>${t('files')}:</strong> ${torrent.num_files}
+                    <div class="detail-info">
+                        <div class="quality-tags-inline">
+                            ${pills.join('')}
                         </div>
-                    ` : ''}
+                        ${torrent.num_files ? `
+                            <div class="file-info" style="margin-top: 8px; font-size: 12px;">
+                                <strong>${t('files')}:</strong> ${torrent.num_files}
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="detail-actions">
+                        <button class="btn download-btn"
+                            ${torrent.downloaded || torrent.user_status === 'seeding' || torrent.user_status === 'leeching' ? 'data-downloaded="true"' : ''}>
+                            <span class="btn-text">${torrent.downloaded || torrent.user_status === 'seeding' || torrent.user_status === 'leeching' ? t('downloaded') : t('sendToQbit')}</span>
+                        </button>
+                        <a href="${escapeHtml(detailUrl)}" target="_blank" rel="noopener noreferrer" class="detail-link btn" title="${t('view_details')}">
+                            <span class="btn-text">${t('openInMteam')}</span>
+                        </a>
+                    </div>
                 </div>
             </td>
         </tr>
@@ -472,7 +471,6 @@ export function showLoadingSkeleton(rowCount = 5) {
             <td><div class="skeleton skeleton--text"></div></td>
             <td><div class="skeleton skeleton--text"></div></td>
             <td><div class="skeleton skeleton--text"></div></td>
-            <td><div class="skeleton skeleton--button"></div></td>
         </tr>
     `).join('');
 

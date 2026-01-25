@@ -2,15 +2,15 @@
 
 All notable changes to M-Team Engine.
 
-## [5.0.0] - 2026-01 - AutoFarm Module
+## [5.0.0] - 2026-01 - PILOT (领航) Module
 
-### New Feature: AutoFarm
+### New Feature: PILOT
 Fully-automated torrent management system for M-Team free torrents.
 
 **Core Components**:
 - `app/core/rules.py`: Scoring engine with normalized 0-1 weighted scoring
-- `app/core/automation.py`: AutomationManager with background loop
-- `app/routes/automation.py`: Protected API with HTTP Basic Auth + rate limiting
+- `app/core/pilot.py`: PilotManager with background loop
+- `app/routes/pilot.py`: Pilot API endpoints
 
 **Features**:
 - Rule-based scoring: Size, free time, age, seeders weights
@@ -18,15 +18,10 @@ Fully-automated torrent management system for M-Team free torrents.
 - Duplicate prevention: Pending downloads set
 - Zombie detection: Auto-deletes stuck downloads
 - H&R protection: Minimum seed time before cleanup
-- Path isolation: Downloads to configurable `save_path` with `MT_AUTO` tag
+- Path isolation: Downloads to configurable `save_path` with `PILOT` tag
+- Config persisted to JSON
 
-**Security**:
-- HTTP Basic Auth with `secrets.compare_digest()` (timing-attack safe)
-- Rate limiting: 5 failed attempts/minute per IP
-- Credentials via env vars (`MT_AUTO_USER`, `MT_AUTO_PASS`)
-- Config persisted to JSON (no credentials stored)
-
-**Frontend**: New `/automation` page with Dashboard and Rules tabs
+**Frontend**: New `/pilot` page with Dashboard and Rules tabs
 
 ### Bug Fixes (2026-01-24)
 

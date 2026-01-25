@@ -22,6 +22,7 @@ table {
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
+    min-width: 790px;  /* Reduced from 950px due to removed Actions column */
 }
 
 th {
@@ -81,12 +82,36 @@ tr[aria-expanded="true"] td {
 }
 
 /* Column widths */
-th:nth-child(1), td:nth-child(1) { width: auto; max-width: 1100px; } /* Name - 自动扩展，宽屏时限制最大宽度 */
-th:nth-child(2), td:nth-child(2) { width: 1%; min-width: 80px; white-space: nowrap; } /* Size */
-th:nth-child(3), td:nth-child(3) { width: 1%; min-width: 90px; white-space: nowrap; } /* Peers */
-th:nth-child(4), td:nth-child(4) { width: 1%; min-width: 90px; white-space: nowrap; } /* Category/Remaining */
-th:nth-child(5), td:nth-child(5) { width: 1%; min-width: 100px; white-space: nowrap; } /* Date/Status */
-th:nth-child(6), td:nth-child(6) { width: 1%; min-width: 90px; white-space: nowrap; text-align: right; padding-right: 16px; } /* Actions */
+th:nth-child(1), td:nth-child(1) {
+    width: auto;
+    max-width: 1160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+} /* Name */
+th:nth-child(2), td:nth-child(2) {
+    width: 120px;
+    min-width: 120px;
+    white-space: nowrap;
+    text-align: center;
+} /* Size */
+th:nth-child(3), td:nth-child(3) {
+    width: 130px;
+    min-width: 130px;
+    white-space: nowrap;
+    text-align: center;
+} /* Peers */
+th:nth-child(4), td:nth-child(4) {
+    width: 120px;
+    min-width: 120px;
+    white-space: nowrap;
+    text-align: center;
+} /* Category/Remaining */
+th:nth-child(5), td:nth-child(5) {
+    width: 110px;
+    min-width: 110px;
+    white-space: nowrap;
+    text-align: center;
+} /* Date/Status */
 
 tbody tr:not(.detail-row) {
     cursor: pointer;
@@ -150,6 +175,11 @@ tbody tr:not(.detail-row) {
     font-weight: 500;
 }
 
+.peer-sep {
+    color: var(--nt-text-tertiary);
+    margin: 0;
+}
+
 .leechers {
     color: var(--nt-text-secondary);
     font-weight: 500;
@@ -169,14 +199,14 @@ tbody tr:not(.detail-row) {
 
 /* ============ Actions Cell ============ */
 td.action-cell {
-    text-align: right;
+    text-align: center;
     white-space: nowrap;
 }
 
 .actions-wrapper {
     display: inline-flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: center;
     gap: 8px;
 }
 
@@ -241,7 +271,7 @@ td.action-cell {
     outline-offset: 2px;
 }
 
-/* ============ Seeder Page - Status Components ============ */
+/* ============ Sonar Page - Status Components ============ */
 .status-dot {
     display: inline-block;
     width: 8px;
@@ -303,7 +333,7 @@ td.action-cell {
     color: var(--nt-red);
 }
 
-/* ============ Seeder Page - Table Cell Classes ============ */
+/* ============ Sonar Page - Table Cell Classes ============ */
 .name-cell {
     font-family: var(--nt-font-body);
 }
@@ -328,7 +358,7 @@ td.action-cell {
 .actions-cell {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: center;
     gap: 8px;
 }
 
@@ -373,8 +403,36 @@ td.action-cell {
     padding: 12px 16px 12px 20px;
     border-left: 3px solid var(--nt-text);
     display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.detail-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
     flex-direction: column;
     gap: 8px;
+}
+
+.detail-actions {
+    flex-shrink: 0;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.detail-actions .download-btn,
+.detail-actions .detail-link {
+    height: auto !important;
+    width: auto !important;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-family: var(--nt-font-dot);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
 }
 
 .quality-section {
@@ -623,8 +681,12 @@ tr.swipe-trigger-download {
 
 /* ============ Tablet Responsive ============ */
 @media (min-width: 769px) and (max-width: 1200px) {
+    table {
+        min-width: 850px;  /* Slightly tighter for tablets */
+    }
+
     th:nth-child(1), td:nth-child(1) {
-        max-width: 400px;
+        max-width: 400px;  /* Limit name width on tablet */
     }
 }
 
@@ -819,23 +881,6 @@ tr.swipe-trigger-download {
         display: none !important;
     }
 
-    /* === Actions Zone === */
-    td:nth-child(6) {
-        position: absolute;
-        top: 12px;
-        right: 12px;
-        display: flex;
-        flex-direction: row;
-        gap: 6px;
-        padding: 0;
-        width: auto !important;
-    }
-
-    .actions-wrapper {
-        display: flex;
-        gap: 6px;
-    }
-
     /* Expandable row details on mobile */
     .detail-row {
         border: none;
@@ -862,6 +907,13 @@ tr.swipe-trigger-download {
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
         -ms-overflow-style: none;
+        flex-direction: column;
+    }
+
+    .detail-actions {
+        margin-top: 12px;
+        justify-content: flex-end;
+        width: 100%;
     }
 
     .detail-content::-webkit-scrollbar {

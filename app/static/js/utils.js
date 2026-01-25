@@ -29,7 +29,7 @@ export function throttle(fn, limit) {
 // ============ Format File Size ============
 export function formatSize(bytes) {
     if (!bytes || bytes === 0) return '0 B';
-    const k = 1024;
+    const k = 1000;  // Use decimal (1000) to match backend
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
     const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
@@ -40,15 +40,16 @@ export function formatDate(dateStr) {
     if (!dateStr) return '-';
     const date = new Date(dateStr);
     const now = new Date();
-    const diff = now - date;
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const diffMs = now - date;
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
+    const months = Math.floor(days / 30);
+    const years = Math.floor(days / 365);
 
-    if (days === 0) return t('today');
-    if (days === 1) return t('yesterday');
-    if (days < 7) return `${days} ${t('daysAgo')}`;
-    if (days < 30) return `${Math.floor(days / 7)} ${t('weeksAgo')}`;
-    if (days < 365) return `${Math.floor(days / 30)} ${t('monthsAgo')}`;
-    return `${Math.floor(days / 365)} ${t('yearsAgo')}`;
+    if (hours < 24) return `${hours}h`;
+    if (days < 30) return `${days}d`;
+    if (months < 12) return `${months}m`;
+    return `${years}y`;
 }
 
 // ============ Format Date (Full) ============

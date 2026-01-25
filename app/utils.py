@@ -58,8 +58,8 @@ def calculate_remaining_time(end_time: Optional[datetime]) -> Dict[str, Any]:
     """计算免费剩余时间"""
     if end_time is None:
         return {
-            "display": "永久免费",
-            "display_en": "Permanent",
+            "display": "♾️",
+            "display_en": "♾️",
             "status": "permanent",
             "color": "green",
             "hours": 999999,  # Use large number instead of inf for JSON compatibility
@@ -71,26 +71,24 @@ def calculate_remaining_time(end_time: Optional[datetime]) -> Dict[str, Any]:
 
     if total_seconds <= 0:
         return {
-            "display": "已过期",
-            "display_en": "Expired",
+            "display": "0h",
+            "display_en": "0h",
             "status": "expired",
             "color": "red",
             "hours": 0,
             "timestamp": end_time.isoformat()
         }
 
-    hours = int(total_seconds // 3600)
-    minutes = int((total_seconds % 3600) // 60)
-    total_hours = hours + minutes / 60
+    total_hours = total_seconds / 3600
 
-    # 格式化显示
-    if hours >= 24:
-        days, remaining_hours = divmod(hours, 24)
-        display = f"{days}天 {remaining_hours}小时"
-        display_en = f"{days}d {remaining_hours}h"
+    # Format display - all in hours
+    if total_hours < 1:
+        display = f"{total_hours:.1f}h"  # 0.5h
     else:
-        display = f"{hours}小时 {minutes}分"
-        display_en = f"{hours}h {minutes}m"
+        display = f"{int(total_hours)}h"  # 48h
+
+    # Use same format for both languages
+    display_en = display
 
     # 确定状态和颜色
     if total_hours >= 6:

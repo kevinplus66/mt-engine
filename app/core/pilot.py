@@ -5,8 +5,9 @@ import asyncio
 import os
 import json
 import shutil
+import time
 from pathlib import Path
-from typing import Set, Optional, Dict
+from typing import Set, Optional, Dict, List, Tuple
 from app.models import AutomationConfig
 from app.core.rules import RuleEngine
 from app.services.qbittorrent import (
@@ -26,6 +27,7 @@ class PilotManager:
         self.config: AutomationConfig = self._load_config()
         self.rule_engine = RuleEngine(self.config)
         self.pending_downloads: Set[str] = set()  # Prevent duplicate downloads
+        self._upload_history: Dict[str, List[Tuple[float, int]]] = {}  # Upload history for sliding window
         self._check_data_directory()
 
     def _check_data_directory(self):
@@ -45,6 +47,15 @@ class PilotManager:
             try:
                 with open(CONFIG_PATH) as f:
                     data = json.load(f)
+
+                # Migrate old config: max_pilot_tasks_ratio -> elimination_ratio
+                if 'cleanup' in data and 'max_pilot_tasks_ratio' in data['cleanup']:
+                    old_ratio = data['cleanup']['max_pilot_tasks_ratio']
+                    # Don't convert the value, just use default for new field
+                    # (old logic was different, so old value doesn't make sense for new logic)
+                    del data['cleanup']['max_pilot_tasks_ratio']
+                    logger.info(f"Migrated config: removed max_pilot_tasks_ratio={old_ratio}, will use elimination_ratio default")
+
                 logger.info("Loaded pilot config from file")
                 return AutomationConfig(**data)
             except Exception as e:
@@ -190,7 +201,7 @@ class PilotManager:
         success = await qb_add_torrent_file(
             content,
             sid,
-            tag="MT_AUTO",
+            tag="PILOT",
             savepath=self.config.download.save_path
         )
 
@@ -203,7 +214,7 @@ class PilotManager:
 
     async def run_cleanup_cycle(self, force: bool = False):
         """
-        Execute one cleanup cycle
+        Execute cleanup cycle with bottom performers elimination
 
         Args:
             force: If True, run even if cleanup is disabled (for manual triggers)
@@ -221,29 +232,92 @@ class PilotManager:
         auto_tasks = [t for t in tasks if 'PILOT' in t.get('tags', '')]
 
         if not auto_tasks:
-            logger.debug("No MT_AUTO tasks to clean up")
+            logger.debug("No PILOT tasks to clean up")
             return
 
-        logger.info(f"Cleanup cycle: checking {len(auto_tasks)} MT_AUTO tasks")
-
-        # Evaluate each task for cleanup
+        logger.info(f"Cleanup: checking {len(auto_tasks)} PILOT tasks")
+        cleanup = self.config.cleanup
         deleted_count = 0
+
+        # Phase 1: Individual cleanup
+        remaining_tasks = []
         for task in auto_tasks:
             # Get metadata from cache if available
             meta = self._get_torrent_meta(task)
 
             should_delete, reason = self.rule_engine.evaluate_cleanup(task, meta)
             if should_delete:
-                hash_ = task.get('hash', '')
-                name = task.get('name', hash_)
-
-                success = await qb_delete_torrent(hash_, sid, delete_files=True)
-                if success:
+                if await self._delete_task(task, sid, reason):
                     deleted_count += 1
-                    logger.info(f"🗑️  Cleaned: {name} - {reason}")
+            else:
+                remaining_tasks.append(task)
+                logger.debug(f"Keep: {task.get('name', '')[:50]} - {reason}")
+
+        # Phase 2: Bottom performers elimination
+        if remaining_tasks:
+            # Get active hashes for history cleanup
+            active_hashes = {t.get('hash', '') for t in remaining_tasks}
+            self._cleanup_upload_history(active_hashes)
+
+            # Calculate sliding window speed for each task
+            tasks_with_speed = []
+            for task in remaining_tasks:
+                avg_speed = self._get_sliding_window_speed(task, window_minutes=30)
+                if avg_speed >= 0:  # Has enough data
+                    task['_avg_speed_kbps'] = avg_speed
+                    tasks_with_speed.append(task)
+                else:
+                    # Not enough history, skip this task for now
+                    logger.debug(f"Skip speed check (not enough history): {task.get('name', '')[:50]}")
+
+            # Sort by average speed (lowest first)
+            tasks_with_speed.sort(key=lambda t: t['_avg_speed_kbps'])
+
+            # Condition A: Delete tasks below speed threshold
+            for task in tasks_with_speed:
+                avg_speed = task['_avg_speed_kbps']
+                if avg_speed < cleanup.min_upload_speed_kbps:
+                    if await self._delete_task(task, sid, f"Low speed: {avg_speed:.1f} KB/s (30min avg)"):
+                        deleted_count += 1
+
+            # Condition B: Elimination ratio (delete slowest X%)
+            if cleanup.elimination_ratio > 0 and tasks_with_speed:
+                # Recalculate remaining after Condition A
+                remaining_after_a = len(auto_tasks) - deleted_count
+                if remaining_after_a > 1:  # Keep at least 1 task
+                    to_eliminate = max(1, int(remaining_after_a * cleanup.elimination_ratio))
+                    # Filter tasks not yet deleted by Condition A
+                    still_remaining = [t for t in tasks_with_speed
+                                      if t['_avg_speed_kbps'] >= cleanup.min_upload_speed_kbps]
+                    # Delete from slowest
+                    for task in still_remaining[:to_eliminate]:
+                        if len(auto_tasks) - deleted_count <= 1:
+                            break  # Keep at least 1
+                        avg_speed = task['_avg_speed_kbps']
+                        if await self._delete_task(task, sid, f"Bottom {cleanup.elimination_ratio:.0%}: {avg_speed:.1f} KB/s"):
+                            deleted_count += 1
 
         if deleted_count > 0:
-            logger.info(f"Cleaned up {deleted_count} tasks in this cycle")
+            logger.info(f"Cleaned {deleted_count} tasks in this cycle")
+
+    async def _delete_task(self, task: dict, sid: str, reason: str) -> bool:
+        """
+        Helper to delete a task with logging
+
+        Args:
+            task: qBittorrent task dict
+            sid: qBittorrent session ID
+            reason: Reason for deletion (for logging)
+
+        Returns:
+            bool: True if successful
+        """
+        hash_ = task.get('hash', '')
+        name = task.get('name', hash_)[:50]
+        success = await qb_delete_torrent(hash_, sid, delete_files=True)
+        if success:
+            logger.info(f"🗑️  Deleted: {name} - {reason}")
+        return success
 
     def _get_torrent_meta(self, task: dict) -> dict:
         """
@@ -266,6 +340,54 @@ class PilotManager:
 
         return {}
 
+    def _get_sliding_window_speed(self, task: dict, window_minutes: int = 30) -> float:
+        """
+        Calculate average upload speed over the last N minutes
+
+        Args:
+            task: qBittorrent task dict
+            window_minutes: Time window in minutes (default 30)
+
+        Returns:
+            float: Average upload speed in KB/s, or -1 if not enough data
+        """
+        hash_ = task.get('hash', '')
+        current_uploaded = task.get('uploaded', 0)
+        current_time = time.time()
+
+        # Initialize history for this task
+        if hash_ not in self._upload_history:
+            self._upload_history[hash_] = []
+
+        # Add current data point
+        self._upload_history[hash_].append((current_time, current_uploaded))
+
+        # Remove data older than window
+        cutoff = current_time - (window_minutes * 60)
+        self._upload_history[hash_] = [
+            (t, u) for t, u in self._upload_history[hash_] if t >= cutoff
+        ]
+
+        # Calculate average speed
+        history = self._upload_history[hash_]
+        if len(history) < 2:
+            return -1  # Not enough data yet, return -1 to indicate "skip"
+
+        oldest_time, oldest_uploaded = history[0]
+        time_delta = current_time - oldest_time
+        if time_delta <= 0:
+            return -1
+
+        uploaded_delta = current_uploaded - oldest_uploaded
+        return (uploaded_delta / time_delta) / 1024  # KB/s
+
+    def _cleanup_upload_history(self, active_hashes: set):
+        """Remove history for tasks that no longer exist"""
+        self._upload_history = {
+            h: data for h, data in self._upload_history.items()
+            if h in active_hashes
+        }
+
 
 def calculate_torrent_score(torrent: dict) -> float:
     """
@@ -287,14 +409,14 @@ pilot_manager = PilotManager()
 
 async def pilot_loop():
     """Independent background loop task"""
-    logger.info("Automation loop started")
+    logger.info("Pilot loop started")
 
     while True:
         try:
             await pilot_manager.run_download_cycle()
             await pilot_manager.run_cleanup_cycle()
         except Exception as e:
-            logger.error(f"Automation cycle error: {e}", exc_info=True)
+            logger.error(f"Pilot cycle error: {e}", exc_info=True)
 
         interval = pilot_manager.config.download.interval_seconds
         await asyncio.sleep(interval)

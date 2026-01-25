@@ -70,19 +70,18 @@ class DownloadPolicy(BaseModel):
 class CleanupPolicy(BaseModel):
     """Cleanup policy configuration"""
     enabled: bool = True
-    delete_on_expired: bool = True
     min_share_ratio: float = Field(0.0, ge=0)
     min_seed_time_hours: int = Field(1, ge=0)  # H&R protection
     max_download_time_hours: int = Field(12, ge=0)  # Zombie task timeout
 
-    # Advanced cleanup conditions (0 = disabled)
-    min_current_users: int = Field(10, ge=0)  # Delete if seeders + leechers < this
-    min_upload_speed_kbps: int = Field(300, ge=0)  # Delete if avg upload speed < this (KB/s)
-    upload_speed_check_minutes: int = Field(10, ge=1, le=1440)  # Time window for speed check
+    # Bottom performers elimination
+    min_current_users: int = Field(10, ge=0)  # Delete if seeders + leechers < this (from qB tracker)
+    min_upload_speed_kbps: int = Field(300, ge=0)  # Min average upload speed (KB/s)
+    elimination_ratio: float = Field(0.2, ge=0.0, le=0.5)  # Delete slowest X% PILOT tasks each cleanup cycle
 
 
 class AutomationConfig(BaseModel):
-    """Main automation configuration (credentials via env vars, not stored)"""
+    """Main pilot configuration (credentials via env vars, not stored)"""
     download: DownloadPolicy = Field(default_factory=DownloadPolicy)
     cleanup: CleanupPolicy = Field(default_factory=CleanupPolicy)
     enable_notification: bool = True

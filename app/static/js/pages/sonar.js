@@ -1,6 +1,6 @@
 /* ============================================================================
    MT-Engine - SONAR Page
-   Seeder page initialization and filtering logic
+   Sonar page initialization and filtering logic
    ============================================================================ */
 
 import { initTheme, toggleTheme } from '../components/theme.js';
@@ -8,7 +8,7 @@ import { initLanguage, toggleLanguage } from '../components/language.js';
 import { showToast } from '../components/toast.js';
 import { initDrawer, openFilterDrawer, closeFilterDrawer } from '../components/drawer.js';
 import { refreshTorrents, toggleAutoDelete as apiToggleAutoDelete, getTorrents } from '../api.js';
-import { initTable, renderTorrents } from '../components/table.js';
+import { initTable, renderTorrents, showLoadingSkeleton } from '../components/table.js';
 import { t, currentLang, setCurrentPage } from '../i18n.js';
 import { hapticFeedback, debounce, throttle } from '../utils.js';
 import { CONFIG } from '../config.js';
@@ -17,7 +17,7 @@ import { CONFIG } from '../config.js';
 let allTorrents = [];
 let filterState = {
     size: 'all',
-    seeder: 'all',
+    sonar: 'all',
     remaining: 'all',
     status: 'all',
     mode: 'all',
@@ -26,7 +26,7 @@ let filterState = {
 
 let drawerState = {
     size: 'all',
-    seeder: 'all',
+    sonar: 'all',
     remaining: 'all',
     status: 'all',
     mode: 'all'
@@ -72,7 +72,7 @@ export function initSonarPage() {
     // Apply initial filters
     applyFilters();
 
-    console.log('Seeder page initialized');
+    console.log('Sonar page initialized');
 }
 
 function setupEventListeners() {
@@ -174,13 +174,13 @@ function setupEventListeners() {
         });
     });
 
-    // Seeder filter pills (Level 2)
-    document.querySelectorAll('.seeder-pill').forEach(pill => {
+    // Sonar filter pills (Level 2)
+    document.querySelectorAll('.sonar-pill').forEach(pill => {
         pill.addEventListener('click', () => {
             const value = pill.getAttribute('data-value');
-            document.querySelectorAll('.seeder-pill').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.sonar-pill').forEach(p => p.classList.remove('active'));
             pill.classList.add('active');
-            filterState.seeder = value;
+            filterState.sonar = value;
             applyFilters();
         });
     });
@@ -197,21 +197,24 @@ function setupEventListeners() {
 
     const handleRefresh = async (btn) => {
         if (!btn) return;
-        const originalText = btn.innerHTML;
         btn.disabled = true;
-        // Optional: btn.classList.add('loading');
-        
+
+        // Show loading skeleton
+        showLoadingSkeleton();
+
         try {
             await refreshTorrents();
             const data = await getTorrents();
             if (data && data.torrents) {
                 allTorrents = data.torrents;
                 applyFilters();
-                showToast(t('refreshSuccess') || '刷新成功');
+                showToast(t('refreshSuccess'));
             }
         } catch (e) {
             console.error('Refresh failed:', e);
-            showToast(t('refreshError') || '刷新失败');
+            // Restore display of original data
+            applyFilters();
+            showToast(t('refreshError'));
         } finally {
             btn.disabled = false;
         }
@@ -283,7 +286,7 @@ function filterByMode(mode, btn) {
 
 function applyFilters() {
     const searchTerm = filterState.search.toLowerCase();
-    const GB = 1024 * 1024 * 1024;
+    const GB = 1000 * 1000 * 1000;  // Use decimal (1000) to match backend
 
     const filtered = allTorrents.filter(torrent => {
         const size = torrent.size || 0;
@@ -313,9 +316,9 @@ function applyFilters() {
             }
         }
 
-        // Seeder filter
-        if (filterState.seeder !== 'all') {
-            switch (filterState.seeder) {
+        // Sonar filter
+        if (filterState.sonar !== 'all') {
+            switch (filterState.sonar) {
                 case 'hot': if (seeders <= 10) return false; break;
                 case 'normal': if (seeders < 5 || seeders > 10) return false; break;
                 case 'rare': if (seeders < 1 || seeders >= 5) return false; break;
@@ -425,7 +428,7 @@ function updateFilterIndicators() {
 function getActiveFilterCount() {
     let count = 0;
     if (filterState.size !== 'all') count++;
-    if (filterState.seeder !== 'all') count++;
+    if (filterState.sonar !== 'all') count++;
     if (filterState.remaining !== 'all') count++;
     if (filterState.status !== 'all') count++;
     if (filterState.mode !== 'all') count++;
@@ -434,25 +437,24 @@ function getActiveFilterCount() {
 }
 
 function resetAllFilters() {
+    // Preserve current search text
+    const currentSearch = filterState.search;
+
     filterState = {
         size: 'all',
-        seeder: 'all',
+        sonar: 'all',
         remaining: 'all',
         status: 'all',
         mode: 'all',
-        search: ''
+        search: currentSearch
     };
 
-    // Reset UI
+    // Reset UI (do not clear search input)
     const remainingFilter = document.getElementById('remainingFilter');
     const modeFilter = document.getElementById('modeFilter');
-    const searchInput = document.getElementById('searchInput');
-    const mobileSearchInput = document.getElementById('mobileSearchInput');
 
     if (remainingFilter) remainingFilter.value = 'all';
     if (modeFilter) modeFilter.value = 'all';
-    if (searchInput) searchInput.value = '';
-    if (mobileSearchInput) mobileSearchInput.value = '';
 
     // Reset status tabs
     document.querySelectorAll('.status-tab').forEach(b => {
@@ -470,15 +472,15 @@ function resetAllFilters() {
         p.classList.toggle('active', p.getAttribute('data-value') === 'all');
     });
 
-    // Reset seeder pills
-    document.querySelectorAll('.seeder-pill').forEach(p => {
+    // Reset sonar pills
+    document.querySelectorAll('.sonar-pill').forEach(p => {
         p.classList.toggle('active', p.getAttribute('data-value') === 'all');
     });
 
     // Reset drawer state
     drawerState = {
         size: 'all',
-        seeder: 'all',
+        sonar: 'all',
         remaining: 'all',
         status: 'all',
         mode: 'all'
@@ -503,7 +505,7 @@ function toggleDrawerPill(group, value, pill) {
 
 function applyDrawerFiltersAndClose() {
     filterState.size = drawerState.size;
-    filterState.seeder = drawerState.seeder;
+    filterState.sonar = drawerState.sonar;
     filterState.remaining = drawerState.remaining;
     filterState.status = drawerState.status;
     filterState.mode = drawerState.mode;
@@ -539,9 +541,9 @@ function applyDrawerFiltersAndClose() {
         p.classList.toggle('active', p.getAttribute('data-value') === filterState.size);
     });
 
-    // Update seeder pills
-    document.querySelectorAll('.seeder-pill').forEach(p => {
-        p.classList.toggle('active', p.getAttribute('data-value') === filterState.seeder);
+    // Update sonar pills
+    document.querySelectorAll('.sonar-pill').forEach(p => {
+        p.classList.toggle('active', p.getAttribute('data-value') === filterState.sonar);
     });
 
     applyFilters();
@@ -561,6 +563,15 @@ function loadFiltersFromLocalStorage() {
         const saved = localStorage.getItem('mt-free-hunter-filters');
         if (saved) {
             const savedFilters = JSON.parse(saved);
+
+            // Migrate old 'seeder' key to 'sonar' (v5.0.0 rename)
+            if ('seeder' in savedFilters && !('sonar' in savedFilters)) {
+                savedFilters.sonar = savedFilters.seeder;
+                delete savedFilters.seeder;
+                // Save the migrated data back to localStorage
+                localStorage.setItem('mt-free-hunter-filters', JSON.stringify(savedFilters));
+            }
+
             filterState = { ...filterState, ...savedFilters };
 
             // Apply to UI
@@ -590,9 +601,9 @@ function loadFiltersFromLocalStorage() {
                 p.classList.toggle('active', p.getAttribute('data-value') === filterState.size);
             });
 
-            // Restore seeder pills
-            document.querySelectorAll('.seeder-pill').forEach(p => {
-                p.classList.toggle('active', p.getAttribute('data-value') === filterState.seeder);
+            // Restore sonar pills
+            document.querySelectorAll('.sonar-pill').forEach(p => {
+                p.classList.toggle('active', p.getAttribute('data-value') === filterState.sonar);
             });
 
             // Sync drawer state

@@ -4,7 +4,7 @@
    ============================================================================ */
 
 import { CATEGORY_MAP, FILTER_CONFIG } from '../config.js';
-import { getCurrentLang } from '../i18n.js';
+import { getCurrentLang, t } from '../i18n.js';
 
 // Filter state
 export const filterState = {
@@ -86,6 +86,7 @@ export function setMode(mode) {
     updateActiveTab(mode);
     updateCategoryPills(mode);
     updateFilterVisibility(mode);
+    updateResetButtonState();
 }
 
 function updateActiveTab(mode) {
@@ -147,15 +148,19 @@ export function updateCategoryPills(mode) {
 
 function toggleCategoryPill(pill) {
     const categories = pill.getAttribute('data-categories');
-    pill.classList.toggle('active');
+    const wasActive = pill.classList.contains('active');
 
-    if (pill.classList.contains('active')) {
-        filterState.categories.push(categories);
+    // Remove active state from all pills (single-select logic)
+    document.querySelectorAll('.cat-pill, .mobile-cat-pill').forEach(p => {
+        p.classList.remove('active');
+    });
+
+    // If it was not active before, activate it; otherwise keep it deselected
+    if (!wasActive) {
+        pill.classList.add('active');
+        filterState.categories = [categories];
     } else {
-        const index = filterState.categories.indexOf(categories);
-        if (index > -1) {
-            filterState.categories.splice(index, 1);
-        }
+        filterState.categories = [];
     }
 
     updateResetButtonState();
@@ -200,13 +205,19 @@ export function getActiveFilters() {
 }
 
 export function resetFilters() {
-    // Reset state (keep mode)
+    // Reset ALL state including mode
+    filterState.mode = 'normal';
     filterState.categories = [];
     filterState.resolution = '';
     filterState.video = '';
     filterState.audio = '';
     filterState.country = '';
     filterState.discount = '';
+
+    // Reset mode tabs UI
+    updateActiveTab('normal');
+    updateCategoryPills('normal');
+    updateFilterVisibility('normal');
 
     // Reset UI
     document.querySelectorAll('.cat-pill, .mobile-cat-pill').forEach(pill => {
@@ -231,13 +242,26 @@ export function resetFilters() {
 }
 
 export function updateResetButtonState() {
-    const hasFilters = filterState.categories.length > 0 ||
+    const hasFilters = filterState.mode !== 'normal' ||
+        filterState.categories.length > 0 ||
         filterState.resolution || filterState.video ||
         filterState.audio || filterState.country || filterState.discount;
 
     const btn = document.getElementById('resetFiltersBtn');
     if (btn) {
         btn.disabled = !hasFilters;
+    }
+
+    // Update filter badge
+    const badge = document.getElementById('filterCountBadge');
+    if (badge) {
+        const count = getFilterCount();
+        if (count > 0) {
+            badge.textContent = `${count} ${t('filtersActive')}`;
+            badge.classList.add('visible');
+        } else {
+            badge.classList.remove('visible');
+        }
     }
 
     // Update filter indicator on mobile
@@ -249,6 +273,18 @@ export function updateResetButtonState() {
             indicator.classList.remove('has-filters');
         }
     }
+}
+
+function getFilterCount() {
+    let count = 0;
+    if (filterState.mode !== 'normal') count++;
+    if (filterState.categories.length > 0) count++;
+    if (filterState.resolution) count++;
+    if (filterState.video) count++;
+    if (filterState.audio) count++;
+    if (filterState.country) count++;
+    if (filterState.discount) count++;
+    return count;
 }
 
 // Make functions globally available for onclick handlers
