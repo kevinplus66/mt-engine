@@ -27,6 +27,7 @@ from app.routes.radar import (
     api_filter_options, api_radar, radar_download_torrent
 )
 from app.routes.pilot import router as pilot_router
+from app.routes.panel import router as panel_router
 from app.core.pilot import pilot_loop
 from app.models import DownloadRequest, SearchRequest
 import app.state as state
@@ -207,6 +208,10 @@ async def pilot_page(request: Request):
 
 # ============ 领航 API ============
 app.include_router(pilot_router)
+
+
+# ============ PANEL API ============
+app.include_router(panel_router)
 
 
 # ============ 种子 API ============
