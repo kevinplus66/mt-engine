@@ -467,3 +467,39 @@ async def qb_add_torrent_file(torrent_content: bytes, sid: str, tag: str = "", s
     except Exception as e:
         logger.error(f"添加种子文件异常: {e}")
         return False
+
+
+async def qb_get_mteam_stats(sid: str) -> Dict:
+    """
+    统计 M-Team 相关标签的种子流量
+
+    Args:
+        sid: qBittorrent 会话 ID
+
+    Returns:
+        Dict: 包含上传下载总量和速率
+    """
+    torrents = await qb_get_torrents(sid)
+
+    mteam_tags = ['声呐做种', '雷达下载', 'PILOT']
+    total_uploaded = 0
+    total_downloaded = 0
+    upload_speed = 0
+    download_speed = 0
+
+    for torrent in torrents:
+        tags = torrent.get('tags', '').split(',')
+        # 检查是否有 M-Team 标签
+        if any(tag.strip() in mteam_tags for tag in tags):
+            total_uploaded += torrent.get('uploaded', 0)
+            total_downloaded += torrent.get('downloaded', 0)
+            upload_speed += torrent.get('upspeed', 0)
+            download_speed += torrent.get('dlspeed', 0)
+
+    logger.debug(f"M-Team 标签统计: 上传={total_uploaded}, 下载={total_downloaded}")
+    return {
+        'uploaded': total_uploaded,
+        'downloaded': total_downloaded,
+        'upload_speed': upload_speed,
+        'download_speed': download_speed
+    }
