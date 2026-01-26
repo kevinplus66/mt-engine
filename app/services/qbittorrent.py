@@ -14,6 +14,7 @@ from app.config import (
     QB_SESSION_MAX_AGE, MT_API_BASE, MT_SITE_URL, USER_AGENT, logger
 )
 from app.services.http_client import get_http_client, get_headers
+from app.utils import format_size
 
 
 # ============ qBittorrent 会话缓存 ============
@@ -275,6 +276,125 @@ async def qb_delete_torrents(sid: str, hashes: List[str], delete_files: bool = T
     except Exception as e:
         logger.error(f"批量删除异常: {e}")
         return {"success": False, "deleted_count": 0, "failed": hashes}
+
+
+def calculate_torrent_health(torrent: Dict, trackers: List[Dict]) -> Dict:
+    """
+    计算种子健康度
+
+    Args:
+        torrent: 种子信息
+        trackers: Tracker 列表
+
+    Returns:
+        Dict: {"score": int (0-100), "status": str, "reason": str}
+    """
+    import time
+
+    # 检查 tracker 状态 (status=2 表示工作中)
+    has_working_tracker = any(t.get('status') == 2 for t in trackers if t.get('url', '').startswith('http'))
+
+    # 检查文件完整性
+    state = torrent.get('state', '')
+    if state in ('error', 'missingFiles'):
+        return {"score": 0, "status": "error", "reason": "文件损坏"}
+
+    # 检查 Tracker 连接
+    if not has_working_tracker:
+        return {"score": 25, "status": "degraded", "reason": "Tracker离线"}
+
+    # 检查僵尸种子（完成后长时间无活动）
+    if torrent.get('progress', 0) >= 1.0:
+        last_activity = torrent.get('last_activity', 0)
+        if last_activity > 0:
+            idle_seconds = time.time() - last_activity
+            # 超过 3 天无上传活动
+            if idle_seconds > 259200:  # 3 days
+                idle_days = int(idle_seconds / 86400)
+                return {"score": 50, "status": "warning", "reason": f"{idle_days}天无上传"}
+
+    return {"score": 100, "status": "healthy", "reason": ""}
+
+
+async def qb_get_mteam_torrents(sid: str, tag_filter: Optional[str] = None,
+                                status_filter: Optional[str] = None) -> List[Dict]:
+    """
+    获取所有 MT-Engine 管理的种子（带健康度监控）
+
+    Args:
+        sid: qBittorrent 会话 ID
+        tag_filter: 标签筛选 ("声呐做种" | "雷达下载" | "PILOT")
+        status_filter: 状态筛选 ("downloading" | "seeding" | "paused" | "completed")
+
+    Returns:
+        List[Dict]: 种子列表
+    """
+    if not sid:
+        return []
+
+    try:
+        # 获取所有种子
+        all_torrents = await qb_get_torrents(sid)
+
+        # MT-Engine 标签
+        mt_tags = {"声呐做种", "雷达下载", "PILOT"}
+
+        result = []
+        for torrent in all_torrents:
+            # 筛选 MT-Engine 标签
+            torrent_tags = set(torrent.get('tags', '').split(','))
+            torrent_tags = {t.strip() for t in torrent_tags if t.strip()}
+
+            if not torrent_tags.intersection(mt_tags):
+                continue
+
+            # 标签筛选
+            if tag_filter and tag_filter not in torrent_tags:
+                continue
+
+            # 状态筛选
+            state = torrent.get('state', '')
+            if status_filter:
+                if status_filter == "downloading" and state not in ('downloading', 'stalledDL', 'metaDL'):
+                    continue
+                elif status_filter == "seeding" and state not in ('uploading', 'stalledUP'):
+                    continue
+                elif status_filter == "paused" and state not in ('pausedDL', 'pausedUP'):
+                    continue
+                elif status_filter == "completed" and torrent.get('progress', 0) < 1.0:
+                    continue
+
+            # 计算健康度
+            trackers = await qb_get_torrent_trackers(torrent.get('hash', ''), sid)
+            health = calculate_torrent_health(torrent, trackers)
+
+            # 格式化种子信息
+            formatted = {
+                "hash": torrent.get('hash', ''),
+                "name": torrent.get('name', ''),
+                "size": torrent.get('size', 0),
+                "size_display": format_size(torrent.get('size', 0)),
+                "progress": torrent.get('progress', 0),
+                "status": state,
+                "tags": list(torrent_tags.intersection(mt_tags)),
+                "ratio": round(torrent.get('ratio', 0), 2),
+                "uploaded": torrent.get('uploaded', 0),
+                "downloaded": torrent.get('downloaded', 0),
+                "upload_speed": torrent.get('upspeed', 0),
+                "download_speed": torrent.get('dlspeed', 0),
+                "added_on": torrent.get('added_on', 0),
+                "eta": torrent.get('eta', 8640000) if torrent.get('eta', 8640000) < 8640000 else None,
+                "health": health
+            }
+
+            result.append(formatted)
+
+        logger.info(f"获取到 {len(result)} 个 MT-Engine 种子")
+        return result
+
+    except Exception as e:
+        logger.error(f"获取 MT-Engine 种子失败: {e}")
+        return []
 
 
 async def qb_find_torrent_by_mteam_id(mteam_id: str, sid: str) -> Optional[str]:
