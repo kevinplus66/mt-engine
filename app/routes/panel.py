@@ -373,12 +373,27 @@ async def test_storage_info() -> Dict:
         if not sid:
             return {"error": "qBittorrent login failed", "sid": None}
 
+        # 直接测试 qBittorrent maindata API
+        import httpx
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            from app.config import QBITTORRENT_URL
+            response = await client.get(
+                f"{QBITTORRENT_URL.rstrip('/')}/api/v2/sync/maindata",
+                cookies={"SID": sid}
+            )
+            maindata = response.json() if response.status_code == 200 else {"error": f"HTTP {response.status_code}"}
+            server_state = maindata.get('server_state', {})
+            free_space = server_state.get('free_space_on_disk', 'N/A')
+
         storage = await qb_get_storage_info(sid)
         logger.info(f"Test endpoint: storage = {storage}")
 
         return {
             "sid": "present",
-            "storage": storage,
+            "maindata_status": response.status_code,
+            "free_space_from_api": free_space,
+            "server_state_keys": list(server_state.keys()) if server_state else [],
+            "storage_from_function": storage,
             "storage_is_none": storage is None,
             "storage_type": str(type(storage))
         }
