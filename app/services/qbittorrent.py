@@ -397,6 +397,55 @@ async def qb_get_mteam_torrents(sid: str, tag_filter: Optional[str] = None,
         return []
 
 
+async def qb_get_storage_info(sid: str) -> Optional[Dict]:
+    """
+    获取 qBittorrent 下载目录的存储信息
+
+    Args:
+        sid: qBittorrent 会话 ID
+
+    Returns:
+        Optional[Dict]: 存储信息，失败返回 None
+    """
+    if not sid:
+        return None
+
+    try:
+        # 获取 qBittorrent 保存路径
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(
+                f"{QBITTORRENT_URL.rstrip('/')}/api/v2/app/preferences",
+                cookies={"SID": sid}
+            )
+
+            if response.status_code != 200:
+                logger.warning("无法获取 qBittorrent 配置")
+                return None
+
+            prefs = response.json()
+            save_path = prefs.get('save_path', '/downloads')
+
+        # 获取磁盘使用情况
+        import shutil
+        stat = shutil.disk_usage(save_path)
+
+        percent = (stat.used / stat.total) * 100 if stat.total > 0 else 0
+
+        return {
+            "total": stat.total,
+            "used": stat.used,
+            "free": stat.free,
+            "percent": round(percent, 1),
+            "total_display": format_size(stat.total),
+            "used_display": format_size(stat.used),
+            "free_display": format_size(stat.free),
+            "save_path": save_path
+        }
+    except Exception as e:
+        logger.error(f"获取存储信息失败: {e}")
+        return None
+
+
 async def qb_find_torrent_by_mteam_id(mteam_id: str, sid: str) -> Optional[str]:
     """
     通过 M-Team ID 查找 qBittorrent 中的种子
