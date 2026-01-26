@@ -405,13 +405,13 @@ async def qb_get_storage_info(sid: str) -> Optional[Dict]:
         sid: qBittorrent 会话 ID
 
     Returns:
-        Optional[Dict]: 存储信息，失败返回 None
+        Optional[Dict]: 存储信息，失败返回包含 error 的 Dict
     """
     logger.info(f"qb_get_storage_info called, sid={'present' if sid else 'None'}")
 
     if not sid:
         logger.warning("qb_get_storage_info: sid is None")
-        return None
+        return {"error": "sid is None"}
 
     try:
         # 直接检查 /downloads 目录（与 qBittorrent 下载目录一致）
@@ -439,8 +439,9 @@ async def qb_get_storage_info(sid: str) -> Optional[Dict]:
         logger.info(f"Returning storage info: {result['used_display']}/{result['total_display']}")
         return result
     except Exception as e:
-        logger.error(f"获取存储信息失败: {e}", exc_info=True)
-        return None
+        error_msg = f"获取存储信息失败: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        return {"error": error_msg}
 
 
 async def qb_find_torrent_by_mteam_id(mteam_id: str, sid: str) -> Optional[str]:
