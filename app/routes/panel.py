@@ -5,24 +5,44 @@ PANEL 路由
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from typing import Dict, Optional
+from typing import Dict, Optional, Literal, List
 from datetime import datetime
+from pydantic import BaseModel
 
 from app.config import logger
 from app.services.panel_db import get_latest_stats, get_traffic_history, get_share_ratio_history, aggregate_data
 from app.services.mteam_api import fetch_user_profile
-from app.services.qbittorrent import qb_login, qb_get_mteam_stats
+from app.services.qbittorrent import (
+    qb_login, qb_get_mteam_stats, qb_get_mteam_torrents,
+    qb_pause_torrents, qb_resume_torrents, qb_delete_torrents,
+    qb_get_storage_info
+)
 from app.utils import format_size
-from app.state import user_torrent_status
+from app.state import user_torrent_status, user_profile
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
 
+class PauseTorrentsRequest(BaseModel):
+    hashes: List[str]
+
+class ResumeTorrentsRequest(BaseModel):
+    hashes: List[str]
+
+class DeleteTorrentsRequest(BaseModel):
+    hashes: List[str]
+    delete_files: bool = True
+
+
 @router.get("/panel", response_class=HTMLResponse)
 async def panel_page(request: Request):
     """PANEL 页面"""
-    return templates.TemplateResponse("panel.html", {"request": request})
+    return templates.TemplateResponse("panel.html", {
+        "request": request,
+        "active_page": "panel",
+        "user_profile": user_profile
+    })
 
 
 @router.get("/api/panel/stats")
@@ -77,14 +97,33 @@ async def get_panel_stats() -> Dict:
             except Exception as e:
                 logger.error(f"实时采集 M-Team 失败: {e}")
 
+            # 添加存储信息
+            storage = None
+            try:
+                sid = await qb_login()
+                if sid:
+                    storage = await qb_get_storage_info(sid)
+            except Exception as e:
+                logger.error(f"获取存储信息失败: {e}")
+
             return {
                 "mteam": mt_data,
                 "qbittorrent": qb_data,
                 "user": user_data,
+                "storage": storage,
                 "last_update": int(datetime.utcnow().timestamp())
             }
 
         # 格式化数据库数据
+        # 添加存储信息
+        storage = None
+        try:
+            sid = await qb_login()
+            if sid:
+                storage = await qb_get_storage_info(sid)
+        except Exception as e:
+            logger.error(f"获取存储信息失败: {e}")
+
         result = {
             "mteam": {
                 "uploaded": db_stats["mteam"].get("uploaded", 0),
@@ -111,6 +150,7 @@ async def get_panel_stats() -> Dict:
                 "leeching_count": db_stats["user"].get("leeching_count", 0),
                 "user_level": db_stats["user"].get("user_level")
             },
+            "storage": storage,
             "last_update": int(datetime.utcnow().timestamp())
         }
 
@@ -127,7 +167,7 @@ async def get_panel_stats() -> Dict:
 
 
 @router.get("/api/panel/history")
-async def get_panel_history(range: str = "24h") -> Dict:
+async def get_panel_history(range: Literal["24h", "7d", "30d"] = "24h") -> Dict:
     """获取流量历史数据
 
     Args:
@@ -147,13 +187,6 @@ async def get_panel_history(range: str = "24h") -> Dict:
             "7d": 168,  # 7 * 24
             "30d": 720  # 30 * 24
         }
-
-        if range not in range_hours:
-            return {
-                "error": "Invalid range parameter. Use 24h, 7d, or 30d",
-                "range": range,
-                "data_points": []
-            }
 
         hours = range_hours[range]
 
@@ -192,7 +225,7 @@ async def get_panel_history(range: str = "24h") -> Dict:
 
 
 @router.get("/api/panel/share-ratio")
-async def get_panel_share_ratio(range: str = "24h") -> Dict:
+async def get_panel_share_ratio(range: Literal["24h", "7d", "30d"] = "24h") -> Dict:
     """获取分享率历史数据
 
     Args:
@@ -216,13 +249,6 @@ async def get_panel_share_ratio(range: str = "24h") -> Dict:
             "30d": 720
         }
 
-        if range not in range_hours:
-            return {
-                "error": "Invalid range parameter. Use 24h, 7d, or 30d",
-                "range": range,
-                "data_points": []
-            }
-
         hours = range_hours[range]
 
         # 获取数据
@@ -241,3 +267,97 @@ async def get_panel_share_ratio(range: str = "24h") -> Dict:
             "range": range,
             "data_points": []
         }
+
+
+@router.get("/api/panel/torrents")
+async def get_panel_torrents(
+    tag: Optional[str] = None,
+    status: Optional[str] = None
+) -> Dict:
+    """
+    获取种子列表（带筛选）
+
+    Args:
+        tag: 标签筛选 ("声呐做种" | "雷达下载" | "PILOT")
+        status: 状态筛选 ("downloading" | "seeding" | "paused" | "completed")
+
+    Returns:
+        {
+            "torrents": List[Dict],
+            "total_count": int,
+            "filtered_count": int
+        }
+    """
+    try:
+        sid = await qb_login()
+        if not sid:
+            return {
+                "torrents": [],
+                "total_count": 0,
+                "filtered_count": 0,
+                "error": "qBittorrent 连接失败"
+            }
+
+        torrents = await qb_get_mteam_torrents(sid, tag, status)
+
+        return {
+            "torrents": torrents,
+            "total_count": len(torrents),
+            "filtered_count": len(torrents)
+        }
+    except Exception as e:
+        logger.error(f"获取种子列表失败: {e}")
+        return {
+            "torrents": [],
+            "total_count": 0,
+            "filtered_count": 0,
+            "error": str(e)
+        }
+
+
+@router.post("/api/panel/torrents/pause")
+async def pause_torrents(request: PauseTorrentsRequest) -> Dict:
+    """批量暂停种子"""
+    try:
+        sid = await qb_login()
+        if not sid:
+            return {"success": False, "paused_count": 0, "failed": request.hashes,
+                    "error": "qBittorrent 连接失败"}
+
+        result = await qb_pause_torrents(sid, request.hashes)
+        return result
+    except Exception as e:
+        logger.error(f"批量暂停失败: {e}")
+        return {"success": False, "paused_count": 0, "failed": request.hashes, "error": str(e)}
+
+
+@router.post("/api/panel/torrents/resume")
+async def resume_torrents(request: ResumeTorrentsRequest) -> Dict:
+    """批量恢复种子"""
+    try:
+        sid = await qb_login()
+        if not sid:
+            return {"success": False, "resumed_count": 0, "failed": request.hashes,
+                    "error": "qBittorrent 连接失败"}
+
+        result = await qb_resume_torrents(sid, request.hashes)
+        return result
+    except Exception as e:
+        logger.error(f"批量恢复失败: {e}")
+        return {"success": False, "resumed_count": 0, "failed": request.hashes, "error": str(e)}
+
+
+@router.post("/api/panel/torrents/delete")
+async def delete_torrents(request: DeleteTorrentsRequest) -> Dict:
+    """批量删除种子"""
+    try:
+        sid = await qb_login()
+        if not sid:
+            return {"success": False, "deleted_count": 0, "failed": request.hashes,
+                    "error": "qBittorrent 连接失败"}
+
+        result = await qb_delete_torrents(sid, request.hashes, request.delete_files)
+        return result
+    except Exception as e:
+        logger.error(f"批量删除失败: {e}")
+        return {"success": False, "deleted_count": 0, "failed": request.hashes, "error": str(e)}
