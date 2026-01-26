@@ -399,7 +399,7 @@ async def qb_get_mteam_torrents(sid: str, tag_filter: Optional[str] = None,
 
 async def qb_get_storage_info(sid: str) -> Optional[Dict]:
     """
-    获取 qBittorrent 下载目录的存储信息
+    获取存储空间信息
 
     Args:
         sid: qBittorrent 会话 ID
@@ -411,32 +411,13 @@ async def qb_get_storage_info(sid: str) -> Optional[Dict]:
         return None
 
     try:
-        # 获取 qBittorrent 保存路径
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(
-                f"{QBITTORRENT_URL.rstrip('/')}/api/v2/app/preferences",
-                cookies={"SID": sid}
-            )
-
-            if response.status_code != 200:
-                logger.warning("无法获取 qBittorrent 配置")
-                return None
-
-            prefs = response.json()
-            save_path = prefs.get('save_path', '/downloads')
-
-        # 获取磁盘使用情况
-        # 注意：在 Docker 容器内，使用根路径来获取磁盘信息
+        # 直接使用根路径获取存储信息（Docker 容器环境）
         import shutil
-        try:
-            # 尝试使用 save_path
-            stat = shutil.disk_usage(save_path)
-        except Exception as e:
-            # 如果失败，使用根路径作为后备
-            logger.warning(f"无法访问 {save_path}，使用根路径: {e}")
-            stat = shutil.disk_usage('/')
+        stat = shutil.disk_usage('/')
 
         percent = (stat.used / stat.total) * 100 if stat.total > 0 else 0
+
+        logger.info(f"获取存储信息成功: {percent:.1f}% 已使用")
 
         return {
             "total": stat.total,
@@ -446,7 +427,7 @@ async def qb_get_storage_info(sid: str) -> Optional[Dict]:
             "total_display": format_size(stat.total),
             "used_display": format_size(stat.used),
             "free_display": format_size(stat.free),
-            "save_path": save_path
+            "save_path": "/"
         }
     except Exception as e:
         logger.error(f"获取存储信息失败: {e}")
