@@ -1,0 +1,407 @@
+/* Torrent Table - Nothing OS Style */
+
+.torrent-section {
+    margin: 32px 0;
+}
+
+.torrent-section-title {
+    font-family: 'DotGothic16', monospace;
+    font-size: 18px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+}
+
+/* Filter Bar */
+.torrent-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 16px;
+    border: 1px dotted var(--nt-border);
+    background: var(--nt-bg-secondary);
+}
+
+.filter-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.filter-label {
+    font-family: 'DotGothic16', monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    color: var(--nt-text-secondary);
+}
+
+.filter-pill {
+    padding: 6px 12px;
+    font-family: 'DotGothic16', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border: 1px dotted var(--nt-border);
+    background: transparent;
+    color: var(--nt-text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filter-pill:hover {
+    border-style: solid;
+}
+
+.filter-pill.active {
+    background: var(--nt-text-primary);
+    color: var(--nt-bg-secondary);
+    border-style: solid;
+}
+
+.torrent-count {
+    margin-left: auto;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 12px;
+    color: var(--nt-text-secondary);
+}
+
+/* Batch Actions Bar */
+.batch-actions-bar {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    border: 1px dotted var(--nt-border);
+    background: var(--nt-bg-secondary);
+}
+
+.batch-actions-bar.visible {
+    display: flex;
+}
+
+.batch-selected-count {
+    font-family: 'DotGothic16', monospace;
+    font-size: 13px;
+    letter-spacing: 1px;
+}
+
+.batch-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.batch-btn {
+    padding: 8px 16px;
+    font-family: 'DotGothic16', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border: 1px dotted var(--nt-border);
+    background: transparent;
+    color: var(--nt-text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.batch-btn:hover {
+    background: var(--nt-text-primary);
+    color: var(--nt-bg-secondary);
+    border-style: solid;
+}
+
+.batch-btn.danger {
+    border-color: var(--nt-red);
+    color: var(--nt-red);
+}
+
+.batch-btn.danger:hover {
+    background: var(--nt-red);
+    color: var(--nt-bg-secondary);
+}
+
+.batch-clear {
+    padding: 8px 12px;
+    font-family: 'DotGothic16', monospace;
+    font-size: 14px;
+    border: 1px dotted var(--nt-border);
+    background: transparent;
+    cursor: pointer;
+}
+
+.batch-clear:hover {
+    background: var(--nt-text-primary);
+    color: var(--nt-bg-secondary);
+}
+
+/* Torrent Table */
+.torrent-table-container {
+    overflow-x: auto;
+    border: 1px dotted var(--nt-border);
+}
+
+.torrent-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Roboto Mono', monospace;
+}
+
+.torrent-table thead {
+    background: var(--nt-bg-secondary);
+    border-bottom: 1px dotted var(--nt-border);
+}
+
+.torrent-table th {
+    padding: 12px 16px;
+    font-family: 'DotGothic16', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: center;
+    font-weight: normal;
+}
+
+.torrent-table th:first-child,
+.torrent-table th:nth-child(2) {
+    text-align: left;
+}
+
+.torrent-table tbody tr {
+    border-bottom: 1px dotted var(--nt-border-light);
+}
+
+.torrent-table tbody tr:hover {
+    background: var(--nt-bg-secondary);
+}
+
+.torrent-table td {
+    padding: 12px 16px;
+    font-size: 12px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.torrent-table td:first-child {
+    text-align: center;
+    width: 40px;
+}
+
+.torrent-table td:nth-child(2) {
+    text-align: left;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.torrent-checkbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+/* Health Status */
+.health-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 11px;
+}
+
+.health-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.health-dot.healthy {
+    background: #00FF00;
+}
+
+.health-dot.warning {
+    background: #FFFF00;
+}
+
+.health-dot.degraded {
+    background: #FFA500;
+}
+
+.health-dot.error {
+    background: var(--nt-red);
+}
+
+/* Progress Bar */
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    border: 1px dotted var(--nt-border);
+    background: var(--nt-bg-secondary);
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--nt-text-primary);
+    transition: width 0.3s;
+}
+
+.progress-text {
+    font-size: 11px;
+    margin-top: 4px;
+}
+
+/* Tag Pill */
+.tag-pill {
+    display: inline-block;
+    padding: 4px 8px;
+    font-size: 10px;
+    border: 1px dotted var(--nt-border);
+    background: var(--nt-bg-secondary);
+}
+
+/* Speed Display */
+.speed-display {
+    font-size: 11px;
+}
+
+.speed-up {
+    color: #00FF00;
+}
+
+.speed-down {
+    color: #00BFFF;
+}
+
+/* Empty/Loading States */
+.torrent-state-message {
+    padding: 60px 20px;
+    text-align: center;
+    border: 1px dotted var(--nt-border);
+    background: var(--nt-bg-secondary);
+}
+
+.torrent-state-message h3 {
+    font-family: 'DotGothic16', monospace;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+}
+
+.torrent-state-message p {
+    font-size: 13px;
+    color: var(--nt-text-secondary);
+    line-height: 1.6;
+}
+
+.retry-btn {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-family: 'DotGothic16', monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border: 1px dotted var(--nt-border);
+    background: transparent;
+    color: var(--nt-text-primary);
+    cursor: pointer;
+}
+
+.retry-btn:hover {
+    background: var(--nt-text-primary);
+    color: var(--nt-bg-secondary);
+    border-style: solid;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .torrent-table {
+        display: none;
+    }
+
+    .torrent-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .torrent-card {
+        border: 1px dotted var(--nt-border);
+        background: var(--nt-bg-secondary);
+        padding: 12px;
+    }
+
+    .torrent-card-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .torrent-card-name {
+        flex: 1;
+        font-size: 13px;
+        word-break: break-word;
+    }
+
+    .torrent-card-tag {
+        font-size: 10px;
+        padding: 4px 8px;
+        border: 1px dotted var(--nt-border);
+        white-space: nowrap;
+    }
+
+    .torrent-card-progress {
+        margin-bottom: 12px;
+    }
+
+    .torrent-card-stats {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        font-size: 11px;
+        color: var(--nt-text-secondary);
+        margin-bottom: 12px;
+    }
+
+    .torrent-card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 11px;
+        color: var(--nt-text-secondary);
+    }
+
+    .batch-actions-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        margin: 0;
+        border-left: none;
+        border-right: none;
+        border-bottom: none;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .batch-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+        margin: 0;
+    }
+
+    .batch-btn {
+        width: 100%;
+    }
+}
