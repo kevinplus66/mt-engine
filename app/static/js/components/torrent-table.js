@@ -503,3 +503,163 @@ function getSelectedTorrentNames() {
         .filter(t => TorrentState.selectedHashes.has(t.hash))
         .map(t => t.name);
 }
+
+// Handle batch pause
+async function handleBatchPause() {
+    const hashes = Array.from(TorrentState.selectedHashes);
+    if (hashes.length === 0) return;
+
+    const names = getSelectedTorrentNames();
+
+    // Show confirmation
+    const result = await showConfirmModal({
+        title: '确认暂停种子？',
+        message: '暂停后可以随时恢复。',
+        items: names,
+        confirmText: '确认暂停',
+        cancelText: '取消',
+        isDanger: false
+    });
+
+    if (!result) return;
+
+    // Call API
+    try {
+        const response = await fetch('/api/panel/torrents/pause', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ hashes })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(`已暂停 ${data.paused_count} 个种子`, 'success');
+        } else {
+            showToast(`暂停失败: ${data.error || '未知错误'}`, 'error');
+        }
+
+        // Clear selection and refresh
+        TorrentState.selectedHashes.clear();
+        await fetchTorrents();
+
+    } catch (error) {
+        console.error('Batch pause failed:', error);
+        showToast('暂停失败: 网络错误', 'error');
+    }
+}
+
+// Handle batch resume
+async function handleBatchResume() {
+    const hashes = Array.from(TorrentState.selectedHashes);
+    if (hashes.length === 0) return;
+
+    const names = getSelectedTorrentNames();
+
+    // Show confirmation
+    const result = await showConfirmModal({
+        title: '确认恢复种子？',
+        items: names,
+        confirmText: '确认恢复',
+        cancelText: '取消',
+        isDanger: false
+    });
+
+    if (!result) return;
+
+    // Call API
+    try {
+        const response = await fetch('/api/panel/torrents/resume', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ hashes })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(`已恢复 ${data.resumed_count} 个种子`, 'success');
+        } else {
+            showToast(`恢复失败: ${data.error || '未知错误'}`, 'error');
+        }
+
+        // Clear selection and refresh
+        TorrentState.selectedHashes.clear();
+        await fetchTorrents();
+
+    } catch (error) {
+        console.error('Batch resume failed:', error);
+        showToast('恢复失败: 网络错误', 'error');
+    }
+}
+
+// Handle batch delete
+async function handleBatchDelete() {
+    const hashes = Array.from(TorrentState.selectedHashes);
+    if (hashes.length === 0) return;
+
+    const names = getSelectedTorrentNames();
+
+    // Show confirmation with delete files checkbox
+    const result = await showConfirmModal({
+        title: '⚠ 确认删除种子？',
+        items: names,
+        confirmText: '确认删除',
+        cancelText: '取消',
+        isDanger: true,
+        showWarning: true,
+        warningText: '警告：此操作无法撤销！',
+        showCheckbox: true,
+        checkboxLabel: '同时删除文件 (推荐)',
+        checkboxDefault: true
+    });
+
+    if (!result) return;
+
+    const deleteFiles = result.checkboxValue !== undefined ? result.checkboxValue : true;
+
+    // Call API
+    try {
+        const response = await fetch('/api/panel/torrents/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ hashes, delete_files: deleteFiles })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(`已删除 ${data.deleted_count} 个种子${deleteFiles ? '及文件' : ''}`, 'success');
+        } else if (data.deleted_count > 0 && data.failed.length > 0) {
+            showToast(`已删除 ${data.deleted_count}/${hashes.length} 个种子，${data.failed.length} 个失败`, 'warning');
+        } else {
+            showToast(`删除失败: ${data.error || '未知错误'}`, 'error');
+        }
+
+        // Clear selection and refresh
+        TorrentState.selectedHashes.clear();
+        await fetchTorrents();
+
+    } catch (error) {
+        console.error('Batch delete failed:', error);
+        showToast('删除失败: 网络错误', 'error');
+    }
+}
+
+// Toast helper
+function showToast(message, type = 'info') {
+    // Reuse existing toast component if available
+    if (window.showToast) {
+        window.showToast(message, type);
+    } else {
+        console.log(`Toast (${type}): ${message}`);
+        alert(message);
+    }
+}
+
+// Export functions for use in panel.js
+window.TorrentTable = {
+    init: initTorrentTable,
+    refresh: fetchTorrents,
+    stop: stopTorrentAutoRefresh
+};
