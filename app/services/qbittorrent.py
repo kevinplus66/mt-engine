@@ -174,6 +174,109 @@ async def qb_get_torrent_trackers(torrent_hash: str, sid: str) -> List[Dict]:
         return []
 
 
+async def qb_pause_torrents(sid: str, hashes: List[str]) -> Dict:
+    """
+    批量暂停种子（单次 API 调用）
+
+    Args:
+        sid: qBittorrent 会话 ID
+        hashes: 种子哈希列表
+
+    Returns:
+        Dict: {"success": bool, "paused_count": int, "failed": List[str]}
+    """
+    if not sid or not hashes:
+        return {"success": False, "paused_count": 0, "failed": hashes}
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                f"{QBITTORRENT_URL.rstrip('/')}/api/v2/torrents/pause",
+                data={"hashes": "|".join(hashes)},
+                cookies={"SID": sid},
+            )
+
+            if response.status_code == 200:
+                logger.info(f"批量暂停 {len(hashes)} 个种子成功")
+                return {"success": True, "paused_count": len(hashes), "failed": []}
+            else:
+                logger.error(f"批量暂停失败: HTTP {response.status_code}")
+                return {"success": False, "paused_count": 0, "failed": hashes}
+    except Exception as e:
+        logger.error(f"批量暂停异常: {e}")
+        return {"success": False, "paused_count": 0, "failed": hashes}
+
+
+async def qb_resume_torrents(sid: str, hashes: List[str]) -> Dict:
+    """
+    批量恢复种子（单次 API 调用）
+
+    Args:
+        sid: qBittorrent 会话 ID
+        hashes: 种子哈希列表
+
+    Returns:
+        Dict: {"success": bool, "resumed_count": int, "failed": List[str]}
+    """
+    if not sid or not hashes:
+        return {"success": False, "resumed_count": 0, "failed": hashes}
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                f"{QBITTORRENT_URL.rstrip('/')}/api/v2/torrents/resume",
+                data={"hashes": "|".join(hashes)},
+                cookies={"SID": sid},
+            )
+
+            if response.status_code == 200:
+                logger.info(f"批量恢复 {len(hashes)} 个种子成功")
+                return {"success": True, "resumed_count": len(hashes), "failed": []}
+            else:
+                logger.error(f"批量恢复失败: HTTP {response.status_code}")
+                return {"success": False, "resumed_count": 0, "failed": hashes}
+    except Exception as e:
+        logger.error(f"批量恢复异常: {e}")
+        return {"success": False, "resumed_count": 0, "failed": hashes}
+
+
+async def qb_delete_torrents(sid: str, hashes: List[str], delete_files: bool = True) -> Dict:
+    """
+    批量删除种子（单次 API 调用）
+
+    Args:
+        sid: qBittorrent 会话 ID
+        hashes: 种子哈希列表
+        delete_files: 是否同时删除文件（默认 True）
+
+    Returns:
+        Dict: {"success": bool, "deleted_count": int, "failed": List[str]}
+    """
+    if not sid or not hashes:
+        return {"success": False, "deleted_count": 0, "failed": hashes}
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                f"{QBITTORRENT_URL.rstrip('/')}/api/v2/torrents/delete",
+                data={
+                    "hashes": "|".join(hashes),
+                    "deleteFiles": "true" if delete_files else "false"
+                },
+                cookies={"SID": sid},
+            )
+
+            if response.status_code == 200:
+                logger.info(f"批量删除 {len(hashes)} 个种子成功 (delete_files={delete_files})")
+                return {"success": True, "deleted_count": len(hashes), "failed": []}
+            else:
+                logger.error(f"批量删除失败: HTTP {response.status_code}")
+                return {"success": False, "deleted_count": 0, "failed": hashes}
+    except Exception as e:
+        logger.error(f"批量删除异常: {e}")
+        return {"success": False, "deleted_count": 0, "failed": hashes}
+
+
 async def qb_find_torrent_by_mteam_id(mteam_id: str, sid: str) -> Optional[str]:
     """
     通过 M-Team ID 查找 qBittorrent 中的种子
