@@ -399,7 +399,7 @@ async def qb_get_mteam_torrents(sid: str, tag_filter: Optional[str] = None,
 
 async def qb_get_storage_info(sid: str) -> Optional[Dict]:
     """
-    获取存储空间信息
+    获取存储空间信息（从 qBittorrent API）
 
     Args:
         sid: qBittorrent 会话 ID
@@ -414,30 +414,58 @@ async def qb_get_storage_info(sid: str) -> Optional[Dict]:
         return {"error": "sid is None"}
 
     try:
-        # 直接检查 /downloads 目录（与 qBittorrent 下载目录一致）
-        import shutil
-        logger.info("Attempting to check /downloads disk usage")
-        stat = shutil.disk_usage('/downloads')
+        # 使用 qBittorrent API 的 /sync/maindata 端点
+        # 这个端点包含 free_space_on_disk 和 server_state 信息
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(
+                f"{QBITTORRENT_URL.rstrip('/')}/api/v2/sync/maindata",
+                cookies={"SID": sid}
+            )
 
-        logger.info(f"Disk usage retrieved: total={stat.total}, used={stat.used}, free={stat.free}")
+            if response.status_code != 200:
+                error_msg = f"qBittorrent API 返回错误: HTTP {response.status_code}"
+                logger.warning(error_msg)
+                return {"error": error_msg}
 
-        percent = (stat.used / stat.total) * 100 if stat.total > 0 else 0
+            data = response.json()
+            logger.info(f"Received maindata keys: {data.keys()}")
 
-        logger.info(f"获取存储信息成功: {percent:.1f}% 已使用")
+            # 获取服务器状态信息
+            server_state = data.get('server_state', {})
+            free_space = server_state.get('free_space_on_disk', 0)
 
-        result = {
-            "total": stat.total,
-            "used": stat.used,
-            "free": stat.free,
-            "percent": round(percent, 1),
-            "total_display": format_size(stat.total),
-            "used_display": format_size(stat.used),
-            "free_display": format_size(stat.free),
-            "save_path": "/downloads"
-        }
+            if free_space == 0:
+                logger.warning("free_space_on_disk is 0, may not be available")
 
-        logger.info(f"Returning storage info: {result['used_display']}/{result['total_display']}")
-        return result
+            # 由于 API 只提供剩余空间，我们需要计算总空间
+            # 使用 shutil 作为后备方案来获取总空间
+            try:
+                import shutil
+                stat = shutil.disk_usage('/downloads')
+                total = stat.total
+                used = total - free_space
+            except Exception as e:
+                logger.warning(f"无法使用 shutil 获取总空间，仅使用剩余空间: {e}")
+                # 如果无法获取总空间，假设一个合理的值（避免除零错误）
+                used = 0
+                total = free_space * 2 if free_space > 0 else 1
+
+            percent = (used / total) * 100 if total > 0 else 0
+
+            logger.info(f"获取存储信息成功: {percent:.1f}% 已使用, 剩余 {format_size(free_space)}")
+
+            result = {
+                "total": total,
+                "used": used,
+                "free": free_space,
+                "percent": round(percent, 1),
+                "total_display": format_size(total),
+                "used_display": format_size(used),
+                "free_display": format_size(free_space),
+                "save_path": "/downloads"
+            }
+
+            return result
     except Exception as e:
         error_msg = f"获取存储信息失败: {str(e)}"
         logger.error(error_msg, exc_info=True)
