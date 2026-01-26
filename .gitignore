@@ -60,3 +60,6 @@ tests/
 # PANEL Database
 data/panel.db
 data/panel.db-journal
+
+# Local design documents
+docs/
