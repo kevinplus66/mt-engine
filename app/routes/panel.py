@@ -361,3 +361,27 @@ async def delete_torrents(request: DeleteTorrentsRequest) -> Dict:
     except Exception as e:
         logger.error(f"批量删除失败: {e}")
         return {"success": False, "deleted_count": 0, "failed": request.hashes, "error": str(e)}
+
+
+@router.get("/api/panel/storage-test")
+async def test_storage_info() -> Dict:
+    """测试存储信息获取 - 临时调试端点"""
+    try:
+        sid = await qb_login()
+        logger.info(f"Test endpoint: sid = {'present' if sid else 'None'}")
+
+        if not sid:
+            return {"error": "qBittorrent login failed", "sid": None}
+
+        storage = await qb_get_storage_info(sid)
+        logger.info(f"Test endpoint: storage = {storage}")
+
+        return {
+            "sid": "present",
+            "storage": storage,
+            "storage_is_none": storage is None,
+            "storage_type": str(type(storage))
+        }
+    except Exception as e:
+        logger.error(f"Storage test failed: {e}", exc_info=True)
+        return {"error": str(e)}
