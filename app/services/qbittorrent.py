@@ -407,19 +407,25 @@ async def qb_get_storage_info(sid: str) -> Optional[Dict]:
     Returns:
         Optional[Dict]: 存储信息，失败返回 None
     """
+    logger.info(f"qb_get_storage_info called, sid={'present' if sid else 'None'}")
+
     if not sid:
+        logger.warning("qb_get_storage_info: sid is None")
         return None
 
     try:
         # 直接检查 /downloads 目录（与 qBittorrent 下载目录一致）
         import shutil
+        logger.info("Attempting to check /downloads disk usage")
         stat = shutil.disk_usage('/downloads')
+
+        logger.info(f"Disk usage retrieved: total={stat.total}, used={stat.used}, free={stat.free}")
 
         percent = (stat.used / stat.total) * 100 if stat.total > 0 else 0
 
         logger.info(f"获取存储信息成功: {percent:.1f}% 已使用")
 
-        return {
+        result = {
             "total": stat.total,
             "used": stat.used,
             "free": stat.free,
@@ -429,8 +435,11 @@ async def qb_get_storage_info(sid: str) -> Optional[Dict]:
             "free_display": format_size(stat.free),
             "save_path": "/downloads"
         }
+
+        logger.info(f"Returning storage info: {result['used_display']}/{result['total_display']}")
+        return result
     except Exception as e:
-        logger.error(f"获取存储信息失败: {e}")
+        logger.error(f"获取存储信息失败: {e}", exc_info=True)
         return None
 
 
