@@ -411,9 +411,9 @@ async def qb_get_storage_info(sid: str) -> Optional[Dict]:
         return None
 
     try:
-        # 直接使用根路径获取存储信息（Docker 容器环境）
+        # 直接检查 /downloads 目录（与 qBittorrent 下载目录一致）
         import shutil
-        stat = shutil.disk_usage('/')
+        stat = shutil.disk_usage('/downloads')
 
         percent = (stat.used / stat.total) * 100 if stat.total > 0 else 0
 
@@ -427,7 +427,7 @@ async def qb_get_storage_info(sid: str) -> Optional[Dict]:
             "total_display": format_size(stat.total),
             "used_display": format_size(stat.used),
             "free_display": format_size(stat.free),
-            "save_path": "/"
+            "save_path": "/downloads"
         }
     except Exception as e:
         logger.error(f"获取存储信息失败: {e}")
