@@ -335,3 +335,171 @@ function updateTorrentCount(count) {
         countEl.textContent = `显示 ${count} 个种子`;
     }
 }
+
+// Bind torrent checkbox events
+function bindTorrentCheckboxes() {
+    // Select all checkbox
+    const selectAllCheckbox = document.getElementById('select-all-torrents');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                // Select all
+                TorrentState.torrents.forEach(t => {
+                    TorrentState.selectedHashes.add(t.hash);
+                });
+            } else {
+                // Deselect all
+                TorrentState.selectedHashes.clear();
+            }
+            updateCheckboxStates();
+            updateBatchActionsBar();
+        });
+    }
+
+    // Individual checkboxes
+    const checkboxes = document.querySelectorAll('.torrent-checkbox[data-hash]');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', (e) => {
+            const hash = e.target.dataset.hash;
+            if (e.target.checked) {
+                TorrentState.selectedHashes.add(hash);
+            } else {
+                TorrentState.selectedHashes.delete(hash);
+            }
+            updateSelectAllCheckbox();
+            updateBatchActionsBar();
+        });
+    });
+}
+
+// Update checkbox states
+function updateCheckboxStates() {
+    const checkboxes = document.querySelectorAll('.torrent-checkbox[data-hash]');
+    checkboxes.forEach(checkbox => {
+        const hash = checkbox.dataset.hash;
+        checkbox.checked = TorrentState.selectedHashes.has(hash);
+    });
+}
+
+// Update select-all checkbox
+function updateSelectAllCheckbox() {
+    const selectAllCheckbox = document.getElementById('select-all-torrents');
+    if (!selectAllCheckbox) return;
+
+    const totalCount = TorrentState.torrents.length;
+    const selectedCount = TorrentState.selectedHashes.size;
+
+    selectAllCheckbox.checked = totalCount > 0 && selectedCount === totalCount;
+    selectAllCheckbox.indeterminate = selectedCount > 0 && selectedCount < totalCount;
+}
+
+// Bind filter events
+function bindFilterEvents() {
+    // Tag filters
+    const tagFilters = document.querySelectorAll('.filter-pill[data-tag]');
+    tagFilters.forEach(pill => {
+        pill.addEventListener('click', () => {
+            const tag = pill.dataset.tag;
+
+            // Toggle active state
+            if (TorrentState.filters.tag === tag) {
+                TorrentState.filters.tag = null;
+                pill.classList.remove('active');
+            } else {
+                // Remove active from all
+                tagFilters.forEach(p => p.classList.remove('active'));
+                // Set new active
+                TorrentState.filters.tag = tag === 'all' ? null : tag;
+                if (tag !== 'all') {
+                    pill.classList.add('active');
+                }
+            }
+
+            // Refresh torrents
+            fetchTorrents();
+        });
+    });
+
+    // Status filters
+    const statusFilters = document.querySelectorAll('.filter-pill[data-status]');
+    statusFilters.forEach(pill => {
+        pill.addEventListener('click', () => {
+            const status = pill.dataset.status;
+
+            // Toggle active state
+            if (TorrentState.filters.status === status) {
+                TorrentState.filters.status = null;
+                pill.classList.remove('active');
+            } else {
+                // Remove active from all
+                statusFilters.forEach(p => p.classList.remove('active'));
+                // Set new active
+                TorrentState.filters.status = status === 'all' ? null : status;
+                if (status !== 'all') {
+                    pill.classList.add('active');
+                }
+            }
+
+            // Refresh torrents
+            fetchTorrents();
+        });
+    });
+}
+
+// Bind batch action events
+function bindBatchActionEvents() {
+    // Pause button
+    const pauseBtn = document.getElementById('batch-pause-btn');
+    if (pauseBtn) {
+        pauseBtn.addEventListener('click', handleBatchPause);
+    }
+
+    // Resume button
+    const resumeBtn = document.getElementById('batch-resume-btn');
+    if (resumeBtn) {
+        resumeBtn.addEventListener('click', handleBatchResume);
+    }
+
+    // Delete button
+    const deleteBtn = document.getElementById('batch-delete-btn');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', handleBatchDelete);
+    }
+
+    // Clear selection button
+    const clearBtn = document.getElementById('batch-clear-btn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            TorrentState.selectedHashes.clear();
+            updateCheckboxStates();
+            updateSelectAllCheckbox();
+            updateBatchActionsBar();
+        });
+    }
+}
+
+// Update batch actions bar visibility
+function updateBatchActionsBar() {
+    const bar = document.getElementById('batch-actions-bar');
+    const countEl = document.getElementById('batch-selected-count');
+
+    if (!bar) return;
+
+    const selectedCount = TorrentState.selectedHashes.size;
+
+    if (selectedCount > 0) {
+        bar.classList.add('visible');
+        if (countEl) {
+            countEl.textContent = `已选择 ${selectedCount} 个种子`;
+        }
+    } else {
+        bar.classList.remove('visible');
+    }
+}
+
+// Get selected torrent names
+function getSelectedTorrentNames() {
+    return TorrentState.torrents
+        .filter(t => TorrentState.selectedHashes.has(t.hash))
+        .map(t => t.name);
+}
