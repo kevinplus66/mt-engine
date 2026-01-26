@@ -2,6 +2,9 @@
  * PANEL 页面主逻辑
  */
 
+import { initTheme, toggleTheme } from '../components/theme.js';
+import { initLanguage, toggleLanguage } from '../components/language.js';
+
 // 页面状态
 const PanelState = {
     currentRange: '24h',
@@ -15,16 +18,36 @@ const PanelState = {
 async function initPanel() {
     console.log('Initializing PANEL...');
 
+    // 0. 初始化主题和语言
+    initTheme();
+    initLanguage();
+
+    // 0.1. 绑定主题和语言切换按钮
+    const themeBtn = document.getElementById('themeToggle');
+    if (themeBtn) {
+        themeBtn.addEventListener('click', toggleTheme);
+    }
+
+    const langBtn = document.getElementById('langToggle');
+    if (langBtn) {
+        langBtn.addEventListener('click', toggleLanguage);
+    }
+
     // 1. 加载实时统计
     await loadRealtimeStats();
 
     // 2. 加载历史图表
     await loadHistoryCharts('24h');
 
-    // 3. 绑定事件
+    // 3. 初始化种子监控表格 (NEW)
+    if (window.TorrentTable) {
+        await window.TorrentTable.init();
+    }
+
+    // 4. 绑定事件
     bindRangeButtons();
 
-    // 4. 启动自动刷新
+    // 5. 启动自动刷新
     startAutoRefresh();
 
     console.log('PANEL initialized');
@@ -41,6 +64,11 @@ async function loadRealtimeStats() {
         // 更新卡片
         updateAllStatCards(data);
 
+        // 更新存储空间卡片 (NEW)
+        if (data.storage) {
+            updateStorageCard(data.storage);
+        }
+
         // 更新最后刷新时间
         updateLastUpdateTime(data.last_update);
 
@@ -48,6 +76,36 @@ async function loadRealtimeStats() {
     } catch (error) {
         console.error('Failed to load stats:', error);
         showToast('加载统计数据失败', 'error');
+    }
+}
+
+// 更新存储空间卡片
+function updateStorageCard(storage) {
+    const card = document.getElementById('card-storage');
+    if (!card) return;
+
+    const valueEl = card.querySelector('.stat-value');
+    const barEl = card.querySelector('.storage-bar');
+
+    if (valueEl) {
+        valueEl.textContent = `${storage.used_display} / ${storage.total_display}`;
+    }
+
+    if (barEl) {
+        barEl.style.width = `${storage.percent}%`;
+
+        // 根据使用率添加警告色
+        barEl.classList.remove('warning', 'danger');
+        if (storage.percent >= 90) {
+            barEl.classList.add('danger');
+        } else if (storage.percent >= 80) {
+            barEl.classList.add('warning');
+        }
+    }
+
+    // 空间不足警告
+    if (storage.percent >= 90 && window.showToast) {
+        showToast('⚠ 存储空间不足 10%，请及时清理', 'warning');
     }
 }
 
@@ -66,7 +124,6 @@ async function loadHistoryCharts(range) {
 
         // 渲染图表
         renderTrafficChart(trafficData);
-        renderDailyBarChart(trafficData);
         renderShareRatioChart(ratioData);
 
         PanelState.currentRange = range;
@@ -76,21 +133,43 @@ async function loadHistoryCharts(range) {
     }
 }
 
-// 渲染流量趋势图
+// 渲染流量趋势图 (显示每个间隔的变化量，而非累计值)
 function renderTrafficChart(data) {
-    if (!data.data_points || data.data_points.length === 0) {
+    if (!data.data_points || data.data_points.length < 2) {
         showEmptyChart('traffic-chart', '暂无数据');
         return;
     }
 
-    // 准备数据
-    const chartData = {
-        timestamps: data.data_points.map(p => p.timestamp),
-        qb_upload: data.data_points.map(p => p.qbittorrent?.uploaded || 0),
-        qb_download: data.data_points.map(p => p.qbittorrent?.downloaded || 0),
-        mt_upload: data.data_points.map(p => p.mteam?.uploaded || 0),
-        mt_download: data.data_points.map(p => p.mteam?.downloaded || 0)
-    };
+    // Hide empty state and show canvas
+    hideEmptyChart('traffic-chart');
+
+    // 计算每个间隔的变化量 (delta)
+    const timestamps = [];
+    const qb_upload = [];
+    const qb_download = [];
+    const mt_upload = [];
+    const mt_download = [];
+
+    for (let i = 1; i < data.data_points.length; i++) {
+        const prev = data.data_points[i - 1];
+        const curr = data.data_points[i];
+
+        timestamps.push(curr.timestamp);
+
+        // 计算 qBittorrent 变化量 (处理重置情况，如重启后数值变小)
+        const qbUpDelta = (curr.qbittorrent?.uploaded || 0) - (prev.qbittorrent?.uploaded || 0);
+        const qbDownDelta = (curr.qbittorrent?.downloaded || 0) - (prev.qbittorrent?.downloaded || 0);
+        qb_upload.push(Math.max(0, qbUpDelta));
+        qb_download.push(Math.max(0, qbDownDelta));
+
+        // 计算 M-Team 变化量
+        const mtUpDelta = (curr.mteam?.uploaded || 0) - (prev.mteam?.uploaded || 0);
+        const mtDownDelta = (curr.mteam?.downloaded || 0) - (prev.mteam?.downloaded || 0);
+        mt_upload.push(Math.max(0, mtUpDelta));
+        mt_download.push(Math.max(0, mtDownDelta));
+    }
+
+    const chartData = { timestamps, qb_upload, qb_download, mt_upload, mt_download };
 
     // 销毁旧图表
     if (PanelState.charts.traffic) {
@@ -99,30 +178,9 @@ function renderTrafficChart(data) {
 
     // 创建新图表
     PanelState.charts.traffic = createTrafficChart('traffic-chart', chartData);
-}
 
-// 渲染每日柱状图
-function renderDailyBarChart(data) {
-    if (!data.data_points || data.data_points.length === 0) {
-        showEmptyChart('daily-chart', '暂无数据');
-        return;
-    }
-
-    // 按天分组计算每日总量
-    const dailyData = calculateDailyTotals(data.data_points);
-
-    if (dailyData.dates.length === 0) {
-        showEmptyChart('daily-chart', '暂无数据');
-        return;
-    }
-
-    // 销毁旧图表
-    if (PanelState.charts.daily) {
-        PanelState.charts.daily.destroy();
-    }
-
-    // 创建新图表
-    PanelState.charts.daily = createDailyBarChart('daily-chart', dailyData);
+    // 创建数据集切换开关
+    createChartToggles(PanelState.charts.traffic, 'traffic-chart-toggles');
 }
 
 // 渲染分享率图表
@@ -131,6 +189,9 @@ function renderShareRatioChart(data) {
         showEmptyChart('ratio-chart', '暂无数据');
         return;
     }
+
+    // Hide empty state and show canvas
+    hideEmptyChart('ratio-chart');
 
     const chartData = {
         timestamps: data.data_points.map(p => p.timestamp),
@@ -146,58 +207,9 @@ function renderShareRatioChart(data) {
 
     // 创建新图表
     PanelState.charts.ratio = createShareRatioChart('ratio-chart', chartData);
-}
 
-// 计算每日总量
-function calculateDailyTotals(dataPoints) {
-    const dailyMap = {};
-
-    dataPoints.forEach(point => {
-        // 转换为北京时间日期
-        const date = new Date(point.timestamp * 1000);
-        const beijingDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
-        const dateKey = `${beijingDate.getFullYear()}-${String(beijingDate.getMonth() + 1).padStart(2, '0')}-${String(beijingDate.getDate()).padStart(2, '0')}`;
-
-        if (!dailyMap[dateKey]) {
-            dailyMap[dateKey] = {
-                mt_upload_max: 0,
-                mt_download_max: 0
-            };
-        }
-
-        // 使用最大值 (因为是累计量)
-        dailyMap[dateKey].mt_upload_max = Math.max(
-            dailyMap[dateKey].mt_upload_max,
-            point.mteam?.uploaded || 0
-        );
-        dailyMap[dateKey].mt_download_max = Math.max(
-            dailyMap[dateKey].mt_download_max,
-            point.mteam?.downloaded || 0
-        );
-    });
-
-    // 计算每日增量
-    const sortedDates = Object.keys(dailyMap).sort();
-    const dates = [];
-    const mt_upload = [];
-    const mt_download = [];
-
-    let prevUpload = 0;
-    let prevDownload = 0;
-
-    sortedDates.forEach(date => {
-        const currentUpload = dailyMap[date].mt_upload_max;
-        const currentDownload = dailyMap[date].mt_download_max;
-
-        dates.push(date);
-        mt_upload.push(Math.max(0, currentUpload - prevUpload));
-        mt_download.push(Math.max(0, currentDownload - prevDownload));
-
-        prevUpload = currentUpload;
-        prevDownload = currentDownload;
-    });
-
-    return { dates, mt_upload, mt_download };
+    // 创建数据集切换开关
+    createChartToggles(PanelState.charts.ratio, 'ratio-chart-toggles');
 }
 
 // 显示空图表
@@ -205,10 +217,16 @@ function showEmptyChart(canvasId, message) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
 
-    const container = canvas.parentElement;
-    container.classList.add('chart-empty');
+    // Destroy existing chart
+    const chartKey = canvasId.replace('-chart', '');
+    if (PanelState.charts[chartKey]) {
+        PanelState.charts[chartKey].destroy();
+        PanelState.charts[chartKey] = null;
+    }
+
     canvas.style.display = 'none';
 
+    const container = canvas.parentElement;
     let emptyEl = container.querySelector('.empty-message');
     if (!emptyEl) {
         emptyEl = document.createElement('div');
@@ -216,6 +234,21 @@ function showEmptyChart(canvasId, message) {
         container.appendChild(emptyEl);
     }
     emptyEl.textContent = message;
+    emptyEl.style.display = 'flex';
+}
+
+// 隐藏空图表状态
+function hideEmptyChart(canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+
+    canvas.style.display = 'block';
+
+    const container = canvas.parentElement;
+    const emptyEl = container.querySelector('.empty-message');
+    if (emptyEl) {
+        emptyEl.style.display = 'none';
+    }
 }
 
 // 绑定时间范围按钮
@@ -255,9 +288,5 @@ function showToast(message, type = 'info') {
     // TODO: 实现 toast 显示 (复用现有 toast 组件)
 }
 
-// 页面加载完成后初始化
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initPanel);
-} else {
-    initPanel();
-}
+// 导出初始化函数
+export { initPanel };
