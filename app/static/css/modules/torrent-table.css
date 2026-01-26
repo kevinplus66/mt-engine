@@ -320,6 +320,11 @@
     border-style: solid;
 }
 
+/* Torrent Cards - Hidden by default (mobile only) */
+.torrent-cards {
+    display: none;
+}
+
 /* Mobile */
 @media (max-width: 768px) {
     .torrent-table {

@@ -426,8 +426,15 @@ async def qb_get_storage_info(sid: str) -> Optional[Dict]:
             save_path = prefs.get('save_path', '/downloads')
 
         # 获取磁盘使用情况
+        # 注意：在 Docker 容器内，使用根路径来获取磁盘信息
         import shutil
-        stat = shutil.disk_usage(save_path)
+        try:
+            # 尝试使用 save_path
+            stat = shutil.disk_usage(save_path)
+        except Exception as e:
+            # 如果失败，使用根路径作为后备
+            logger.warning(f"无法访问 {save_path}，使用根路径: {e}")
+            stat = shutil.disk_usage('/')
 
         percent = (stat.used / stat.total) * 100 if stat.total > 0 else 0
 
