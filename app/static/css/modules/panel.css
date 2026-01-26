@@ -1,6 +1,6 @@
 /* PANEL Styles - Nothing OS Design */
 
-/* Stats Grid */
+/* Stats Cards Grid - 7 cards (4+3 layout) */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -8,15 +8,36 @@
     margin-bottom: 32px;
 }
 
+/* Card 7 spans to align with layout */
+.stat-card:nth-child(7) {
+    grid-column: 1 / 2;
+}
+
+/* Tablet: 3 columns */
 @media (max-width: 1024px) {
     .stats-grid {
         grid-template-columns: repeat(3, 1fr);
     }
 }
 
+/* Mobile: 2 columns */
 @media (max-width: 768px) {
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .chart-container canvas {
+        height: 280px !important;
+    }
+
+    .stat-value {
+        font-size: 24px;
     }
 }
 
@@ -90,6 +111,29 @@
     font-weight: 400;
 }
 
+/* Storage Card Progress Bar */
+.storage-bar-container {
+    width: 100%;
+    height: 4px;
+    background: var(--nt-border);
+    margin-top: 8px;
+    border: 1px dotted var(--nt-border);
+}
+
+.storage-bar {
+    height: 100%;
+    background: var(--nt-text-primary);
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.storage-bar.warning {
+    background: #FFA500; /* Orange for 80-90% */
+}
+
+.storage-bar.danger {
+    background: var(--nt-red); /* Red for >90% */
+}
+
 /* Chart Controls */
 .chart-controls {
     margin-bottom: 24px;
@@ -142,6 +186,48 @@
     color: var(--nt-text-primary);
 }
 
+/* Chart Toggles */
+.chart-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.chart-toggle-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-family: 'DotGothic16', sans-serif;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.chart-toggle-item input[type="checkbox"] {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border: 1px dotted var(--nt-border);
+    background: transparent;
+    cursor: pointer;
+}
+
+.chart-toggle-item input[type="checkbox"]:checked {
+    background: var(--nt-text-primary);
+    border-style: solid;
+}
+
+.color-indicator {
+    width: 20px;
+    height: 3px;
+}
+
+.toggle-label {
+    color: var(--nt-text-secondary);
+}
+
 .chart-container canvas {
     width: 100% !important;
     height: 400px !important;
@@ -154,12 +240,29 @@
 }
 
 /* Empty State */
-.chart-empty {
-    display: flex;
+.empty-message {
+    display: none;  /* Hidden by default */
     align-items: center;
     justify-content: center;
     height: 400px;
     font-family: 'Roboto Mono', monospace;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--nt-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Chart Data Point Tag */
+.chart-data-tag {
+    position: absolute;
+    background: var(--nt-bg-secondary);
+    border: 1px dotted var(--nt-border);
+    box-shadow: 2px 2px 0 var(--nt-border);
+    padding: 8px 12px;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 11px;
+    pointer-events: none;
+    z-index: 100;
+    min-width: 180px;
+    max-width: 300px;
 }
