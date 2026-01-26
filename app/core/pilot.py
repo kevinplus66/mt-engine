@@ -70,11 +70,21 @@ class PilotManager:
                         logger.info(f"Migrated elimination_ratio: {elim_val} -> {data['cleanup']['elimination_ratio']}")
 
                 logger.info("Loaded pilot config from file")
-                return AutomationConfig(**data)
+                config = AutomationConfig(**data)
             except Exception as e:
                 logger.error(f"Failed to load pilot config: {e}")
-        logger.info("Using default pilot config")
-        return AutomationConfig()
+                config = AutomationConfig()
+        else:
+            logger.info("Using default pilot config")
+            config = AutomationConfig()
+
+        # Override save_path from environment variable if set
+        env_save_path = os.getenv('PILOT_SAVE_PATH')
+        if env_save_path:
+            config.download.save_path = env_save_path
+            logger.info(f"Overriding save_path from env: {env_save_path}")
+
+        return config
 
     def save_config(self):
         """Persist config to JSON (no credentials)"""

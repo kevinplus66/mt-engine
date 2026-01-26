@@ -1,20 +1,55 @@
 /**
  * Torrent Table Component
- * Displays MT-Engine torrents with filters and batch operations
+ * Displays MT-Engine torrents with expandable rows and actions
  */
 
 // State
 const TorrentState = {
     torrents: [],
-    selectedHashes: new Set(),
     filters: {
         tag: null,
         status: null
+    },
+    sort: {
+        column: 'added_on',
+        direction: 'desc'
     },
     isLoading: false,
     autoRefreshInterval: 30000, // 30 seconds
     refreshTimer: null
 };
+
+// Sort torrents array
+function sortTorrentsArray() {
+    const { column, direction } = TorrentState.sort;
+
+    TorrentState.torrents.sort((a, b) => {
+        let valA, valB;
+        switch (column) {
+            case 'name': valA = a.name.toLowerCase(); valB = b.name.toLowerCase(); break;
+            case 'size': valA = a.size; valB = b.size; break;
+            case 'progress': valA = a.progress; valB = b.progress; break;
+            case 'health': valA = a.health.score; valB = b.health.score; break;
+            case 'ratio': valA = parseFloat(a.ratio) || 0; valB = parseFloat(b.ratio) || 0; break;
+            case 'speed': valA = a.upload_speed + a.download_speed; valB = b.upload_speed + b.download_speed; break;
+            case 'added_on': valA = a.added_on; valB = b.added_on; break;
+            default: return 0;
+        }
+
+        if (typeof valA === 'string') {
+            return direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        }
+        return direction === 'asc' ? valA - valB : valB - valA;
+    });
+}
+
+// Handle sort (called from panel.js)
+function handleSort(column, direction) {
+    TorrentState.sort.column = column;
+    TorrentState.sort.direction = direction;
+    sortTorrentsArray();
+    renderTorrentTable();
+}
 
 // Initialize torrent table
 async function initTorrentTable() {
@@ -25,7 +60,6 @@ async function initTorrentTable() {
 
     // Bind events
     bindFilterEvents();
-    bindBatchActionEvents();
 
     // Start auto-refresh
     startTorrentAutoRefresh();
@@ -59,11 +93,8 @@ async function fetchTorrents() {
 
         TorrentState.torrents = data.torrents || [];
 
-        // Keep selection for torrents that still exist
-        const currentHashes = new Set(TorrentState.torrents.map(t => t.hash));
-        TorrentState.selectedHashes = new Set(
-            [...TorrentState.selectedHashes].filter(h => currentHashes.has(h))
-        );
+        // Apply current sort
+        sortTorrentsArray();
 
         if (TorrentState.torrents.length === 0) {
             showEmptyState();
@@ -72,7 +103,6 @@ async function fetchTorrents() {
         }
 
         updateTorrentCount(data.filtered_count);
-        updateBatchActionsBar();
 
     } catch (error) {
         console.error('Failed to fetch torrents:', error);
@@ -114,16 +144,15 @@ function renderTorrentTable() {
         <table class="torrent-table">
             <thead>
                 <tr>
-                    <th><input type="checkbox" id="select-all-torrents" class="torrent-checkbox"></th>
-                    <th>标题</th>
-                    <th>大小</th>
-                    <th>进度</th>
-                    <th>健康度</th>
+                    <th data-sort="name">标题 <span class="sort-icon">↕</span></th>
+                    <th data-sort="size">大小 <span class="sort-icon">↕</span></th>
+                    <th data-sort="progress">进度 <span class="sort-icon">↕</span></th>
+                    <th data-sort="health">健康度 <span class="sort-icon">↕</span></th>
                     <th>状态</th>
                     <th>标签</th>
-                    <th>分享率</th>
-                    <th>速度</th>
-                    <th>添加时间</th>
+                    <th data-sort="ratio">分享率 <span class="sort-icon">↕</span></th>
+                    <th data-sort="speed">速度 <span class="sort-icon">↕</span></th>
+                    <th data-sort="added_on">添加时间 <span class="sort-icon">↕</span></th>
                 </tr>
             </thead>
             <tbody>
@@ -146,22 +175,22 @@ function renderTorrentTable() {
         ${cardsHtml}
     `;
 
-    // Bind checkbox events
-    bindTorrentCheckboxes();
+    // Bind event delegation
+    bindTableEvents();
 }
 
 // Render single torrent row
 function renderTorrentRow(torrent) {
-    const isSelected = TorrentState.selectedHashes.has(torrent.hash);
     const progress = Math.round(torrent.progress * 100);
 
-    return `
-        <tr data-hash="${torrent.hash}">
+    const mainRow = `
+        <tr class="torrent-row" data-hash="${torrent.hash}">
             <td>
-                <input type="checkbox" class="torrent-checkbox"
-                       data-hash="${torrent.hash}" ${isSelected ? 'checked' : ''}>
+                <div class="torrent-name">
+                    <button class="expand-toggle" aria-label="展开详情">▶</button>
+                    <span class="torrent-link" title="${escapeHtml(torrent.name)}">${escapeHtml(torrent.name)}</span>
+                </div>
             </td>
-            <td title="${escapeHtml(torrent.name)}">${escapeHtml(torrent.name)}</td>
             <td>${torrent.size_display}</td>
             <td>
                 <div class="progress-bar">
@@ -188,18 +217,64 @@ function renderTorrentRow(torrent) {
             <td>${formatRelativeTime(torrent.added_on)}</td>
         </tr>
     `;
+
+    const detailRow = renderDetailRow(torrent);
+
+    return mainRow + detailRow;
+}
+
+// Render detail row with actions
+function renderDetailRow(torrent) {
+    // Build metadata display
+    const metadata = [];
+
+    metadata.push(`上传: ${formatSize(torrent.uploaded)}`);
+    metadata.push(`下载: ${formatSize(torrent.downloaded)}`);
+
+    if (torrent.eta && torrent.eta < 8640000) {
+        const hours = Math.floor(torrent.eta / 3600);
+        const minutes = Math.floor((torrent.eta % 3600) / 60);
+        if (hours > 0) {
+            metadata.push(`剩余时间: ${hours}小时${minutes}分钟`);
+        } else {
+            metadata.push(`剩余时间: ${minutes}分钟`);
+        }
+    }
+
+    return `
+        <tr class="detail-row" data-hash="${torrent.hash}">
+            <td colspan="9">
+                <div class="detail-content">
+                    <div class="detail-info">
+                        ${metadata.map(m => `<div style="font-size: 12px;">${m}</div>`).join('')}
+                    </div>
+                    <div class="detail-actions">
+                        ${torrent.mteam_id ? `
+                            <a href="https://kp.m-team.cc/detail/${torrent.mteam_id}"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               class="btn"
+                               title="在M-Team查看">
+                                <span class="btn-text">打开MT</span>
+                            </a>
+                        ` : ''}
+                        <button class="btn btn--delete" data-hash="${torrent.hash}">
+                            <span class="btn-text">删除</span>
+                        </button>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    `;
 }
 
 // Render torrent card (mobile)
 function renderTorrentCard(torrent) {
-    const isSelected = TorrentState.selectedHashes.has(torrent.hash);
     const progress = Math.round(torrent.progress * 100);
 
     return `
         <div class="torrent-card" data-hash="${torrent.hash}">
             <div class="torrent-card-header">
-                <input type="checkbox" class="torrent-checkbox"
-                       data-hash="${torrent.hash}" ${isSelected ? 'checked' : ''}>
                 <div class="torrent-card-name">${escapeHtml(torrent.name)}</div>
                 <span class="torrent-card-tag">${torrent.tags[0] || ''}</span>
             </div>
@@ -231,6 +306,133 @@ function renderTorrentCard(torrent) {
     `;
 }
 
+// Bind table event delegation
+function bindTableEvents() {
+    const tbody = document.querySelector('.torrent-table tbody');
+    if (!tbody) return;
+
+    tbody.addEventListener('click', handleTableClick);
+}
+
+// Handle table click events
+function handleTableClick(e) {
+    const target = e.target;
+
+    // Handle expand toggle
+    const expandBtn = target.closest('.expand-toggle');
+    if (expandBtn) {
+        e.stopPropagation();
+        const row = expandBtn.closest('tr');
+        toggleRowExpansion(row);
+        return;
+    }
+
+    // Handle delete button
+    const deleteBtn = target.closest('.btn--delete');
+    if (deleteBtn) {
+        e.stopPropagation();
+        const hash = deleteBtn.dataset.hash;
+        handleDelete(hash);
+        return;
+    }
+
+    // Handle row click for expansion
+    const row = target.closest('tr');
+    if (row && !target.closest('a') && !target.closest('button')) {
+        if (!row.classList.contains('detail-row')) {
+            toggleRowExpansion(row);
+        }
+    }
+}
+
+// Toggle row expansion (accordion behavior)
+function toggleRowExpansion(row) {
+    const detailRow = row.nextElementSibling;
+    const toggle = row.querySelector('.expand-toggle');
+
+    if (!detailRow || !detailRow.classList.contains('detail-row')) return;
+
+    const isExpanded = row.classList.contains('expanded');
+
+    // If expanding, first close all other expanded rows
+    if (!isExpanded) {
+        const tbody = row.closest('tbody');
+        if (tbody) {
+            tbody.querySelectorAll('tr.expanded').forEach(expandedRow => {
+                const expandedDetailRow = expandedRow.nextElementSibling;
+                const expandedToggle = expandedRow.querySelector('.expand-toggle');
+
+                expandedRow.classList.remove('expanded');
+                if (expandedDetailRow && expandedDetailRow.classList.contains('detail-row')) {
+                    expandedDetailRow.classList.remove('expanded');
+                }
+                if (expandedToggle) {
+                    expandedToggle.textContent = '▶';
+                    expandedToggle.setAttribute('aria-label', '展开详情');
+                }
+            });
+        }
+    }
+
+    // Toggle current row
+    if (isExpanded) {
+        row.classList.remove('expanded');
+        detailRow.classList.remove('expanded');
+        if (toggle) toggle.textContent = '▶';
+        if (toggle) toggle.setAttribute('aria-label', '展开详情');
+    } else {
+        row.classList.add('expanded');
+        detailRow.classList.add('expanded');
+        if (toggle) toggle.textContent = '▼';
+        if (toggle) toggle.setAttribute('aria-label', '收起详情');
+    }
+}
+
+// Handle delete action
+async function handleDelete(hash) {
+    const torrent = TorrentState.torrents.find(t => t.hash === hash);
+    if (!torrent) return;
+
+    // Show confirmation
+    const result = await showConfirmModal({
+        title: '⚠ 确认删除种子？',
+        items: [torrent.name],
+        confirmText: '确认删除',
+        cancelText: '取消',
+        isDanger: true,
+        showWarning: true,
+        warningText: '警告：此操作无法撤销！',
+        showCheckbox: true,
+        checkboxLabel: '同时删除文件 (推荐)',
+        checkboxDefault: true
+    });
+
+    if (!result) return;
+
+    const deleteFiles = result.checkboxValue !== undefined ? result.checkboxValue : true;
+
+    // Call API
+    try {
+        const response = await fetch('/api/panel/torrents/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ hashes: [hash], delete_files: deleteFiles })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(`已删除种子${deleteFiles ? '及文件' : ''}`, 'success');
+            await fetchTorrents();
+        } else {
+            showToast(`删除失败: ${data.error || '未知错误'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Delete failed:', error);
+        showToast('删除失败: 网络错误', 'error');
+    }
+}
+
 // Helper: Format status
 function formatStatus(status) {
     const statusMap = {
@@ -256,6 +458,16 @@ function formatSpeed(bytesPerSec) {
     if (bytesPerSec < 1024) return `${bytesPerSec} B/s`;
     if (bytesPerSec < 1024 * 1024) return `${(bytesPerSec / 1024).toFixed(1)} KB/s`;
     return `${(bytesPerSec / 1024 / 1024).toFixed(1)} MB/s`;
+}
+
+// Helper: Format size
+function formatSize(bytes) {
+    if (bytes === 0) return '0 B';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+    if (bytes < 1024 * 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+    return `${(bytes / 1024 / 1024 / 1024 / 1024).toFixed(2)} TB`;
 }
 
 // Helper: Format relative time
@@ -336,67 +548,10 @@ function updateTorrentCount(count) {
     }
 }
 
-// Bind torrent checkbox events
-function bindTorrentCheckboxes() {
-    // Select all checkbox
-    const selectAllCheckbox = document.getElementById('select-all-torrents');
-    if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                // Select all
-                TorrentState.torrents.forEach(t => {
-                    TorrentState.selectedHashes.add(t.hash);
-                });
-            } else {
-                // Deselect all
-                TorrentState.selectedHashes.clear();
-            }
-            updateCheckboxStates();
-            updateBatchActionsBar();
-        });
-    }
-
-    // Individual checkboxes
-    const checkboxes = document.querySelectorAll('.torrent-checkbox[data-hash]');
-    checkboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', (e) => {
-            const hash = e.target.dataset.hash;
-            if (e.target.checked) {
-                TorrentState.selectedHashes.add(hash);
-            } else {
-                TorrentState.selectedHashes.delete(hash);
-            }
-            updateSelectAllCheckbox();
-            updateBatchActionsBar();
-        });
-    });
-}
-
-// Update checkbox states
-function updateCheckboxStates() {
-    const checkboxes = document.querySelectorAll('.torrent-checkbox[data-hash]');
-    checkboxes.forEach(checkbox => {
-        const hash = checkbox.dataset.hash;
-        checkbox.checked = TorrentState.selectedHashes.has(hash);
-    });
-}
-
-// Update select-all checkbox
-function updateSelectAllCheckbox() {
-    const selectAllCheckbox = document.getElementById('select-all-torrents');
-    if (!selectAllCheckbox) return;
-
-    const totalCount = TorrentState.torrents.length;
-    const selectedCount = TorrentState.selectedHashes.size;
-
-    selectAllCheckbox.checked = totalCount > 0 && selectedCount === totalCount;
-    selectAllCheckbox.indeterminate = selectedCount > 0 && selectedCount < totalCount;
-}
-
 // Bind filter events
 function bindFilterEvents() {
     // Tag filters
-    const tagFilters = document.querySelectorAll('.filter-pill[data-tag]');
+    const tagFilters = document.querySelectorAll('.cat-pill[data-tag]');
     tagFilters.forEach(pill => {
         pill.addEventListener('click', () => {
             const tag = pill.dataset.tag;
@@ -421,7 +576,7 @@ function bindFilterEvents() {
     });
 
     // Status filters
-    const statusFilters = document.querySelectorAll('.filter-pill[data-status]');
+    const statusFilters = document.querySelectorAll('.cat-pill[data-status]');
     statusFilters.forEach(pill => {
         pill.addEventListener('click', () => {
             const status = pill.dataset.status;
@@ -446,206 +601,6 @@ function bindFilterEvents() {
     });
 }
 
-// Bind batch action events
-function bindBatchActionEvents() {
-    // Pause button
-    const pauseBtn = document.getElementById('batch-pause-btn');
-    if (pauseBtn) {
-        pauseBtn.addEventListener('click', handleBatchPause);
-    }
-
-    // Resume button
-    const resumeBtn = document.getElementById('batch-resume-btn');
-    if (resumeBtn) {
-        resumeBtn.addEventListener('click', handleBatchResume);
-    }
-
-    // Delete button
-    const deleteBtn = document.getElementById('batch-delete-btn');
-    if (deleteBtn) {
-        deleteBtn.addEventListener('click', handleBatchDelete);
-    }
-
-    // Clear selection button
-    const clearBtn = document.getElementById('batch-clear-btn');
-    if (clearBtn) {
-        clearBtn.addEventListener('click', () => {
-            TorrentState.selectedHashes.clear();
-            updateCheckboxStates();
-            updateSelectAllCheckbox();
-            updateBatchActionsBar();
-        });
-    }
-}
-
-// Update batch actions bar visibility
-function updateBatchActionsBar() {
-    const bar = document.getElementById('batch-actions-bar');
-    const countEl = document.getElementById('batch-selected-count');
-
-    if (!bar) return;
-
-    const selectedCount = TorrentState.selectedHashes.size;
-
-    if (selectedCount > 0) {
-        bar.classList.add('visible');
-        if (countEl) {
-            countEl.textContent = `已选择 ${selectedCount} 个种子`;
-        }
-    } else {
-        bar.classList.remove('visible');
-    }
-}
-
-// Get selected torrent names
-function getSelectedTorrentNames() {
-    return TorrentState.torrents
-        .filter(t => TorrentState.selectedHashes.has(t.hash))
-        .map(t => t.name);
-}
-
-// Handle batch pause
-async function handleBatchPause() {
-    const hashes = Array.from(TorrentState.selectedHashes);
-    if (hashes.length === 0) return;
-
-    const names = getSelectedTorrentNames();
-
-    // Show confirmation
-    const result = await showConfirmModal({
-        title: '确认暂停种子？',
-        message: '暂停后可以随时恢复。',
-        items: names,
-        confirmText: '确认暂停',
-        cancelText: '取消',
-        isDanger: false
-    });
-
-    if (!result) return;
-
-    // Call API
-    try {
-        const response = await fetch('/api/panel/torrents/pause', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ hashes })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            showToast(`已暂停 ${data.paused_count} 个种子`, 'success');
-        } else {
-            showToast(`暂停失败: ${data.error || '未知错误'}`, 'error');
-        }
-
-        // Clear selection and refresh
-        TorrentState.selectedHashes.clear();
-        await fetchTorrents();
-
-    } catch (error) {
-        console.error('Batch pause failed:', error);
-        showToast('暂停失败: 网络错误', 'error');
-    }
-}
-
-// Handle batch resume
-async function handleBatchResume() {
-    const hashes = Array.from(TorrentState.selectedHashes);
-    if (hashes.length === 0) return;
-
-    const names = getSelectedTorrentNames();
-
-    // Show confirmation
-    const result = await showConfirmModal({
-        title: '确认恢复种子？',
-        items: names,
-        confirmText: '确认恢复',
-        cancelText: '取消',
-        isDanger: false
-    });
-
-    if (!result) return;
-
-    // Call API
-    try {
-        const response = await fetch('/api/panel/torrents/resume', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ hashes })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            showToast(`已恢复 ${data.resumed_count} 个种子`, 'success');
-        } else {
-            showToast(`恢复失败: ${data.error || '未知错误'}`, 'error');
-        }
-
-        // Clear selection and refresh
-        TorrentState.selectedHashes.clear();
-        await fetchTorrents();
-
-    } catch (error) {
-        console.error('Batch resume failed:', error);
-        showToast('恢复失败: 网络错误', 'error');
-    }
-}
-
-// Handle batch delete
-async function handleBatchDelete() {
-    const hashes = Array.from(TorrentState.selectedHashes);
-    if (hashes.length === 0) return;
-
-    const names = getSelectedTorrentNames();
-
-    // Show confirmation with delete files checkbox
-    const result = await showConfirmModal({
-        title: '⚠ 确认删除种子？',
-        items: names,
-        confirmText: '确认删除',
-        cancelText: '取消',
-        isDanger: true,
-        showWarning: true,
-        warningText: '警告：此操作无法撤销！',
-        showCheckbox: true,
-        checkboxLabel: '同时删除文件 (推荐)',
-        checkboxDefault: true
-    });
-
-    if (!result) return;
-
-    const deleteFiles = result.checkboxValue !== undefined ? result.checkboxValue : true;
-
-    // Call API
-    try {
-        const response = await fetch('/api/panel/torrents/delete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ hashes, delete_files: deleteFiles })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            showToast(`已删除 ${data.deleted_count} 个种子${deleteFiles ? '及文件' : ''}`, 'success');
-        } else if (data.deleted_count > 0 && data.failed.length > 0) {
-            showToast(`已删除 ${data.deleted_count}/${hashes.length} 个种子，${data.failed.length} 个失败`, 'warning');
-        } else {
-            showToast(`删除失败: ${data.error || '未知错误'}`, 'error');
-        }
-
-        // Clear selection and refresh
-        TorrentState.selectedHashes.clear();
-        await fetchTorrents();
-
-    } catch (error) {
-        console.error('Batch delete failed:', error);
-        showToast('删除失败: 网络错误', 'error');
-    }
-}
-
 // Toast helper
 function showToast(message, type = 'info') {
     // Reuse existing toast component if available
@@ -661,5 +616,7 @@ function showToast(message, type = 'info') {
 window.TorrentTable = {
     init: initTorrentTable,
     refresh: fetchTorrents,
-    stop: stopTorrentAutoRefresh
+    stop: stopTorrentAutoRefresh,
+    handleSort: handleSort,
+    getSort: () => TorrentState.sort
 };

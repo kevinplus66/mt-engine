@@ -4,6 +4,7 @@
 
 import { initTheme, toggleTheme } from '../components/theme.js';
 import { initLanguage, toggleLanguage } from '../components/language.js';
+import { sortTable } from '../components/table.js';
 
 // 页面状态
 const PanelState = {
@@ -13,6 +14,23 @@ const PanelState = {
     charts: {},
     lastUpdate: null
 };
+
+// 初始化种子表格排序
+function initTorrentTableSort() {
+    // 使用事件委托绑定排序点击事件
+    document.addEventListener('click', (e) => {
+        const th = e.target.closest('.torrent-table th[data-sort]');
+        if (!th) return;
+
+        const column = th.dataset.sort;
+        const sortConfig = sortTable(column);  // 复用 table.js 的状态管理
+
+        // 更新 torrent-table 的排序
+        if (window.TorrentTable && window.TorrentTable.handleSort) {
+            window.TorrentTable.handleSort(sortConfig.column, sortConfig.direction);
+        }
+    });
+}
 
 // 初始化页面
 async function initPanel() {
@@ -44,6 +62,9 @@ async function initPanel() {
         await window.TorrentTable.init();
     }
 
+    // 3.1. 初始化表格排序
+    initTorrentTableSort();
+
     // 4. 绑定事件
     bindRangeButtons();
 
@@ -68,9 +89,6 @@ async function loadRealtimeStats() {
         if (data.storage) {
             updateStorageCard(data.storage);
         }
-
-        // 更新最后刷新时间
-        updateLastUpdateTime(data.last_update);
 
         PanelState.lastUpdate = data.last_update;
     } catch (error) {

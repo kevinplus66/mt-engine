@@ -54,6 +54,15 @@ def format_size(size_bytes: int) -> str:
     return f"{size_bytes:.2f} PB"
 
 
+def format_speed_int(speed_bytes: int) -> str:
+    """将速度（字节/秒）转换为人类可读格式（整数，无小数）"""
+    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+        if speed_bytes < 1000.0:
+            return f"{int(speed_bytes)} {unit}"
+        speed_bytes /= 1000.0
+    return f"{int(speed_bytes)} PB"
+
+
 def calculate_remaining_time(end_time: Optional[datetime]) -> Dict[str, Any]:
     """计算免费剩余时间"""
     if end_time is None:

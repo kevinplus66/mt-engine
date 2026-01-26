@@ -1,20 +1,15 @@
 /* PANEL Styles - Nothing OS Design */
 
-/* Stats Cards Grid - 7 cards (4+3 layout) */
+/* Stats Cards Grid - 5 cards (single row layout) */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 16px;
     margin-bottom: 32px;
 }
 
-/* Card 7 spans to align with layout */
-.stat-card:nth-child(7) {
-    grid-column: 1 / 2;
-}
-
 /* Tablet: 3 columns */
-@media (max-width: 1024px) {
+@media (max-width: 1280px) {
     .stats-grid {
         grid-template-columns: repeat(3, 1fr);
     }
@@ -38,6 +33,10 @@
 
     .stat-value {
         font-size: 24px;
+    }
+
+    .stat-value-dual {
+        font-size: 22px !important;
     }
 }
 
@@ -72,6 +71,32 @@
     font-weight: 700;
     color: var(--nt-text-primary);
     line-height: 1.2;
+}
+
+/* Dual value display (e.g., "132.80 TB / 12.20 TB") */
+.stat-value-dual {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--nt-text-primary);
+    line-height: 1.3;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+}
+
+.stat-value-dual .value-separator {
+    font-weight: 400;
+    color: var(--nt-text-secondary);
+    font-size: 20px;
+}
+
+.stat-value-dual .value-up,
+.stat-value-dual .value-down,
+.stat-value-dual .value-seeding,
+.stat-value-dual .value-leeching {
+    white-space: nowrap;
 }
 
 .stat-subvalue {
@@ -209,14 +234,43 @@
     appearance: none;
     width: 14px;
     height: 14px;
-    border: 1px dotted var(--nt-border);
+    border: 2px solid var(--nt-border);
     background: transparent;
     cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
 }
 
 .chart-toggle-item input[type="checkbox"]:checked {
     background: var(--nt-text-primary);
-    border-style: solid;
+    border-color: var(--nt-text-primary);
+}
+
+/* Add checkmark for checked state */
+.chart-toggle-item input[type="checkbox"]:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--nt-bg-primary);
+    font-size: 11px;
+    font-weight: bold;
+    line-height: 1;
+}
+
+/* Add X for unchecked state */
+.chart-toggle-item input[type="checkbox"]:not(:checked)::after {
+    content: '✕';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--nt-text-secondary);
+    font-size: 10px;
+    font-weight: bold;
+    line-height: 1;
+    opacity: 0.5;
 }
 
 .color-indicator {

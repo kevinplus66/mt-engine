@@ -2,6 +2,44 @@
 
 All notable changes to M-Team Engine.
 
+## [5.2.0] - 2026-01 - UI 优化与权限修复
+
+### Frontend Enhancements
+**PANEL 面板优化**:
+- 图表交互优化：桌面设备悬停显示数据标签，触屏设备点击切换
+- 图表数据点标签增加容错（触屏点击误差处理）
+- 图例复选框视觉改进：选中显示 ✓，未选中显示 ✕
+- 时间范围选项扩展：新增 1H、6H、12H 选项
+
+**表格样式统一（SONAR/RADAR/PANEL）**:
+- 移除触屏设备蓝色高亮（-webkit-tap-highlight-color）
+- 移除链接点击时的红色激活态（仅保留桌面悬停效果）
+- 统一触屏交互体验
+
+**PILOT 页面优化**:
+- 优化 Dry Run 结果显示格式
+- 调整表单标签样式（干净简洁）
+
+### Bug Fixes
+**图表修复**:
+- 修复 `getNothingOSChartOptions()` 缺少 return 语句导致的问题
+- 修复流量图表 Y 轴显示原始字节数（现正确显示如 "100 GB"）
+- 修复分享率图表完全空白（TypeError 崩溃）
+
+### System Improvements
+**权限配置化**:
+- 新增 `PUID` 和 `PGID` 环境变量支持
+- docker-compose.yml 支持通过环境变量配置容器用户 UID/GID
+- 解决不同 NAS 系统（Synology、FNOS、UGREEN）的权限问题
+- 启动时自动检测数据目录写入权限，提供明确错误提示
+- README 新增权限问题排查章节
+
+### Documentation
+- 更新 agent.md：说明支持多种 NAS 系统部署
+- 更新 .env.example：添加 PUID/PGID 配置说明
+
+---
+
 ## [5.1.0] - 2026-01 - PILOT 优化与性能提升
 
 ### Architecture Optimization

@@ -115,6 +115,8 @@ th:nth-child(5), td:nth-child(5) {
 
 tbody tr:not(.detail-row) {
     cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    tap-highlight-color: transparent;
 }
 
 /* ============ Torrent Name Cell ============ */
@@ -135,10 +137,20 @@ tbody tr:not(.detail-row) {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    tap-highlight-color: transparent;
 }
 
-.torrent-link:hover {
-    color: var(--nt-red);
+/* Only apply red color on desktop hover, not on touch/active */
+@media (hover: hover) {
+    .torrent-link:hover {
+        color: var(--nt-red);
+    }
+}
+
+.torrent-link:active,
+.torrent-link:focus {
+    color: var(--nt-text);
 }
 
 .torrent-name .name-text {
@@ -150,6 +162,8 @@ tbody tr:not(.detail-row) {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    tap-highlight-color: transparent;
 }
 
 .torrent-descr {
@@ -221,6 +235,8 @@ td.action-cell {
     justify-content: center;
     cursor: pointer;
     transition: all var(--transition-base);
+    -webkit-tap-highlight-color: transparent;
+    tap-highlight-color: transparent;
 }
 
 .download-btn:hover:not(:disabled) {
@@ -258,6 +274,8 @@ td.action-cell {
     justify-content: center;
     text-decoration: none;
     transition: all var(--transition-base);
+    -webkit-tap-highlight-color: transparent;
+    tap-highlight-color: transparent;
 }
 
 .detail-link:hover {
@@ -377,6 +395,8 @@ td.action-cell {
     color: var(--nt-text-secondary);
     font-size: 12px;
     transition: transform var(--transition-base);
+    -webkit-tap-highlight-color: transparent;
+    tap-highlight-color: transparent;
 }
 
 .expand-btn:hover {
@@ -424,6 +444,7 @@ td.action-cell {
 }
 
 .detail-actions .download-btn,
+.detail-actions .btn--download,
 .detail-actions .detail-link {
     height: auto !important;
     width: auto !important;
@@ -433,6 +454,10 @@ td.action-cell {
     text-transform: uppercase;
     letter-spacing: 0.05em;
     white-space: nowrap;
+}
+
+.detail-actions .btn--download .btn-text {
+    display: inline;
 }
 
 .quality-section {

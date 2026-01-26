@@ -7,7 +7,6 @@ import { initTheme, toggleTheme } from '../components/theme.js';
 import { initLanguage, toggleLanguage } from '../components/language.js';
 import { showToast } from '../components/toast.js';
 import { t, setCurrentPage } from '../i18n.js';
-import { debounce } from '../utils.js';
 
 // Get CSS variables for colors (Nothing OS design system)
 const getColorVariables = () => {
@@ -22,11 +21,6 @@ const getColorVariables = () => {
 // Page state
 let currentConfig = null;
 let currentStats = null;
-
-// Auto-save with debounce (500ms)
-const autoSave = debounce(async () => {
-    await saveConfigFromForm();
-}, 500);
 
 export async function initPilotPage() {
     // Set current page for title
@@ -85,17 +79,10 @@ function setupEventListeners() {
         });
     }
 
-    // Auto-save on form input change
-    const rulesForm = document.getElementById('rulesForm');
-    if (rulesForm) {
-        // Listen to all input changes
-        rulesForm.querySelectorAll('input').forEach(input => {
-            input.addEventListener('change', autoSave);
-            // For text inputs, also listen to input events (real-time typing)
-            if (input.type === 'text') {
-                input.addEventListener('input', autoSave);
-            }
-        });
+    // Save config button (explicit save, no auto-save)
+    const saveConfigBtn = document.getElementById('saveConfigBtn');
+    if (saveConfigBtn) {
+        saveConfigBtn.addEventListener('click', saveConfigFromForm);
     }
 
     // Theme toggle

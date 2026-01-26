@@ -87,6 +87,7 @@ async def save_traffic_stats(
     download_speed: Optional[int] = None
 ) -> bool:
     """保存流量统计数据"""
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -98,11 +99,13 @@ async def save_traffic_stats(
         """, (timestamp, source, uploaded, downloaded, upload_speed, download_speed))
 
         conn.commit()
-        conn.close()
         return True
     except Exception as e:
         logger.error(f"保存流量统计失败: {e}")
         return False
+    finally:
+        if conn:
+            conn.close()
 
 
 async def save_user_stats(
@@ -116,6 +119,7 @@ async def save_user_stats(
     user_level: Optional[str] = None
 ) -> bool:
     """保存用户统计数据"""
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -129,15 +133,18 @@ async def save_user_stats(
               seeding_count, leeching_count, user_level))
 
         conn.commit()
-        conn.close()
         return True
     except Exception as e:
         logger.error(f"保存用户统计失败: {e}")
         return False
+    finally:
+        if conn:
+            conn.close()
 
 
 async def cleanup_old_data(days: int = 30):
     """删除指定天数之前的数据"""
+    conn = None
     try:
         cutoff_timestamp = int((datetime.utcnow() - timedelta(days=days)).timestamp())
 
@@ -151,17 +158,20 @@ async def cleanup_old_data(days: int = 30):
         deleted_user = cursor.rowcount
 
         conn.commit()
-        conn.close()
 
         logger.info(f"清理旧数据完成: traffic_stats={deleted_traffic}, user_stats={deleted_user}")
         return True
     except Exception as e:
         logger.error(f"清理旧数据失败: {e}")
         return False
+    finally:
+        if conn:
+            conn.close()
 
 
 async def get_latest_stats() -> Optional[Dict]:
     """获取最新的统计数据"""
+    conn = None
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -179,8 +189,6 @@ async def get_latest_stats() -> Optional[Dict]:
             WHERE timestamp = (SELECT MAX(timestamp) FROM user_stats)
         """)
         user_row = cursor.fetchone()
-
-        conn.close()
 
         if not traffic_rows:
             return None
@@ -215,6 +223,9 @@ async def get_latest_stats() -> Optional[Dict]:
     except Exception as e:
         logger.error(f"获取最新统计失败: {e}")
         return None
+    finally:
+        if conn:
+            conn.close()
 
 
 def get_traffic_history(hours: int) -> List[Dict]:
@@ -232,6 +243,7 @@ def get_traffic_history(hours: int) -> List[Dict]:
             }
         ]
     """
+    conn = None
     try:
         cutoff_timestamp = int((datetime.utcnow() - timedelta(hours=hours)).timestamp())
 
@@ -247,7 +259,6 @@ def get_traffic_history(hours: int) -> List[Dict]:
         """, (cutoff_timestamp,))
 
         rows = cursor.fetchall()
-        conn.close()
 
         # 按时间戳组织数据
         data_by_timestamp = {}
@@ -274,6 +285,9 @@ def get_traffic_history(hours: int) -> List[Dict]:
     except Exception as e:
         logger.error(f"获取流量历史失败: {e}")
         return []
+    finally:
+        if conn:
+            conn.close()
 
 
 def get_share_ratio_history(hours: int) -> Tuple[List[Dict], Dict]:
@@ -292,6 +306,7 @@ def get_share_ratio_history(hours: int) -> Tuple[List[Dict], Dict]:
             "change_24h": 0.05
         }
     """
+    conn = None
     try:
         cutoff_timestamp = int((datetime.utcnow() - timedelta(hours=hours)).timestamp())
 
@@ -307,7 +322,6 @@ def get_share_ratio_history(hours: int) -> Tuple[List[Dict], Dict]:
         """, (cutoff_timestamp,))
 
         rows = cursor.fetchall()
-        conn.close()
 
         if not rows:
             return [], {}
@@ -329,13 +343,12 @@ def get_share_ratio_history(hours: int) -> Tuple[List[Dict], Dict]:
         timestamp_24h_ago = int((datetime.utcnow() - timedelta(hours=24)).timestamp())
         # 找到最接近24小时前的数据点
         past_ratio = None
-        for point in data_points:
+        for idx, point in enumerate(data_points):
             if point["timestamp"] >= timestamp_24h_ago:
                 if past_ratio is None:
                     # 使用前一个点作为24小时前的值（如果存在）
-                    past_idx = data_points.index(point)
-                    if past_idx > 0:
-                        past_ratio = data_points[past_idx - 1]["share_ratio"]
+                    if idx > 0:
+                        past_ratio = data_points[idx - 1]["share_ratio"]
                     else:
                         past_ratio = point["share_ratio"]
                 break
@@ -355,6 +368,9 @@ def get_share_ratio_history(hours: int) -> Tuple[List[Dict], Dict]:
     except Exception as e:
         logger.error(f"获取分享率历史失败: {e}")
         return [], {}
+    finally:
+        if conn:
+            conn.close()
 
 
 def aggregate_data(data_points: List[Dict], interval_seconds: int) -> List[Dict]:
@@ -420,3 +436,90 @@ def aggregate_data(data_points: List[Dict], interval_seconds: int) -> List[Dict]
     except Exception as e:
         logger.error(f"聚合数据失败: {e}")
         return data_points
+
+
+def calculate_30min_avg_speeds() -> Dict:
+    """计算过去30分钟的平均上传/下载速度
+
+    Returns:
+        {
+            "upload": bytes/s,
+            "download": bytes/s
+        }
+    """
+    conn = None
+    try:
+        # 获取30分钟前和现在的时间戳
+        now = datetime.utcnow()
+        time_30min_ago = now - timedelta(minutes=30)
+        timestamp_now = int(now.timestamp())
+        timestamp_30min_ago = int(time_30min_ago.timestamp())
+
+        logger.info(f"计算30分钟平均速度: 开始时间={timestamp_30min_ago}, 结束时间={timestamp_now}")
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # 获取30分钟前最接近的数据点（qbittorrent）
+        cursor.execute("""
+            SELECT uploaded, downloaded, timestamp
+            FROM traffic_stats
+            WHERE source = 'qbittorrent' AND timestamp >= ?
+            ORDER BY timestamp ASC
+            LIMIT 1
+        """, (timestamp_30min_ago,))
+
+        start_row = cursor.fetchone()
+
+        # 获取最新的数据点（qbittorrent）
+        cursor.execute("""
+            SELECT uploaded, downloaded, timestamp
+            FROM traffic_stats
+            WHERE source = 'qbittorrent'
+            ORDER BY timestamp DESC
+            LIMIT 1
+        """)
+
+        end_row = cursor.fetchone()
+
+        # 如果没有足够的历史数据，返回0
+        if not start_row or not end_row:
+            logger.warning(f"没有足够的历史数据计算30分钟平均速度: start_row={start_row}, end_row={end_row}")
+            return {"upload": 0, "download": 0}
+
+        logger.info(f"开始数据点: timestamp={start_row['timestamp']}, up={start_row['uploaded']}, down={start_row['downloaded']}")
+        logger.info(f"结束数据点: timestamp={end_row['timestamp']}, up={end_row['uploaded']}, down={end_row['downloaded']}")
+
+        # 计算时间差（秒）
+        time_diff = end_row["timestamp"] - start_row["timestamp"]
+
+        logger.info(f"时间差: {time_diff}秒")
+
+        # 如果时间差小于1秒，避免除以0
+        if time_diff < 1:
+            logger.warning(f"时间差小于1秒: {time_diff}")
+            return {"upload": 0, "download": 0}
+
+        # 计算流量增量
+        upload_delta = end_row["uploaded"] - start_row["uploaded"]
+        download_delta = end_row["downloaded"] - start_row["downloaded"]
+
+        logger.info(f"流量增量: upload={upload_delta}, download={download_delta}")
+
+        # 计算平均速度（bytes/s）
+        avg_upload_speed = max(0, upload_delta / time_diff)
+        avg_download_speed = max(0, download_delta / time_diff)
+
+        logger.info(f"平均速度: upload={avg_upload_speed} B/s, download={avg_download_speed} B/s")
+
+        return {
+            "upload": int(avg_upload_speed),
+            "download": int(avg_download_speed)
+        }
+
+    except Exception as e:
+        logger.error(f"计算30分钟平均速度失败: {e}")
+        return {"upload": 0, "download": 0}
+    finally:
+        if conn:
+            conn.close()

@@ -5,14 +5,15 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', path='/css/modules/panel.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', path='/css/modules/torrent-table.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', path='/css/modules/filter-card.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', path='/css/modules/confirmation-modal.css') }}">
 {% endblock %}
 
 {% block content %}
 <div class="container">
-    <!-- Stats Cards Grid (7 cards: 4+3 layout) -->
+    <!-- Stats Cards Grid (5 cards: single row) -->
     <section class="stats-grid">
-        <!-- Card: Share Ratio -->
+        <!-- Card 1: Share Ratio -->
         <div class="stat-card" id="card-share-ratio">
             <div class="stat-label">分享率</div>
             <div class="stat-value">--</div>
@@ -22,47 +23,40 @@
             </div>
         </div>
 
-        <!-- Card: Uploaded -->
-        <div class="stat-card" id="card-uploaded">
-            <div class="stat-label">总上传量</div>
-            <div class="stat-value">--</div>
-            <div class="stat-subvalue">M-Team</div>
-        </div>
-
-        <!-- Card: Downloaded -->
-        <div class="stat-card" id="card-downloaded">
-            <div class="stat-label">总下载量</div>
-            <div class="stat-value">--</div>
-            <div class="stat-subvalue">M-Team</div>
-        </div>
-
-        <!-- Card: Seeding -->
-        <div class="stat-card" id="card-seeding">
-            <div class="stat-label">做种数</div>
-            <div class="stat-value">--</div>
-        </div>
-
-        <!-- Card: Leeching -->
-        <div class="stat-card" id="card-leeching">
-            <div class="stat-label">下载数</div>
-            <div class="stat-value">--</div>
-        </div>
-
-        <!-- Card: Storage (NEW) -->
-        <div class="stat-card" id="card-storage">
-            <div class="stat-label">存储空间</div>
-            <div class="stat-value">--</div>
-            <div class="stat-subvalue">
-                <div class="storage-bar-container" style="width: 100%; height: 4px; background: var(--nt-border); margin-top: 8px;">
-                    <div class="storage-bar" style="height: 100%; background: var(--nt-text-primary); width: 0%;"></div>
-                </div>
+        <!-- Card 2: Seeding/Leeching -->
+        <div class="stat-card" id="card-seeding-leeching">
+            <div class="stat-label">做种/下载</div>
+            <div class="stat-value-dual">
+                <span class="value-seeding">--</span>
+                <span class="value-separator">/</span>
+                <span class="value-leeching">--</span>
             </div>
         </div>
 
-        <!-- Card: Last Update -->
-        <div class="stat-card" id="card-update">
-            <div class="stat-label">最后更新</div>
-            <div class="stat-value last-update-time">--</div>
+        <!-- Card 3: Average Speed -->
+        <div class="stat-card" id="card-avg-speed">
+            <div class="stat-label">平均速度：上传 ↑ /下载 ↓ (30分钟)</div>
+            <div class="stat-value-dual">
+                <span class="value-up">--</span>
+                <span class="value-separator">/</span>
+                <span class="value-down">--</span>
+            </div>
+        </div>
+
+        <!-- Card 4: Traffic (Upload/Download) -->
+        <div class="stat-card" id="card-traffic">
+            <div class="stat-label">↑ 上传 / ↓ 下载</div>
+            <div class="stat-value-dual">
+                <span class="value-up">--</span>
+                <span class="value-separator">/</span>
+                <span class="value-down">--</span>
+            </div>
+        </div>
+
+        <!-- Card 5: Storage -->
+        <div class="stat-card" id="card-storage">
+            <div class="stat-label">存储空间</div>
+            <div class="stat-value">--</div>
         </div>
     </section>
 
@@ -72,32 +66,25 @@
 
         <!-- Filter Bar -->
         <div class="torrent-filter-bar">
-            <div class="filter-group">
-                <span class="filter-label">标签:</span>
-                <button class="filter-pill active" data-tag="all">全部</button>
-                <button class="filter-pill" data-tag="声呐做种">声呐做种</button>
-                <button class="filter-pill" data-tag="雷达下载">雷达下载</button>
-                <button class="filter-pill" data-tag="PILOT">PILOT</button>
+            <div class="quick-filter-group">
+                <span class="quick-filter-label">标签:</span>
+                <div class="quick-filter-pills">
+                    <button class="cat-pill active" data-tag="all">全部</button>
+                    <button class="cat-pill" data-tag="声呐做种">声呐做种</button>
+                    <button class="cat-pill" data-tag="雷达下载">雷达下载</button>
+                    <button class="cat-pill" data-tag="PILOT">PILOT</button>
+                </div>
             </div>
-            <div class="filter-group">
-                <span class="filter-label">状态:</span>
-                <button class="filter-pill active" data-status="all">全部</button>
-                <button class="filter-pill" data-status="seeding">做种中</button>
-                <button class="filter-pill" data-status="downloading">下载中</button>
-                <button class="filter-pill" data-status="paused">已暂停</button>
+            <div class="quick-filter-group">
+                <span class="quick-filter-label">状态:</span>
+                <div class="quick-filter-pills">
+                    <button class="cat-pill active" data-status="all">全部</button>
+                    <button class="cat-pill" data-status="seeding">做种中</button>
+                    <button class="cat-pill" data-status="downloading">下载中</button>
+                    <button class="cat-pill" data-status="paused">已暂停</button>
+                </div>
             </div>
             <span class="torrent-count" id="torrent-count">显示 0 个种子</span>
-        </div>
-
-        <!-- Batch Actions Bar -->
-        <div class="batch-actions-bar" id="batch-actions-bar">
-            <span class="batch-selected-count" id="batch-selected-count">已选择 0 个种子</span>
-            <div class="batch-actions">
-                <button class="batch-btn" id="batch-pause-btn">暂停</button>
-                <button class="batch-btn" id="batch-resume-btn">恢复</button>
-                <button class="batch-btn danger" id="batch-delete-btn">删除</button>
-                <button class="batch-clear" id="batch-clear-btn">✕</button>
-            </div>
         </div>
 
         <!-- Torrent Table Container -->
@@ -109,6 +96,9 @@
     <!-- Chart Controls -->
     <section class="chart-controls">
         <div class="range-buttons">
+            <button class="range-btn" data-range="1h">1H</button>
+            <button class="range-btn" data-range="6h">6H</button>
+            <button class="range-btn" data-range="12h">12H</button>
             <button class="range-btn active" data-range="24h">24H</button>
             <button class="range-btn" data-range="7d">7D</button>
             <button class="range-btn" data-range="30d">30D</button>

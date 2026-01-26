@@ -316,6 +316,43 @@ def calculate_torrent_health(torrent: Dict, trackers: List[Dict]) -> Dict:
     return {"score": 100, "status": "healthy", "reason": ""}
 
 
+def extract_mteam_id_from_trackers(trackers: List[Dict]) -> Optional[str]:
+    """
+    从 tracker 列表中提取 M-Team 种子 ID
+
+    Args:
+        trackers: tracker 列表
+
+    Returns:
+        Optional[str]: M-Team ID，如果找不到则返回 None
+    """
+    for tracker in trackers:
+        tracker_url = tracker.get("url", "")
+        if "m-team" not in tracker_url.lower():
+            continue
+
+        # 方式1: 直接匹配 torrent_id=xxx
+        match = re.search(r'torrent_id=(\d+)', tracker_url)
+        if match:
+            return match.group(1)
+
+        # 方式2: 解析 base64 编码的 credential 参数，查找 tid=xxx
+        try:
+            if "credential=" in tracker_url:
+                credential_match = re.search(r'credential=([A-Za-z0-9+/=]+)', tracker_url)
+                if credential_match:
+                    credential_b64 = credential_match.group(1)
+                    decoded = base64.b64decode(credential_b64).decode('utf-8', errors='ignore')
+                    tid_match = re.search(r'tid=(\d+)', decoded)
+                    if tid_match:
+                        return tid_match.group(1)
+        except Exception as e:
+            logger.debug(f"解析 credential 失败: {e}")
+            continue
+
+    return None
+
+
 async def qb_get_mteam_torrents(sid: str, tag_filter: Optional[str] = None,
                                 status_filter: Optional[str] = None) -> List[Dict]:
     """
@@ -368,6 +405,9 @@ async def qb_get_mteam_torrents(sid: str, tag_filter: Optional[str] = None,
             trackers = await qb_get_torrent_trackers(torrent.get('hash', ''), sid)
             health = calculate_torrent_health(torrent, trackers)
 
+            # 提取 M-Team ID
+            mteam_id = extract_mteam_id_from_trackers(trackers)
+
             # 格式化种子信息
             formatted = {
                 "hash": torrent.get('hash', ''),
@@ -384,7 +424,8 @@ async def qb_get_mteam_torrents(sid: str, tag_filter: Optional[str] = None,
                 "download_speed": torrent.get('dlspeed', 0),
                 "added_on": torrent.get('added_on', 0),
                 "eta": torrent.get('eta', 8640000) if torrent.get('eta', 8640000) < 8640000 else None,
-                "health": health
+                "health": health,
+                "mteam_id": mteam_id
             }
 
             result.append(formatted)

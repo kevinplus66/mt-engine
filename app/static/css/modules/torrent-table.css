@@ -16,51 +16,12 @@
 .torrent-filter-bar {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 24px;
     align-items: center;
     margin-bottom: 20px;
     padding: 16px;
     border: 1px dotted var(--nt-border);
     background: var(--nt-bg-secondary);
-}
-
-.filter-group {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.filter-label {
-    font-family: 'DotGothic16', monospace;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    display: flex;
-    align-items: center;
-    color: var(--nt-text-secondary);
-}
-
-.filter-pill {
-    padding: 6px 12px;
-    font-family: 'DotGothic16', monospace;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    border: 1px dotted var(--nt-border);
-    background: transparent;
-    color: var(--nt-text-primary);
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.filter-pill:hover {
-    border-style: solid;
-}
-
-.filter-pill.active {
-    background: var(--nt-text-primary);
-    color: var(--nt-bg-secondary);
-    border-style: solid;
 }
 
 .torrent-count {
@@ -149,6 +110,8 @@
 .torrent-table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
+    min-width: 950px;
     font-family: 'Roboto Mono', monospace;
 }
 
@@ -173,11 +136,24 @@
 }
 
 .torrent-table tbody tr {
+    background: var(--nt-bg-secondary);
     border-bottom: 1px dotted var(--nt-border-light);
+    transition: background 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    tap-highlight-color: transparent;
+    cursor: pointer;
 }
 
-.torrent-table tbody tr:hover {
-    background: var(--nt-bg-secondary);
+/* Desktop Hover Effects (Mouse Only) */
+@media (hover: hover) {
+    .torrent-table tbody tr:not(.detail-row):hover {
+        background: var(--nt-bg-primary);
+    }
+}
+
+/* Expanded State */
+.torrent-table tbody tr.expanded {
+    background: var(--nt-bg-primary);
 }
 
 .torrent-table td {
@@ -187,23 +163,68 @@
     vertical-align: middle;
 }
 
-.torrent-table td:first-child {
-    text-align: center;
-    width: 40px;
-}
-
-.torrent-table td:nth-child(2) {
+/* Column 1: Title (with expand toggle) */
+.torrent-table th:first-child, .torrent-table td:first-child {
+    width: auto;
     text-align: left;
-    max-width: 300px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.torrent-checkbox {
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
+/* Column 2: Size */
+.torrent-table th:nth-child(2), .torrent-table td:nth-child(2) {
+    width: 100px;
+    min-width: 100px;
+    white-space: nowrap;
+}
+
+/* Column 3: Progress */
+.torrent-table th:nth-child(3), .torrent-table td:nth-child(3) {
+    width: 100px;
+    min-width: 100px;
+}
+
+/* Column 4: Health */
+.torrent-table th:nth-child(4), .torrent-table td:nth-child(4) {
+    width: 100px;
+    min-width: 100px;
+    white-space: nowrap;
+}
+
+/* Column 5: Status */
+.torrent-table th:nth-child(5), .torrent-table td:nth-child(5) {
+    width: 90px;
+    min-width: 90px;
+    white-space: nowrap;
+}
+
+/* Column 6: Tag */
+.torrent-table th:nth-child(6), .torrent-table td:nth-child(6) {
+    width: 90px;
+    min-width: 90px;
+    white-space: nowrap;
+}
+
+/* Column 7: Share Ratio */
+.torrent-table th:nth-child(7), .torrent-table td:nth-child(7) {
+    width: 90px;
+    min-width: 90px;
+    white-space: nowrap;
+}
+
+/* Column 8: Speed */
+.torrent-table th:nth-child(8), .torrent-table td:nth-child(8) {
+    width: 120px;
+    min-width: 120px;
+    white-space: nowrap;
+}
+
+/* Column 9: Time */
+.torrent-table th:nth-child(9), .torrent-table td:nth-child(9) {
+    width: 100px;
+    min-width: 100px;
+    white-space: nowrap;
 }
 
 /* Health Status */
@@ -243,12 +264,12 @@
     height: 8px;
     border: 1px dotted var(--nt-border);
     background: var(--nt-bg-secondary);
-    position: relative;
+    box-sizing: border-box;
 }
 
 .progress-fill {
-    height: 100%;
-    background: var(--nt-text-primary);
+    height: 8px;
+    background: #00FF00;
     transition: width 0.3s;
 }
 
@@ -272,11 +293,11 @@
 }
 
 .speed-up {
-    color: #00FF00;
+    color: #16A34A;
 }
 
 .speed-down {
-    color: #00BFFF;
+    color: #2563EB;
 }
 
 /* Empty/Loading States */
@@ -318,6 +339,28 @@
     background: var(--nt-text-primary);
     color: var(--nt-bg-secondary);
     border-style: solid;
+}
+
+/* Sort Styling */
+.torrent-table th[data-sort] {
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+}
+
+.torrent-table th[data-sort]:hover {
+    background: var(--nt-bg-primary);
+}
+
+.sort-icon {
+    margin-left: 4px;
+    font-size: 10px;
+    opacity: 0.3;
+    transition: opacity 0.2s;
+}
+
+.torrent-table th[data-sort]:hover .sort-icon {
+    opacity: 0.6;
 }
 
 /* Torrent Cards - Hidden by default (mobile only) */
@@ -408,5 +451,172 @@
 
     .batch-btn {
         width: 100%;
+    }
+}
+
+/* Expandable Row Styles (from table.css) */
+
+/* Expand Toggle Button */
+.expand-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 8px 0 0;
+    color: var(--nt-text-secondary);
+    font-size: 12px;
+    transition: transform 0.2s;
+    display: inline-block;
+    margin-right: 8px;
+    -webkit-tap-highlight-color: transparent;
+    tap-highlight-color: transparent;
+}
+
+.expand-toggle:hover {
+    color: var(--nt-text-primary);
+}
+
+.expand-toggle:focus,
+.expand-toggle:focus-visible {
+    outline: 2px solid var(--nt-text-primary);
+    outline-offset: 2px;
+}
+
+/* Torrent Name Container */
+.torrent-name {
+    display: flex;
+    align-items: center;
+}
+
+.torrent-link {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    tap-highlight-color: transparent;
+    color: var(--nt-text-primary);
+    text-decoration: none;
+}
+
+.torrent-link:active,
+.torrent-link:focus {
+    color: var(--nt-text-primary);
+}
+
+/* Detail Row */
+.detail-row {
+    display: none;
+    background: var(--nt-bg-secondary);
+}
+
+.detail-row.expanded {
+    display: table-row;
+    background: var(--nt-bg-secondary);
+}
+
+.detail-content {
+    padding: 12px 16px 12px 20px;
+    border-left: 3px solid var(--nt-text-primary);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.detail-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 12px;
+}
+
+.detail-actions {
+    flex-shrink: 0;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* Action Buttons */
+.detail-actions .btn {
+    height: auto !important;
+    width: auto !important;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-family: 'DotGothic16', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    border: 1px dotted var(--nt-border);
+    background: transparent;
+    color: var(--nt-text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    tap-highlight-color: transparent;
+}
+
+.detail-actions .btn:hover {
+    background: var(--nt-text-primary);
+    color: var(--nt-bg-secondary);
+    border-style: solid;
+}
+
+.detail-actions .btn.btn--delete {
+    border-color: var(--nt-red);
+    color: var(--nt-red);
+}
+
+.detail-actions .btn.btn--delete:hover {
+    background: var(--nt-red);
+    color: var(--nt-bg-secondary);
+    border-style: solid;
+}
+
+.detail-actions .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.detail-actions .btn.btn--loading {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+/* Mobile Detail Row */
+@media (max-width: 768px) {
+    .detail-row {
+        border: none;
+        margin-top: -12px;
+        margin-bottom: 12px;
+        padding: 0;
+    }
+
+    .detail-row.expanded {
+        display: block;
+    }
+
+    .detail-content {
+        padding: 12px;
+        border-left: none;
+        border-top: 2px solid var(--nt-text-primary);
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .detail-actions {
+        margin-top: 12px;
+        justify-content: flex-end;
+        width: 100%;
+    }
+
+    .detail-actions .btn {
+        flex: 1;
     }
 }

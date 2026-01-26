@@ -1,6 +1,6 @@
 # M-Team Engine (MT 引擎)
 
-![Version](https://img.shields.io/badge/version-5.1.0-blue.svg)
+![Version](https://img.shields.io/badge/version-5.2.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
 ![Docker](https://img.shields.io/badge/docker-ready-blue.svg)
@@ -331,6 +331,32 @@ cd ~/MT-Engine
 docker compose down
 docker compose build --no-cache
 docker compose up -d
+```
+
+### Q: 遇到权限错误（Permission denied）怎么办？
+
+A: 如果看到 "Permission denied" 错误，涉及 panel.db 或 pilot.json 文件：
+
+1. 查找主机系统的用户 ID：
+```bash
+id -u  # 用户 ID（例如：1000）
+id -g  # 组 ID（例如：1000）
+```
+
+2. 在 `.env` 文件中添加：
+```env
+PUID=1000   # 替换为你的用户 ID
+PGID=1000   # 替换为你的组 ID
+```
+
+3. 修复现有数据目录的所有权：
+```bash
+sudo chown -R $(id -u):$(id -g) ./data
+```
+
+4. 重启容器：
+```bash
+docker compose down && docker compose up -d
 ```
 
 ---

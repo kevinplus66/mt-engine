@@ -10,14 +10,14 @@ from datetime import datetime
 from pydantic import BaseModel
 
 from app.config import logger
-from app.services.panel_db import get_latest_stats, get_traffic_history, get_share_ratio_history, aggregate_data
+from app.services.panel_db import get_latest_stats, get_traffic_history, get_share_ratio_history, aggregate_data, calculate_30min_avg_speeds
 from app.services.mteam_api import fetch_user_profile
 from app.services.qbittorrent import (
     qb_login, qb_get_mteam_stats, qb_get_mteam_torrents,
     qb_pause_torrents, qb_resume_torrents, qb_delete_torrents,
     qb_get_storage_info
 )
-from app.utils import format_size
+from app.utils import format_size, format_speed_int
 from app.state import user_torrent_status, user_profile
 
 router = APIRouter()
@@ -124,6 +124,9 @@ async def get_panel_stats() -> Dict:
         except Exception as e:
             logger.error(f"获取存储信息失败: {e}")
 
+        # 计算30分钟平均速度
+        avg_speeds = calculate_30min_avg_speeds()
+
         result = {
             "mteam": {
                 "uploaded": db_stats["mteam"].get("uploaded", 0),
@@ -151,6 +154,12 @@ async def get_panel_stats() -> Dict:
                 "user_level": db_stats["user"].get("user_level")
             },
             "storage": storage,
+            "avg_speeds": {
+                "upload_30min": avg_speeds["upload"],
+                "download_30min": avg_speeds["download"],
+                "upload_display": format_speed_int(avg_speeds["upload"]) + "/s",
+                "download_display": format_speed_int(avg_speeds["download"]) + "/s"
+            },
             "last_update": int(datetime.utcnow().timestamp())
         }
 
@@ -167,11 +176,11 @@ async def get_panel_stats() -> Dict:
 
 
 @router.get("/api/panel/history")
-async def get_panel_history(range: Literal["24h", "7d", "30d"] = "24h") -> Dict:
+async def get_panel_history(range: Literal["1h", "6h", "12h", "24h", "7d", "30d"] = "24h") -> Dict:
     """获取流量历史数据
 
     Args:
-        range: 时间范围，可选值: 24h, 7d, 30d
+        range: 时间范围，可选值: 1h, 6h, 12h, 24h, 7d, 30d
 
     Returns:
         {
@@ -183,6 +192,9 @@ async def get_panel_history(range: Literal["24h", "7d", "30d"] = "24h") -> Dict:
     try:
         # 解析时间范围
         range_hours = {
+            "1h": 1,
+            "6h": 6,
+            "12h": 12,
             "24h": 24,
             "7d": 168,  # 7 * 24
             "30d": 720  # 30 * 24
@@ -195,6 +207,9 @@ async def get_panel_history(range: Literal["24h", "7d", "30d"] = "24h") -> Dict:
 
         # 确定聚合间隔
         aggregation_map = {
+            "1h": {"seconds": 0, "label": "none"},  # 不聚合
+            "6h": {"seconds": 0, "label": "none"},  # 不聚合
+            "12h": {"seconds": 0, "label": "none"},  # 不聚合
             "24h": {"seconds": 0, "label": "none"},  # 不聚合
             "7d": {"seconds": 3600, "label": "1hour"},  # 1小时
             "30d": {"seconds": 86400, "label": "1day"}  # 1天
@@ -225,11 +240,11 @@ async def get_panel_history(range: Literal["24h", "7d", "30d"] = "24h") -> Dict:
 
 
 @router.get("/api/panel/share-ratio")
-async def get_panel_share_ratio(range: Literal["24h", "7d", "30d"] = "24h") -> Dict:
+async def get_panel_share_ratio(range: Literal["1h", "6h", "12h", "24h", "7d", "30d"] = "24h") -> Dict:
     """获取分享率历史数据
 
     Args:
-        range: 时间范围，可选值: 24h, 7d, 30d
+        range: 时间范围，可选值: 1h, 6h, 12h, 24h, 7d, 30d
 
     Returns:
         {
@@ -244,6 +259,9 @@ async def get_panel_share_ratio(range: Literal["24h", "7d", "30d"] = "24h") -> D
     try:
         # 解析时间范围
         range_hours = {
+            "1h": 1,
+            "6h": 6,
+            "12h": 12,
             "24h": 24,
             "7d": 168,
             "30d": 720

@@ -32,9 +32,9 @@ function updateStatTrend(card, trendData, change) {
     if (!changeEl) return;
 
     // 更新变化值
-    const changeText = change > 0 ? `+${change.toFixed(2)} ↑` :
-                       change < 0 ? `${change.toFixed(2)} ↓` :
-                       '0.00 →';
+    const changeText = change > 0 ? `今日分享率增长：+${change.toFixed(2)} ↑` :
+                       change < 0 ? `今日分享率增长：${change.toFixed(2)} ↓` :
+                       '今日分享率增长：0.00 →';
     changeEl.textContent = changeText;
 
     // 更新样式
@@ -99,7 +99,7 @@ function drawMiniChart(svg, dataPoints) {
 
 // 批量更新所有统计卡片
 function updateAllStatCards(statsData) {
-    const { mteam, qbittorrent, user } = statsData;
+    const { mteam, qbittorrent, user, avg_speeds } = statsData;
 
     // 分享率
     if (user && user.share_ratio !== undefined) {
@@ -109,45 +109,66 @@ function updateAllStatCards(statsData) {
         });
     }
 
-    // 上传量
-    if (mteam && mteam.uploaded_display) {
-        updateStatCard('card-uploaded', mteam.uploaded_display);
+    // 上传/下载量 (合并卡片 - M-Team 数据)
+    if (mteam && mteam.uploaded_display && mteam.downloaded_display) {
+        updateDualValueCard('card-traffic',
+            mteam.uploaded_display,
+            mteam.downloaded_display
+        );
     }
 
-    // 下载量
-    if (mteam && mteam.downloaded_display) {
-        updateStatCard('card-downloaded', mteam.downloaded_display);
+    // 做种/下载 (双大数字)
+    if (user && user.seeding_count !== undefined && user.leeching_count !== undefined) {
+        updateDualValueCard('card-seeding-leeching',
+            user.seeding_count.toString(),
+            user.leeching_count.toString()
+        );
     }
 
-    // 魔力值
+    // 平均速度 (合并卡片 - qBittorrent 数据)
+    if (avg_speeds && avg_speeds.upload_display && avg_speeds.download_display) {
+        updateDualValueCard('card-avg-speed',
+            avg_speeds.upload_display,
+            avg_speeds.download_display
+        );
+    }
+
+    // 魔力值 (如果卡片存在)
     if (user && user.bonus !== undefined && user.bonus !== null) {
         updateStatCard('card-bonus', user.bonus.toLocaleString());
     }
 
-    // 做种数
-    if (user && user.seeding_count !== undefined) {
-        updateStatCard('card-seeding', user.seeding_count);
-    }
-
-    // 下载数
-    if (user && user.leeching_count !== undefined) {
-        updateStatCard('card-leeching', user.leeching_count);
-    }
-
-    // 用户等级
+    // 用户等级 (如果卡片存在)
     if (user && user.user_level) {
         updateStatCard('card-level', user.user_level);
     }
 }
 
-// 更新最后刷新时间
-function updateLastUpdateTime(utcTimestamp) {
-    const card = document.getElementById('card-update');
+// 更新双值卡片 (e.g., "132.80 TB / 12.20 TB")
+function updateDualValueCard(cardId, value1, value2) {
+    const card = document.getElementById(cardId);
     if (!card) return;
 
-    const timeEl = card.querySelector('.last-update-time');
-    if (timeEl) {
-        const beijingTime = formatBeijingTime(utcTimestamp, 'short');
-        timeEl.textContent = beijingTime;
-    }
+    // Find the dual value container
+    const dualValueEl = card.querySelector('.stat-value-dual');
+    if (!dualValueEl) return;
+
+    // Update the two values
+    const val1El = dualValueEl.querySelector('.value-up, .value-seeding');
+    const val2El = dualValueEl.querySelector('.value-down, .value-leeching');
+
+    if (val1El) val1El.textContent = value1;
+    if (val2El) val2El.textContent = value2;
 }
+
+// 更新最后刷新时间 (已移除 - 不再需要最后更新卡片)
+// function updateLastUpdateTime(utcTimestamp) {
+//     const card = document.getElementById('card-update');
+//     if (!card) return;
+//
+//     const timeEl = card.querySelector('.last-update-time');
+//     if (timeEl) {
+//         const beijingTime = formatBeijingTime(utcTimestamp, 'short');
+//         timeEl.textContent = beijingTime;
+//     }
+// }

@@ -2,11 +2,74 @@
  * Chart.js 图表组件 - Nothing OS 风格
  */
 
+// Detect if device supports hover
+const supportsHover = window.matchMedia('(hover: hover)').matches;
+
 // 获取 Nothing OS 图表配置
 function getNothingOSChartOptions(yAxisCallback = null) {
-    return {
+    const options = {
         responsive: true,
         maintainAspectRatio: false,
+        onClick: (event, elements, chart) => {
+            // Only use click for toggle on touch devices
+            if (!supportsHover) {
+                // Get click position relative to chart area
+                const canvasPosition = Chart.helpers.getRelativePosition(event, chart);
+
+                // Get the data index from X position
+                const dataIndex = chart.scales.x.getValueForPixel(canvasPosition.x);
+
+                // Round to nearest integer index
+                const nearestIndex = Math.round(dataIndex);
+
+                // Check if index is valid
+                if (nearestIndex >= 0 && nearestIndex < chart.data.labels.length) {
+                    // Toggle: if clicking near the same index (within 1 position), hide; otherwise show
+                    // Use tolerance for touch screen imprecision
+                    const isSamePoint = chart._currentTagIndex !== null &&
+                                       Math.abs(chart._currentTagIndex - nearestIndex) <= 1;
+
+                    if (isSamePoint) {
+                        clearDataPointTag(chart);
+                        chart._currentTagIndex = null;
+                    } else {
+                        showDataPointTagAtIndex(chart, nearestIndex, canvasPosition.x);
+                        chart._currentTagIndex = nearestIndex;
+                    }
+                } else {
+                    clearDataPointTag(chart);
+                    chart._currentTagIndex = null;
+                }
+            }
+        },
+        onHover: (event, elements, chart) => {
+            // Only use hover on desktop devices
+            if (supportsHover) {
+                const canvasPosition = Chart.helpers.getRelativePosition(event, chart);
+
+                // Get the data index from X position
+                const dataIndex = chart.scales.x.getValueForPixel(canvasPosition.x);
+
+                // Round to nearest integer index
+                const nearestIndex = Math.round(dataIndex);
+
+                // Check if index is valid and within chart area
+                if (nearestIndex >= 0 && nearestIndex < chart.data.labels.length &&
+                    canvasPosition.x >= 0 && canvasPosition.x <= chart.width &&
+                    canvasPosition.y >= 0 && canvasPosition.y <= chart.height) {
+
+                    // Only update if index changed
+                    if (chart._currentHoverIndex !== nearestIndex) {
+                        showDataPointTagAtIndex(chart, nearestIndex, canvasPosition.x);
+                        chart._currentHoverIndex = nearestIndex;
+                    }
+                } else {
+                    // Mouse left chart area
+                    clearDataPointTag(chart);
+                    chart._currentHoverIndex = null;
+                }
+            }
+        },
         plugins: {
             legend: {
                 labels: {
@@ -79,9 +142,10 @@ function getNothingOSChartOptions(yAxisCallback = null) {
             }
         }
     };
+    return options;
 }
 
-// 创建流量趋势图 (折线图)
+// 创建流量趋势图 (折线图 - 显示每间隔变化量)
 function createTrafficChart(canvasId, data) {
     const ctx = document.getElementById(canvasId).getContext('2d');
 
@@ -90,17 +154,18 @@ function createTrafficChart(canvasId, data) {
 
     const datasets = [
         {
-            label: 'qBittorrent 上传',
+            label: 'qB 上传增量',
             data: data.qb_upload,
             borderColor: '#666666',
             backgroundColor: 'transparent',
             borderWidth: 2,
             pointRadius: 0,
             pointHoverRadius: 4,
+            pointHitRadius: 10,
             tension: 0.1
         },
         {
-            label: 'M-Team 上传',
+            label: 'MT 上传增量',
             data: data.mt_upload,
             borderColor: '#D71921',
             backgroundColor: 'transparent',
@@ -108,10 +173,11 @@ function createTrafficChart(canvasId, data) {
             borderDash: [5, 5],
             pointRadius: 0,
             pointHoverRadius: 4,
+            pointHitRadius: 10,
             tension: 0.1
         },
         {
-            label: 'qBittorrent 下载',
+            label: 'qB 下载增量',
             data: data.qb_download,
             borderColor: '#999999',
             backgroundColor: 'transparent',
@@ -119,10 +185,11 @@ function createTrafficChart(canvasId, data) {
             borderDash: [2, 2],
             pointRadius: 0,
             pointHoverRadius: 4,
+            pointHitRadius: 10,
             tension: 0.1
         },
         {
-            label: 'M-Team 下载',
+            label: 'MT 下载增量',
             data: data.mt_download,
             borderColor: '#FF6B6B',
             backgroundColor: 'transparent',
@@ -130,45 +197,26 @@ function createTrafficChart(canvasId, data) {
             borderDash: [10, 5, 2, 5],
             pointRadius: 0,
             pointHoverRadius: 4,
+            pointHitRadius: 10,
             tension: 0.1
         }
     ];
 
-    return new Chart(ctx, {
+    const chart = new Chart(ctx, {
         type: 'line',
         data: { labels, datasets },
         options: getNothingOSChartOptions()
     });
-}
 
-// 创建每日总量柱状图
-function createDailyBarChart(canvasId, data) {
-    const ctx = document.getElementById(canvasId).getContext('2d');
+    // Add mouseleave handler to clear tag when mouse leaves canvas (desktop only)
+    if (supportsHover) {
+        ctx.canvas.addEventListener('mouseleave', () => {
+            clearDataPointTag(chart);
+            chart._currentHoverIndex = null;
+        });
+    }
 
-    const labels = data.dates;
-
-    const datasets = [
-        {
-            label: 'M-Team 上传',
-            data: data.mt_upload,
-            backgroundColor: 'rgba(215, 25, 33, 0.8)',
-            borderColor: '#D71921',
-            borderWidth: 1
-        },
-        {
-            label: 'M-Team 下载',
-            data: data.mt_download,
-            backgroundColor: 'rgba(255, 107, 107, 0.8)',
-            borderColor: '#FF6B6B',
-            borderWidth: 1
-        }
-    ];
-
-    return new Chart(ctx, {
-        type: 'bar',
-        data: { labels, datasets },
-        options: getNothingOSChartOptions()
-    });
+    return chart;
 }
 
 // 创建分享率折线图
@@ -186,6 +234,7 @@ function createShareRatioChart(canvasId, data) {
         fill: true,
         pointRadius: 0,
         pointHoverRadius: 4,
+        pointHitRadius: 10,
         tension: 0.1
     }];
 
@@ -223,11 +272,21 @@ function createShareRatioChart(canvasId, data) {
         }
     };
 
-    return new Chart(ctx, {
+    const chart = new Chart(ctx, {
         type: 'line',
         data: { labels, datasets },
         options: options
     });
+
+    // Add mouseleave handler to clear tag when mouse leaves canvas (desktop only)
+    if (supportsHover) {
+        ctx.canvas.addEventListener('mouseleave', () => {
+            clearDataPointTag(chart);
+            chart._currentHoverIndex = null;
+        });
+    }
+
+    return chart;
 }
 
 // 格式化北京时间
@@ -272,4 +331,167 @@ function formatSize(bytes) {
     }
 
     return `${size.toFixed(2)} ${units[unitIndex]}`;
+}
+
+// 显示数据点标签 (基于X坐标索引，显示所有可见数据集)
+function showDataPointTagAtIndex(chart, dataIndex, clickX) {
+    // Clear any existing tag first
+    clearDataPointTag(chart);
+
+    // Get the time label at this index
+    const label = chart.data.labels[dataIndex];
+
+    // Create tag element
+    const tag = document.createElement('div');
+    tag.className = 'chart-data-tag';
+    tag.id = `chart-tag-${chart.id}`;
+
+    // Build HTML for all visible datasets
+    let datasetHTML = '';
+    chart.data.datasets.forEach((dataset, index) => {
+        // Only show visible datasets
+        if (!chart.isDatasetVisible(index)) {
+            return;
+        }
+
+        const value = dataset.data[dataIndex];
+        const color = dataset.borderColor || dataset.backgroundColor;
+
+        // Format the value based on chart type
+        let formattedValue;
+        if (dataset.label.includes('分享率')) {
+            formattedValue = value.toFixed(2);
+        } else {
+            formattedValue = formatSize(value);
+        }
+
+        datasetHTML += `
+            <div style="display: flex; align-items: center; gap: 8px; margin: 4px 0;">
+                <span style="display: inline-block; width: 8px; height: 8px; background: ${color}; border-radius: 50%;"></span>
+                <span style="font-size: 10px; color: var(--nt-text-secondary);">${dataset.label}:</span>
+                <span style="font-weight: 700; margin-left: auto;">${formattedValue}</span>
+            </div>
+        `;
+    });
+
+    tag.innerHTML = `
+        <div style="font-weight: 700; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px dotted var(--nt-border);">${label}</div>
+        ${datasetHTML}
+    `;
+
+    // Position the tag near the clicked X coordinate
+    const canvasPosition = chart.canvas.getBoundingClientRect();
+    const x = clickX + canvasPosition.left + window.scrollX;
+
+    // Get Y position from the first visible point (for vertical alignment)
+    let y = canvasPosition.top + canvasPosition.height / 2 + window.scrollY;
+    for (let i = 0; i < chart.data.datasets.length; i++) {
+        if (chart.isDatasetVisible(i)) {
+            const point = chart.getDatasetMeta(i).data[dataIndex];
+            if (point) {
+                y = point.y + canvasPosition.top + window.scrollY;
+                break;
+            }
+        }
+    }
+
+    tag.style.position = 'absolute';
+    tag.style.left = `${x}px`;
+    tag.style.top = `${y - 120}px`; // Position above the point
+    tag.style.transform = 'translateX(-50%)'; // Center horizontally
+
+    document.body.appendChild(tag);
+
+    // Store reference to the tag on the chart for cleanup
+    chart._dataPointTag = tag;
+}
+
+// 显示数据点标签 (旧版本，保留用于向后兼容)
+function showDataPointTag(chart, element) {
+    // Clear any existing tag first
+    clearDataPointTag(chart);
+
+    const datasetIndex = element.datasetIndex;
+    const dataIndex = element.index;
+    const dataset = chart.data.datasets[datasetIndex];
+    const value = dataset.data[dataIndex];
+    const label = chart.data.labels[dataIndex];
+
+    // Create tag element
+    const tag = document.createElement('div');
+    tag.className = 'chart-data-tag';
+    tag.id = `chart-tag-${chart.id}`;
+
+    // Format the value based on chart type
+    let formattedValue;
+    if (dataset.label.includes('分享率')) {
+        formattedValue = value.toFixed(2);
+    } else {
+        formattedValue = formatSize(value);
+    }
+
+    tag.innerHTML = `
+        <div style="font-weight: 700; margin-bottom: 4px;">${dataset.label}</div>
+        <div style="color: var(--nt-text-secondary); font-size: 10px; margin-bottom: 2px;">${label}</div>
+        <div style="color: var(--nt-text-primary); font-weight: 700;">${formattedValue}</div>
+    `;
+
+    // Position the tag near the clicked point
+    const canvasPosition = chart.canvas.getBoundingClientRect();
+    const point = chart.getDatasetMeta(datasetIndex).data[dataIndex];
+    const x = point.x + canvasPosition.left + window.scrollX;
+    const y = point.y + canvasPosition.top + window.scrollY;
+
+    tag.style.position = 'absolute';
+    tag.style.left = `${x}px`;
+    tag.style.top = `${y - 80}px`; // Position above the point
+    tag.style.transform = 'translateX(-50%)'; // Center horizontally
+
+    document.body.appendChild(tag);
+
+    // Store reference to the tag on the chart for cleanup
+    chart._dataPointTag = tag;
+}
+
+// 清除数据点标签
+function clearDataPointTag(chart) {
+    if (chart._dataPointTag) {
+        chart._dataPointTag.remove();
+        chart._dataPointTag = null;
+    }
+
+    // Also remove any orphaned tags by ID pattern
+    const orphanedTag = document.getElementById(`chart-tag-${chart.id}`);
+    if (orphanedTag) {
+        orphanedTag.remove();
+    }
+}
+
+// 创建图表数据集切换开关
+function createChartToggles(chart, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    container.innerHTML = ''; // Clear existing
+
+    chart.data.datasets.forEach((dataset, index) => {
+        const toggle = document.createElement('label');
+        toggle.className = 'chart-toggle-item';
+
+        // Get the color for the indicator
+        const color = dataset.borderColor || dataset.backgroundColor;
+
+        toggle.innerHTML = `
+            <input type="checkbox" checked data-index="${index}">
+            <span class="color-indicator" style="background: ${color}"></span>
+            <span class="toggle-label">${dataset.label}</span>
+        `;
+
+        toggle.querySelector('input').addEventListener('change', (e) => {
+            chart.setDatasetVisibility(index, e.target.checked);
+            chart.update();
+        });
+
+        container.appendChild(toggle);
+    });
 }

@@ -44,7 +44,7 @@ class RuleConfig(BaseModel):
     max_size_gb: float = Field(500.0, ge=0)
     discount_types: List[str] = ["FREE", "_2X_FREE"]
     include_keywords: List[str] = []
-    exclude_keywords: List[str] = []
+    exclude_keywords: List[str] = ["AUDIOBOOK"]
 
     # Advanced filtering (0 = no limit)
     max_seeders: int = Field(10, ge=0)  # Maximum seeders allowed
@@ -82,7 +82,7 @@ class CleanupPolicy(BaseModel):
     # Bottom performers elimination
     min_current_users: int = Field(5, ge=0)  # Delete if seeders + leechers < this (from qB tracker)
     min_upload_speed_kbps: int = Field(200, ge=0)  # Min average upload speed (KB/s)
-    elimination_ratio: int = Field(15, ge=0, le=50)  # Eliminate lowest 15% by score
+    elimination_ratio: int = Field(0, ge=0, le=50)  # Eliminate lowest 0% by score (disabled by default)
 
 
 class AutomationConfig(BaseModel):

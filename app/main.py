@@ -9,6 +9,7 @@ import asyncio
 from datetime import datetime
 from typing import Dict, List
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
@@ -32,7 +33,7 @@ from app.core.pilot import pilot_loop
 from app.models import DownloadRequest, SearchRequest
 import app.state as state
 from app.services.panel_db import init_database
-from app.services.panel_collector import collect_panel_data, cleanup_panel_data
+from app.services.panel_collector import cleanup_panel_data
 
 
 # ============ 速率限制 ============
@@ -79,6 +80,25 @@ def radar_throttle(client_ip: str) -> bool:
     return True
 
 
+def check_data_directory_permissions():
+    """检查数据目录是否可写，如果不可写则警告"""
+    data_dir = Path("/app/data")
+    test_file = data_dir / ".write_test"
+    try:
+        data_dir.mkdir(parents=True, exist_ok=True)
+        test_file.touch()
+        test_file.unlink()
+        logger.info("✓ 数据目录可写")
+    except PermissionError:
+        logger.error(
+            "✗ 无法写入 /app/data 目录！"
+            "请检查 .env 文件中的 PUID/PGID 设置。"
+            "在主机上运行 'id -u' 和 'id -g' 查看正确的值。"
+        )
+    except Exception as e:
+        logger.warning(f"数据目录权限检查失败: {e}")
+
+
 async def daily_cleanup():
     """每日清理旧数据"""
     while True:
@@ -106,7 +126,10 @@ async def lifespan(app: FastAPI):
     init_database()
     logger.info("PANEL 数据库已初始化")
 
-    # 启动后台刷新任务（会立即执行第一次刷新）
+    # 检查数据目录权限
+    check_data_directory_permissions()
+
+    # 启动后台刷新任务（会立即执行第一次刷新，并调用 collect_panel_data）
     refresh_task = asyncio.create_task(background_refresh())
 
     # 启动领航后台任务

@@ -2,11 +2,13 @@ services:
   mt-engine:
     build: .
     container_name: mt-engine
+    user: "${PUID:-1000}:${PGID:-1000}"
     restart: unless-stopped
     ports:
       - "5001:5001"
     volumes:
       - ./data:/app/data
+      - ${DOWNLOADS_PATH:-/downloads}:/downloads:ro
     environment:
       - MT_TOKEN=${MT_TOKEN}
       - MT_USER_ID=${MT_USER_ID}
@@ -17,6 +19,7 @@ services:
       - QBITTORRENT_URL=${QBITTORRENT_URL:-}
       - QBITTORRENT_USER=${QBITTORRENT_USER:-}
       - QBITTORRENT_PASSWORD=${QBITTORRENT_PASSWORD:-}
+      - PILOT_SAVE_PATH=${PILOT_SAVE_PATH:-}
     env_file:
       - .env
     healthcheck:

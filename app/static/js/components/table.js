@@ -359,7 +359,7 @@ function createDetailRow(torrent, categoryId) {
                         ` : ''}
                     </div>
                     <div class="detail-actions">
-                        <button class="btn download-btn"
+                        <button class="btn btn--download"
                             ${torrent.downloaded || torrent.user_status === 'seeding' || torrent.user_status === 'leeching' ? 'data-downloaded="true"' : ''}>
                             <span class="btn-text">${torrent.downloaded || torrent.user_status === 'seeding' || torrent.user_status === 'leeching' ? t('downloaded') : t('sendToQbit')}</span>
                         </button>
