@@ -1,8 +1,10 @@
 # M-Team Engine (MT 引擎)
 
-![Version](https://img.shields.io/badge/version-5.2.0-blue.svg)
+![Version](https://img.shields.io/badge/version-6.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
+![Next.js](https://img.shields.io/badge/next.js-16-black.svg)
+![React](https://img.shields.io/badge/react-19-blue.svg)
 ![Docker](https://img.shields.io/badge/docker-ready-blue.svg)
 
 M-Team 引擎 - 雷达 RADAR / 声呐 SONAR / 领航 PILOT / 面板 PANEL
@@ -38,7 +40,9 @@ M-Team 引擎 - 雷达 RADAR / 声呐 SONAR / 领航 PILOT / 面板 PANEL
 | 分享率对比功能 |
 | 支持中英文切换 |
 | 深色/浅色主题切换 |
-| Nothing OS 设计系统（极简工业风格） |
+| **shadcn/ui + Tailwind CSS** 现代化 UI 设计系统 |
+| **Framer Motion** 流畅页面过渡动画 |
+| **SWR** 智能数据缓存与自动刷新 |
 | 响应式设计（桌面/平板/手机）|
 | 自动定时刷新 |
 | Docker 一键部署 |
@@ -65,11 +69,11 @@ M-Team 引擎 - 雷达 RADAR / 声呐 SONAR / 领航 PILOT / 面板 PANEL
 
 **技术特性：**
 - SQLite 时序数据库（30 天自动清理）
-- Chart.js 4.4.0 可视化
+- Tremor 3.18.7 可视化图表库
 - UTC 存储，北京时间显示 (Asia/Shanghai, UTC+8)
 - 每 5 分钟自动采集数据
 - 自动刷新仪表盘
-- Nothing OS 设计系统，响应式布局
+- shadcn/ui + Tailwind CSS 响应式设计
 
 ---
 
@@ -152,7 +156,29 @@ QBITTORRENT_PASSWORD=adminadmin
 
 ### 4. 启动服务
 
+**方法一：直接构建（网络良好时）**
+
 ```bash
+docker-compose up -d
+```
+
+Docker 会自动构建前端和后端，首次构建可能需要 5-10 分钟。
+
+**方法二：本地构建前端（网络不稳定时推荐）**
+
+如果 Docker 拉取 Node.js 镜像失败，可以在本地构建前端：
+
+```bash
+# 1. 本地构建前端（需要 Node.js 18+）
+cd frontend
+npm install
+npm run build
+
+# 2. 使用简化的 Dockerfile（只需要 Python）
+cd ..
+cp Dockerfile.simple Dockerfile
+
+# 3. 启动服务
 docker-compose up -d
 ```
 
@@ -212,6 +238,24 @@ docker-compose up -d
 
 ## Docker 部署
 
+### 部署方式说明
+
+MT-Engine v6.0.0 支持两种部署方式：
+
+**方式一：自动构建（推荐，需要稳定网络）**
+- Docker 自动下载 Node.js 和 Python 镜像
+- 自动构建前端和后端
+- 一键部署，无需手动操作
+- 首次构建约需 5-10 分钟
+
+**方式二：本地构建（网络不稳定时使用）**
+- 在本地 Mac/PC 上构建前端
+- 只在 Docker 中运行 Python 后端
+- 避免网络问题导致的构建失败
+- 详见下方 "方法二" 说明
+
+---
+
 ### 方法一：使用 NAS Docker 管理界面（推荐新手）
 
 1. 打开 Docker 管理器
@@ -233,8 +277,33 @@ docker-compose up -d
 
 ### 方法二：使用命令行
 
+**自动构建方式：**
 ```bash
 cd ~/MT-Engine
+sudo docker compose up -d
+```
+
+**本地构建方式（网络不稳定时）：**
+
+如果遇到 "failed to resolve source metadata for docker.io/library/node" 错误：
+
+```bash
+# 1. 在本地 Mac/PC 上构建前端（需要 Node.js 18+）
+cd ~/MT-Engine/frontend
+npm install
+npm run build
+
+# 2. 将构建产物上传到 NAS（如果在 NAS 上操作可跳过）
+# 在本地电脑执行：
+scp -r out/* 你的用户名@NAS的IP:~/MT-Engine/frontend/
+
+# 3. SSH 到 NAS，使用简化 Dockerfile
+ssh 你的用户名@NAS的IP
+cd ~/MT-Engine
+cp Dockerfile.simple Dockerfile
+
+# 4. 构建并启动
+sudo docker compose build
 sudo docker compose up -d
 ```
 
@@ -286,6 +355,103 @@ docker-compose restart
 
 ---
 
+## 项目结构
+
+```
+MT-Engine/
+├── app/                    # FastAPI 后端
+│   ├── main.py            # 主应用入口
+│   ├── config.py          # 配置管理
+│   ├── models.py          # Pydantic 模型
+│   ├── state.py           # 全局状态
+│   ├── core/              # 核心业务逻辑
+│   ├── routes/            # API 路由
+│   └── services/          # 外部服务集成
+├── frontend/              # Next.js 前端
+│   ├── app/              # 页面路由（App Router）
+│   ├── components/       # React 组件
+│   │   ├── ui/          # shadcn/ui 基础组件
+│   │   ├── radar/       # RADAR 专用组件
+│   │   ├── sonar/       # SONAR 专用组件
+│   │   ├── pilot/       # PILOT 专用组件
+│   │   └── panel/       # PANEL 专用组件
+│   ├── hooks/           # 自定义 React Hooks
+│   ├── lib/             # 工具函数和类型
+│   └── providers/       # Context Providers
+├── data/                 # 数据目录（SQLite、配置文件）
+├── .env                 # 环境变量配置
+├── docker-compose.yml   # Docker Compose 配置
+├── Dockerfile           # Docker 镜像构建文件
+└── requirements.txt     # Python 依赖
+
+```
+
+---
+
+## 开发指南
+
+### 前端开发
+
+```bash
+cd frontend
+
+# 安装依赖
+npm install
+
+# 开发模式（热更新）
+npm run dev
+
+# 访问 http://localhost:3000
+# API 请求会自动代理到后端（默认 http://localhost:5001）
+
+# 构建生产版本
+npm run build
+
+# 运行生产版本
+npm run start
+```
+
+### 后端开发
+
+```bash
+# 安装依赖
+pip install -r requirements.txt
+
+# 运行开发服务器
+cd app
+python main.py
+
+# 访问 http://localhost:5001
+```
+
+---
+
+## 技术栈
+
+### 后端
+- **Python 3.9+** - 核心运行时
+- **FastAPI** - 现代异步 Web 框架
+- **httpx** - 异步 HTTP 客户端
+- **SQLite** - 时序数据存储
+- **Pydantic** - 数据验证
+
+### 前端
+- **Next.js 16** - React 框架（App Router）
+- **React 19** - UI 库
+- **TypeScript** - 类型安全
+- **Tailwind CSS 4** - 样式系统
+- **shadcn/ui** - UI 组件库（基于 Radix UI）
+- **SWR** - 数据获取与缓存
+- **Framer Motion** - 动画库
+- **Tremor** - 数据可视化
+- **Lucide React** - 图标库
+
+### 部署
+- **Docker** - 容器化
+- **Docker Compose** - 编排工具
+
+---
+
 ## 常见问题
 
 ### Q: 访问页面显示空白或无法连接？
@@ -324,6 +490,8 @@ docker compose logs -f
 ### Q: 如何更新程序？
 
 A:
+
+**方法一：自动构建**
 1. 下载新版本文件（保留 `.env` 文件）
 2. 重新构建并启动：
 ```bash
@@ -332,6 +500,38 @@ docker compose down
 docker compose build --no-cache
 docker compose up -d
 ```
+
+**方法二：本地构建（网络不稳定时）**
+1. 在本地 Mac/PC 上构建前端：
+```bash
+cd MT-Engine/frontend
+npm install
+npm run build
+```
+2. 上传构建产物到 NAS：
+```bash
+scp -r out/* 你的用户名@NAS的IP:~/MT-Engine/frontend/
+```
+3. SSH 到 NAS 重启容器：
+```bash
+ssh 你的用户名@NAS的IP
+cd ~/MT-Engine
+docker compose restart
+```
+
+### Q: Docker 构建时提示 "failed to resolve source metadata for node:20-alpine"？
+
+A: 这是网络问题导致无法拉取 Node.js 镜像。解决方案：
+
+1. **使用本地构建**（推荐）：
+   - 在本地 Mac/PC 上构建前端（`npm run build`）
+   - 使用 `Dockerfile.simple`（只需要 Python 镜像）
+   - 详见上方 "方法二：使用命令行" 的本地构建说明
+
+2. **配置 Docker 镜像加速器**：
+   - 编辑 `/etc/docker/daemon.json`
+   - 添加镜像加速器（如腾讯云、阿里云）
+   - 重启 Docker 服务
 
 ### Q: 遇到权限错误（Permission denied）怎么办？
 
@@ -362,6 +562,28 @@ docker compose down && docker compose up -d
 ---
 
 ## 更新日志
+
+### v6.0.0 (2026-01) - 前端现代化重构
+
+**🎨 前端技术栈升级**
+- **Next.js 16 + React 19 + TypeScript** - 从 Jinja2 + Vanilla JS 迁移到现代前端框架
+- **shadcn/ui** - 采用基于 Radix UI 的统一设计系统
+- **Tailwind CSS 4** - 现代化样式系统，代码减少 96%
+- **SWR** - 智能数据缓存替代 setInterval 轮询
+- **Framer Motion** - 流畅的页面过渡动画
+- **AutoAnimate** - 列表自动动画效果
+- **Tremor** - 专业数据可视化图表库
+
+**⚡ 性能优化**
+- 组件级代码分割，按需加载
+- 完整的 TypeScript 类型安全
+- Fast Refresh 热更新开发体验
+- 总代码量减少约 42% (6,000 行 → 3,500 行)
+
+**🚀 部署优化**
+- Docker 多阶段构建（或本地构建选项）
+- 单容器部署，简化运维
+- 镜像大小优化至 ~160MB
 
 ### v5.0.0 (2026-01) - PILOT 领航模块
 **全新 PILOT 功能**

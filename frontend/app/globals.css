@@ -1,0 +1,172 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+}
+
+:root {
+  /* Neo-Brutalism: No border radius */
+  --radius: 0;
+
+  /* Base colors */
+  --background: #EAEAEA;
+  --foreground: #000000;
+  --card: #FFFFFF;
+  --card-foreground: #000000;
+  --popover: #FFFFFF;
+  --popover-foreground: #000000;
+
+  /* Primary (black) */
+  --primary: #000000;
+  --primary-foreground: #FFFFFF;
+
+  /* Secondary (light gray) */
+  --secondary: #E5E5E5;
+  --secondary-foreground: #000000;
+
+  /* Muted */
+  --muted: #F5F5F5;
+  --muted-foreground: #6B7280;
+
+  /* Accent */
+  --accent: #F5F5F5;
+  --accent-foreground: #000000;
+
+  /* Destructive (red-600) */
+  --destructive: #DC2626;
+
+  /* Borders and inputs */
+  --border: #000000;
+  --input: #E5E5E5;
+  --ring: #000000;
+
+  /* Chart colors */
+  --chart-1: #10B981; /* green-500 */
+  --chart-2: #3B82F6; /* blue-500 */
+  --chart-3: #A855F7; /* purple-500 */
+  --chart-4: #F59E0B; /* amber-500 */
+  --chart-5: #EF4444; /* red-500 */
+
+  /* Sidebar (unused in current design) */
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #000000;
+  --sidebar-primary: #000000;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F5F5F5;
+  --sidebar-accent-foreground: #000000;
+  --sidebar-border: #000000;
+  --sidebar-ring: #000000;
+
+  /* Neo-Brutalism specific variables */
+  --neo-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+  --neo-shadow-hover: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+  --neo-shadow-active: 0px 0px 0px 0px rgba(0, 0, 0, 1);
+  --neo-border-width: 2px;
+}
+
+.dark {
+  /* Base colors - inverted for dark mode */
+  --background: #1a1a1a;
+  --foreground: #FFFFFF;
+  --card: #2a2a2a;
+  --card-foreground: #FFFFFF;
+  --popover: #2a2a2a;
+  --popover-foreground: #FFFFFF;
+
+  /* Primary (white in dark mode) */
+  --primary: #FFFFFF;
+  --primary-foreground: #000000;
+
+  /* Secondary (dark gray) */
+  --secondary: #3a3a3a;
+  --secondary-foreground: #FFFFFF;
+
+  /* Muted */
+  --muted: #3a3a3a;
+  --muted-foreground: #9CA3AF;
+
+  /* Accent */
+  --accent: #3a3a3a;
+  --accent-foreground: #FFFFFF;
+
+  /* Destructive - lighter red for dark mode */
+  --destructive: #EF4444;
+
+  /* Borders and inputs - inverted */
+  --border: #FFFFFF;
+  --input: #3a3a3a;
+  --ring: #FFFFFF;
+
+  /* Chart colors - same as light mode */
+  --chart-1: #10B981;
+  --chart-2: #3B82F6;
+  --chart-3: #A855F7;
+  --chart-4: #F59E0B;
+  --chart-5: #EF4444;
+
+  /* Sidebar */
+  --sidebar: #2a2a2a;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #FFFFFF;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #3a3a3a;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #FFFFFF;
+  --sidebar-ring: #FFFFFF;
+
+  /* Neo-Brutalism shadows - white shadows on dark background */
+  --neo-shadow: 4px 4px 0px 0px rgba(255, 255, 255, 0.8);
+  --neo-shadow-hover: 2px 2px 0px 0px rgba(255, 255, 255, 0.8);
+  --neo-shadow-active: 0px 0px 0px 0px rgba(255, 255, 255, 0.8);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

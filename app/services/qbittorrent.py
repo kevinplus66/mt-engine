@@ -422,6 +422,8 @@ async def qb_get_mteam_torrents(sid: str, tag_filter: Optional[str] = None,
                 "downloaded": torrent.get('downloaded', 0),
                 "upload_speed": torrent.get('upspeed', 0),
                 "download_speed": torrent.get('dlspeed', 0),
+                "seeders": torrent.get('num_complete', 0),  # Total seeders in swarm
+                "leechers": torrent.get('num_incomplete', 0),  # Total leechers in swarm
                 "added_on": torrent.get('added_on', 0),
                 "eta": torrent.get('eta', 8640000) if torrent.get('eta', 8640000) < 8640000 else None,
                 "health": health,

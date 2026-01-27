@@ -19,7 +19,6 @@ from app.config import logger, SEARCH_MIN_INTERVAL
 from app.services.http_client import http_client, get_http_client
 from app.services.mteam_api import fetch_country_list
 from app.core.torrent import background_refresh
-from app.routes.pages import get_radar_page, get_sonar_page
 from app.routes.torrents import (
     api_torrents, api_refresh, api_download_torrent,
     api_auto_delete_toggle, api_auto_delete_status, api_categories
@@ -185,13 +184,13 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-XSS-Protection"] = "1; mode=block"
     # Referrer Policy
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    # Content Security Policy
+    # Content Security Policy (更新以支持 Next.js)
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "  # Next.js 需要 unsafe-eval
         "style-src 'self' 'unsafe-inline'; "
-        "img-src 'self' data:; "
-        "font-src 'self'; "
+        "img-src 'self' data: blob:; "  # 添加 blob: 支持
+        "font-src 'self' data:; "  # 允许内联字体
         "connect-src 'self'; "
         "frame-ancestors 'none';"
     )
@@ -203,30 +202,6 @@ try:
     app.mount("/static", StaticFiles(directory="app/static"), name="static")
 except Exception:
     pass
-
-
-# ============ 页面路由 ============
-@app.get("/", response_class=None)
-async def radar_page(request: Request):
-    """雷达页面"""
-    return get_radar_page(request)
-
-
-@app.get("/sonar", response_class=None)
-async def sonar_page(request: Request):
-    """声呐页面"""
-    return get_sonar_page(request)
-
-
-@app.get("/pilot", response_class=None)
-async def pilot_page(request: Request):
-    """领航页面"""
-    from app.routes.pages import templates
-    from app.state import user_profile
-    return templates.TemplateResponse(
-        "pilot.html",
-        {"request": request, "active_page": "pilot", "user_profile": user_profile}
-    )
 
 
 # ============ 领航 API ============
@@ -308,6 +283,59 @@ async def health_check():
         "timestamp": datetime.now().isoformat(),
         "torrents_count": state.cached_data.get("total", 0)
     }
+
+
+# ============ Next.js 前端静态文件 ============
+from fastapi.responses import FileResponse
+
+FRONTEND_DIR = Path("frontend")
+
+# 挂载 _next 静态资源目录
+if FRONTEND_DIR.exists():
+    try:
+        app.mount("/_next", StaticFiles(directory=FRONTEND_DIR / "_next"), name="nextjs")
+    except Exception:
+        pass
+
+
+@app.get("/{full_path:path}")
+async def serve_frontend(full_path: str):
+    """
+    Serve Next.js static files.
+    This is a catch-all route and must be defined LAST.
+    """
+    from fastapi import HTTPException
+
+    # 跳过 API 路由（会先被更具体的路由匹配）
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404)
+
+    # 尝试路径匹配（按优先级）
+    candidates = [
+        FRONTEND_DIR / full_path / "index.html",  # /radar/ -> /radar/index.html
+        FRONTEND_DIR / full_path,                  # /favicon.ico
+        FRONTEND_DIR / f"{full_path}.html",        # /radar -> /radar.html
+    ]
+
+    for path in candidates:
+        if path.exists() and path.is_file():
+            media_type = "text/html" if path.suffix == ".html" else None
+            return FileResponse(path, media_type=media_type)
+
+    # SPA fallback - 返回最近的 index.html
+    parts = full_path.strip("/").split("/")
+    for i in range(len(parts), 0, -1):
+        parent_path = "/".join(parts[:i])
+        parent_index = FRONTEND_DIR / parent_path / "index.html"
+        if parent_index.exists():
+            return FileResponse(parent_index, media_type="text/html")
+
+    # 最终 fallback 到主页
+    index_path = FRONTEND_DIR / "index.html"
+    if index_path.exists():
+        return FileResponse(index_path, media_type="text/html")
+
+    raise HTTPException(status_code=404, detail="Page not found")
 
 
 if __name__ == "__main__":

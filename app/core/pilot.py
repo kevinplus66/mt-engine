@@ -18,6 +18,7 @@ from app.config import logger
 import app.state as state
 
 CONFIG_PATH = Path("/app/data/pilot.json")
+STATS_PATH = Path("/app/data/pilot_stats.json")
 
 
 class PilotManager:
@@ -28,7 +29,15 @@ class PilotManager:
         self.rule_engine = RuleEngine(self.config)
         self.pending_downloads: Set[str] = set()  # Prevent duplicate downloads
         self._upload_history: Dict[str, List[Tuple[float, int]]] = {}  # Upload history for sliding window
+
+        # Statistics tracking
+        self.total_downloads = 0
+        self.total_cleanups = 0
+        self.last_run: Optional[float] = None
+        self.next_run: Optional[float] = None
+
         self._check_data_directory()
+        self._load_stats()
 
     def _check_data_directory(self):
         """Check/create data directory with warning for Docker mount"""
@@ -95,6 +104,57 @@ class PilotManager:
             logger.info("Saved pilot config to file")
         except Exception as e:
             logger.error(f"Failed to save pilot config: {e}")
+
+    def _load_stats(self):
+        """Load statistics from JSON file"""
+        if STATS_PATH.exists():
+            try:
+                with open(STATS_PATH) as f:
+                    data = json.load(f)
+                self.total_downloads = data.get('total_downloads', 0)
+                self.total_cleanups = data.get('total_cleanups', 0)
+                self.last_run = data.get('last_run')
+                self.next_run = data.get('next_run')
+                logger.info(f"Loaded pilot stats: {self.total_downloads} downloads, {self.total_cleanups} cleanups")
+            except Exception as e:
+                logger.error(f"Failed to load pilot stats: {e}")
+
+    def _save_stats(self):
+        """Persist statistics to JSON file"""
+        try:
+            STATS_PATH.parent.mkdir(parents=True, exist_ok=True)
+            with open(STATS_PATH, "w") as f:
+                json.dump({
+                    'total_downloads': self.total_downloads,
+                    'total_cleanups': self.total_cleanups,
+                    'last_run': self.last_run,
+                    'next_run': self.next_run
+                }, f, indent=2)
+        except Exception as e:
+            logger.error(f"Failed to save pilot stats: {e}")
+
+    def get_disk_usage_percent(self) -> Optional[float]:
+        """
+        Get current disk usage percentage
+
+        Returns:
+            float: Disk usage percentage (0-100) or None on error
+        """
+        try:
+            save_path = self.config.download.save_path
+
+            # Check if path exists, fallback to parent or current directory
+            if not os.path.exists(save_path):
+                logger.warning(f"Save path does not exist: {save_path}, using current directory")
+                save_path = "."
+
+            usage = shutil.disk_usage(save_path)
+            percent = (usage.used / usage.total) * 100
+            logger.debug(f"Disk usage for {save_path}: {percent:.1f}% ({usage.used}/{usage.total})")
+            return percent
+        except Exception as e:
+            logger.error(f"Failed to get disk usage: {e}", exc_info=True)
+            return None
 
     def check_disk_space(self) -> bool:
         """
@@ -197,7 +257,10 @@ class PilotManager:
                 self.pending_downloads.discard(tid)
 
         if downloaded_count > 0:
-            logger.info(f"Downloaded {downloaded_count} torrents in this cycle")
+            self.total_downloads += downloaded_count
+            self.last_run = time.time()
+            self._save_stats()
+            logger.info(f"Downloaded {downloaded_count} torrents in this cycle (total: {self.total_downloads})")
 
     async def _download_torrent(self, torrent: dict, sid: str, score: float) -> bool:
         """
@@ -344,7 +407,10 @@ class PilotManager:
                             deleted_count += 1
 
         if deleted_count > 0:
-            logger.info(f"Cleaned {deleted_count} tasks in this cycle")
+            self.total_cleanups += deleted_count
+            self.last_run = time.time()
+            self._save_stats()
+            logger.info(f"Cleaned {deleted_count} tasks in this cycle (total: {self.total_cleanups})")
 
     async def _delete_task(self, task: dict, sid: str, reason: str) -> bool:
         """
@@ -501,4 +567,6 @@ async def pilot_loop():
             logger.error(f"Pilot cycle error: {e}", exc_info=True)
 
         interval = pilot_manager.config.download.interval_seconds
+        pilot_manager.next_run = time.time() + interval
+        pilot_manager._save_stats()
         await asyncio.sleep(interval)

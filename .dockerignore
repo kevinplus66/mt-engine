@@ -1,0 +1,42 @@
+# Node.js
+frontend/node_modules
+frontend/.next
+frontend/out
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv
+venv/
+*.egg-info
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Documentation
+*.md
+README.md
+CHANGELOG.md
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data (should be mounted as volume)
+data/

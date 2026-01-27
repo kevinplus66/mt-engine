@@ -2,6 +2,106 @@
 
 All notable changes to M-Team Engine.
 
+## [6.0.0] - 2026-01 - Table Layout Optimization & PANEL Enhancements
+
+### Frontend Table System Overhaul
+
+**Adaptive Table Width System**:
+- Applied `table-fixed w-full` layout to all tables (SONAR, RADAR, PANEL)
+- Title columns now adaptive with `min-w-[200px]` (no max-width constraint)
+- All other columns have fixed widths for guaranteed visibility
+- Title column automatically fills remaining screen space
+- Eliminates horizontal scrolling on desktop while maximizing title display area
+
+**RADAR Page Layout Fix**:
+- Fixed filter dropdown spacing issue on wide screens
+- Changed from rigid grid layout to flexible flexbox with consistent 160px widths
+- Filter dropdowns now stay grouped together instead of spreading across screen
+
+**SONAR Page Filter Refinement**:
+- Removed "大小" and "做种" text labels from filter pill groups
+- Improved visual alignment and simplified filter UI
+- Maintained full filtering functionality with cleaner presentation
+
+**PILOT Page Input Optimization**:
+- Added max-width constraints to prevent excessive stretching on ultra-wide screens
+- Save path field: `max-w-2xl` (672px)
+- 3-column configuration grids: `max-w-4xl` (896px)
+- 2-column keyword inputs: `max-w-3xl` (768px)
+- Improved form readability on all screen sizes
+
+### PANEL Table Comprehensive Redesign
+
+**Column Structure Improvements**:
+- **Removed**: 优惠 (Discount) column - not relevant for active torrents
+- **Removed**: 大小 (Size) column - integrated into progress bar display
+- **Replaced**: 状态 (Status) → 标签 (Tags) - displays qBittorrent tags for better organization
+- **Enhanced**: 做种/下载 column now shows actual seeder/leecher counts with neo-brutalism styled boxes
+- **Added**: 进度 (Progress) column with visual progress bar + percentage + size
+
+**Progress Bar Implementation** (Neo-Brutalism Style):
+- Bold percentage display (monospace) on left, file size on right
+- Thick 2px black/white borders matching design system
+- Color-coded progress bars:
+  - Green (#22c55e): 100% completed/seeding torrents
+  - Blue (#3b82f6): Active downloading torrents
+  - Gray (#9ca3af): Paused torrents
+- Thicker bar height (12px) for better visibility and touch targets
+
+**Status Filter System**:
+- Added 4-button filter bar in table header (top right)
+- Filter options: 全部 (All), 下载中 (Downloading), 做种中 (Seeding), 已暂停 (Paused)
+- Neo-brutalism button styling with inverted colors for active state
+- Real-time filtering without page reload
+
+**Delete Function with Confirmation**:
+- Replaced external link button with trash icon in 操作 (Action) column
+- Confirmation dialog (AlertDialog component) with:
+  - Clear warning message in Chinese
+  - Red highlighted text: "此操作将删除种子及其文件，无法撤销"
+  - Cancel and Confirm buttons
+- Deletes both torrent metadata and associated files (`delete_files: true`)
+- Auto-refreshes torrent list after successful deletion
+- Proper loading states and error handling
+
+### Backend Improvements
+
+**qBittorrent Integration Fixes**:
+- Fixed seeder/leecher count extraction from qBittorrent API
+- Corrected field mapping: `num_complete` → seeders, `num_incomplete` → leechers
+- Previously used incorrect fields (`num_seeds`, `num_leechs`) which returned zeros
+- Now displays accurate swarm statistics for all torrents
+
+**New API Endpoints**:
+- `POST /api/panel/torrents/delete`: Delete torrents with file removal option
+- Payload: `{ hashes: string[], delete_files: boolean }`
+- Returns success/failure status with detailed error messages
+
+### New Dependencies
+
+**Frontend**:
+- `@radix-ui/react-alert-dialog`: Accessible dialog primitive for delete confirmation
+- `components/ui/alert-dialog.tsx`: shadcn/ui alert dialog component implementation
+
+### Files Modified
+
+**Backend**:
+- `app/services/qbittorrent.py`: Fixed seeder/leecher field extraction
+
+**Frontend Components**:
+- `components/panel/torrent-monitor.tsx`: Complete redesign with filters, progress bars, delete function
+- `components/radar/filter-selects.tsx`: Layout change from grid to flexbox
+- `components/sonar/filter-pills.tsx`: Removed label text for cleaner UI
+- `components/sonar/torrent-list.tsx`: Applied adaptive table width system
+- `components/radar/torrent-table.tsx`: Applied adaptive table width system
+- `components/pilot/config-form.tsx`: Added max-width constraints to input sections
+
+**Frontend Infrastructure**:
+- `lib/api.ts`: Added `deletePanelTorrents()` function
+- `components/ui/alert-dialog.tsx`: New shadcn/ui component
+
+---
+
 ## [5.2.0] - 2026-01 - UI 优化与权限修复
 
 ### Frontend Enhancements

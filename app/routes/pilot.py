@@ -52,7 +52,7 @@ async def get_stats():
     Get pilot statistics
 
     Returns:
-        dict: Current stats (active tasks, pending downloads, etc.)
+        dict: Current stats (active tasks, pending downloads, disk usage, totals, run times)
     """
     sid = await qb_login()
     tasks = await qb_get_torrents(sid) if sid else []
@@ -64,6 +64,12 @@ async def get_stats():
         "download_enabled": pilot_manager.config.download.enabled,
         "cleanup_enabled": pilot_manager.config.cleanup.enabled,
         "interval_seconds": pilot_manager.config.download.interval_seconds,
+        "total_downloads": pilot_manager.total_downloads,
+        "total_cleanups": pilot_manager.total_cleanups,
+        "disk_usage_percent": pilot_manager.get_disk_usage_percent(),
+        "last_run": pilot_manager.last_run,
+        "next_run": pilot_manager.next_run,
+        "is_running": pilot_manager.config.download.enabled or pilot_manager.config.cleanup.enabled,
     }
 
 

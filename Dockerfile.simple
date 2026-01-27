@@ -1,17 +1,6 @@
-# ============ Stage 1: Build Next.js Frontend ============
-FROM node:20-alpine AS frontend-builder
+# ============ 简化版 Dockerfile（无需 Node.js） ============
+# 前端在本地构建，只需要 Python 运行时
 
-WORKDIR /frontend
-
-# Install dependencies (利用 Docker 缓存)
-COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
-
-# Copy source code and build
-COPY frontend/ ./
-RUN npm run build
-
-# ============ Stage 2: Python Runtime ============
 FROM python:3.9-slim
 
 # Security: Create non-root user
@@ -26,8 +15,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy backend application code
 COPY app/ ./app/
 
-# Copy frontend static files from builder stage
-COPY --from=frontend-builder /frontend/out ./frontend/
+# Copy pre-built frontend static files (built locally)
+COPY frontend/ ./frontend/
 
 # Change ownership to non-root user
 RUN chown -R appuser:appgroup /app
