@@ -34,7 +34,7 @@ export function TorrentCard({ torrent, onTap }: TorrentCardProps) {
           color: style.color,
           borderColor: "#000000",
         }}
-        className="inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest border-2 w-fit whitespace-nowrap transition-all rounded"
+        className="inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest border-2 w-fit whitespace-nowrap transition-all"
       >
         {style.label}
       </span>
