@@ -2,6 +2,76 @@
 
 All notable changes to M-Team Engine.
 
+## [6.0.1] - 2026-01-28 - Bug Fixes & Repository Improvements
+
+### Critical Fixes
+
+**Repository File Missing Issue**:
+- Fixed `.gitignore` excluding critical `frontend/lib/` directory
+- Changed `lib/` → `/lib/` to only match root-level Python lib directory
+- Added missing files to repository:
+  - `frontend/lib/api.ts` - API client functions
+  - `frontend/lib/constants.ts` - Configuration constants
+  - `frontend/lib/types.ts` - TypeScript type definitions
+  - `frontend/lib/utils.ts` - Utility functions
+- Users can now successfully clone and run the project from GitHub
+
+**Version Consistency**:
+- Unified version numbers to `6.0.0` across all files
+- Fixed `app/main.py` (was `5.2.0`)
+- Fixed `app/__init__.py` (was `5.1.0`)
+- Fixed `app/main.py` FastAPI version metadata (was `4.0.0`)
+- Fixed `frontend/package.json` (was `0.1.0`)
+
+**PILOT API Fix**:
+- Fixed HTTP 405 error when clicking manual trigger button
+- Split single "手动触发" button into two separate actions:
+  - "触发下载" button → calls `POST /api/pilot/run-download`
+  - "触发清理" button → calls `POST /api/pilot/run-cleanup`
+- Updated `frontend/lib/api.ts`: replaced `triggerPilot()` with `triggerDownload()` and `triggerCleanup()`
+- Updated `frontend/app/pilot/page.tsx` to use both new functions
+
+### Code Quality
+
+**Dependency Management**:
+- Added upper bounds to Python dependencies in `requirements.txt`:
+  - `fastapi>=0.104.0,<1.0.0`
+  - `uvicorn>=0.24.0,<1.0.0`
+  - `httpx>=0.25.0,<1.0.0`
+  - `jinja2>=3.1.0,<4.0.0`
+- Prevents unexpected breaking changes from major version updates
+
+**Code Cleanup**:
+- Removed unused `CORSMiddleware` import from `app/main.py`
+
+### UI Improvements
+
+**Page Width Optimization**:
+- Changed container max-width from `max-w-[95%]` to `max-w-7xl` (1280px)
+- Applied to all main pages: SONAR, RADAR, PILOT, PANEL
+- Improved readability on large screens while maintaining responsive design
+
+### Files Modified
+
+**Backend**:
+- `app/main.py`: Version update, removed unused import
+- `app/__init__.py`: Version update
+- `requirements.txt`: Added dependency upper bounds
+
+**Frontend**:
+- `frontend/package.json`: Version update
+- `frontend/lib/api.ts`: PILOT API function refactor
+- `frontend/app/pilot/page.tsx`: UI button split
+- `frontend/app/panel/page.tsx`: Max-width update
+- `frontend/app/radar/page.tsx`: Max-width update
+- `frontend/app/sonar/page.tsx`: Max-width update
+
+**Repository**:
+- `.gitignore`: Fixed to properly exclude only root-level `lib/`
+- Added `frontend/lib/*.ts` to version control
+
+---
+
 ## [6.0.0] - 2026-01 - Table Layout Optimization & PANEL Enhancements
 
 ### Frontend Table System Overhaul
