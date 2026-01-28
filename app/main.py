@@ -3,7 +3,7 @@ MT-Engine - M-Team 工具引擎
 雷达 RADAR / 声呐 SONAR / 领航 PILOT
 """
 
-__version__ = "5.2.0"
+__version__ = "6.0.0"
 
 import asyncio
 from datetime import datetime
@@ -13,7 +13,6 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import logger, SEARCH_MIN_INTERVAL
 from app.services.http_client import http_client, get_http_client
@@ -164,7 +163,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MT-Engine",
     description="M-Team 免费种子猎手",
-    version="4.0.0",
+    version="6.0.0",
     lifespan=lifespan,
     docs_url=None,  # Disable Swagger UI in production
     redoc_url=None  # Disable ReDoc in production

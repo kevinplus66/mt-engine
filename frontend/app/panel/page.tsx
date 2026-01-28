@@ -18,7 +18,7 @@ export default function PanelPage() {
   return (
     <PageTransition>
       <div className="min-h-screen bg-background p-4 md:p-6">
-        <div className="mx-auto max-w-[95%] space-y-6">
+        <div className="mx-auto max-w-7xl space-y-6">
         {/* 标题 */}
         <div>
           <h1 className="text-3xl font-bold tracking-tight">PANEL</h1>

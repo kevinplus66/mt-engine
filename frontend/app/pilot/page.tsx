@@ -10,7 +10,7 @@ import { ConfigForm } from "@/components/pilot/config-form";
 import { PageTransition } from "@/components/common/page-transition";
 import { usePilotConfig } from "@/hooks/use-pilot-config";
 import { usePilotStats } from "@/hooks/use-pilot-stats";
-import { dryRunPilot, triggerPilot } from "@/lib/api";
+import { dryRunPilot, triggerDownload, triggerCleanup } from "@/lib/api";
 import { toast } from "sonner";
 import { Play, RotateCcw, Save, TestTube, X } from "lucide-react";
 import type { AutomationConfig } from "@/lib/types";
@@ -40,7 +40,8 @@ export default function PilotPage() {
   const [editedConfig, setEditedConfig] = useState<AutomationConfig | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDryRunning, setIsDryRunning] = useState(false);
-  const [isTriggering, setIsTriggering] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isCleaning, setIsCleaning] = useState(false);
   const [dryRunResult, setDryRunResult] = useState<DryRunResult | null>(null);
 
   // 初始化编辑配置
@@ -84,15 +85,27 @@ export default function PilotPage() {
     }
   };
 
-  const handleTrigger = async () => {
-    setIsTriggering(true);
+  const handleDownload = async () => {
+    setIsDownloading(true);
     try {
-      await triggerPilot();
-      toast.success("手动触发成功");
+      await triggerDownload();
+      toast.success("下载任务触发成功");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "触发失败");
     } finally {
-      setIsTriggering(false);
+      setIsDownloading(false);
+    }
+  };
+
+  const handleCleanup = async () => {
+    setIsCleaning(true);
+    try {
+      await triggerCleanup();
+      toast.success("清理任务触发成功");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "触发失败");
+    } finally {
+      setIsCleaning(false);
     }
   };
 
@@ -135,7 +148,7 @@ export default function PilotPage() {
   return (
     <PageTransition>
       <div className="min-h-screen bg-background p-4 md:p-6">
-        <div className="mx-auto max-w-[95%] space-y-6">
+        <div className="mx-auto max-w-7xl space-y-6">
         {/* 标题 */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -153,13 +166,22 @@ export default function PilotPage() {
               模拟运行
             </Button>
             <Button
-              onClick={handleTrigger}
-              disabled={isTriggering}
+              onClick={handleDownload}
+              disabled={isDownloading}
               variant="outline"
               className="w-full sm:w-auto min-h-[44px]"
             >
               <Play className="mr-2 h-4 w-4" />
-              手动触发
+              触发下载
+            </Button>
+            <Button
+              onClick={handleCleanup}
+              disabled={isCleaning}
+              variant="outline"
+              className="w-full sm:w-auto min-h-[44px]"
+            >
+              <Play className="mr-2 h-4 w-4" />
+              触发清理
             </Button>
           </div>
         </div>

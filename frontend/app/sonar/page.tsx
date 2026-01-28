@@ -94,7 +94,7 @@ export default function SonarPage() {
   return (
     <PageTransition>
       <div className="min-h-screen bg-background p-4 md:p-6">
-        <div className="mx-auto max-w-[95%] space-y-6">
+        <div className="mx-auto max-w-7xl space-y-6">
         {/* 标题 */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
