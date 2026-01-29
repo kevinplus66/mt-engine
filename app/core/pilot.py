@@ -220,6 +220,15 @@ class PilotManager:
             logger.debug("No torrents in cache, skipping download cycle")
             return
 
+        # Login to qBittorrent first to get existing IDs
+        sid = await qb_login()
+        if not sid:
+            logger.error("Failed to login to qBittorrent")
+            return
+
+        # Get existing M-Team IDs to avoid duplicates
+        existing_mteam_ids = await self._get_existing_mteam_ids(sid)
+
         # Filter and score candidates
         candidates = []
         skipped_existing = 0
@@ -250,11 +259,6 @@ class PilotManager:
         candidates.sort(key=lambda x: x[0], reverse=True)
 
         # Check available slots
-        sid = await qb_login()
-        if not sid:
-            logger.error("Failed to login to qBittorrent")
-            return
-
         current_tasks = await qb_get_torrents(sid)
         auto_tasks = [t for t in current_tasks if 'PILOT' in t.get('tags', '')]
         max_tasks = self.config.download.max_active_tasks
@@ -263,9 +267,6 @@ class PilotManager:
         if available_slots <= 0:
             logger.info(f"Download cycle skipped: {len(auto_tasks)}/{max_tasks} slots used")
             return
-
-        # Get existing M-Team IDs to avoid duplicates
-        existing_mteam_ids = await self._get_existing_mteam_ids(sid)
 
         logger.info(
             f"Download cycle: {len(candidates)} candidates, "

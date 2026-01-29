@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, status
 from app.models import AutomationConfig
 from app.core.pilot import pilot_manager
 from app.core.rules import RuleEngine
-from app.services.qbittorrent import qb_login, qb_get_torrents
+from app.services.qbittorrent import qb_login, qb_get_torrents, qb_get_existing_mteam_ids
 from app.config import logger
 import app.state as state
 
@@ -85,9 +85,19 @@ async def dry_run():
     torrents = state.cached_data.get('torrents', [])
     download_candidates = []
 
+    # Login to get existing IDs
+    sid = await qb_login()
+    existing_mteam_ids = await qb_get_existing_mteam_ids(sid) if sid else set()
+
+    skipped_existing = 0
     for t in torrents:
         tid = t.get('id', '')
         if tid in pilot_manager.pending_downloads:
+            continue
+
+        # Skip if already exists in qBittorrent
+        if tid in existing_mteam_ids:
+            skipped_existing += 1
             continue
 
         should_dl, score, reason = pilot_manager.rule_engine.evaluate_download(t)
@@ -104,7 +114,6 @@ async def dry_run():
     download_candidates.sort(key=lambda x: x['score'], reverse=True)
 
     # Get cleanup candidates
-    sid = await qb_login()
     tasks = await qb_get_torrents(sid) if sid else []
     auto_tasks = [t for t in tasks if 'PILOT' in t.get('tags', '')]
     cleanup_candidates = []
@@ -125,6 +134,7 @@ async def dry_run():
         "total_download_candidates": len(download_candidates),
         "cleanup_candidates": cleanup_candidates,
         "total_cleanup_candidates": len(cleanup_candidates),
+        "skipped_existing": skipped_existing,  # 新增：显示跳过的已存在种子数
     }
 
 
