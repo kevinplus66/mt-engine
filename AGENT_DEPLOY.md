@@ -18,7 +18,12 @@ SSH 密码:
 安装路径（如 ~/MT-Engine）:
 ```
 
-### 2. 配置文件
+### 2. GitHub 认证（私有仓库）
+这是私有仓库，需要 GitHub 认证才能 clone。请用户提供以下任一方式：
+- **GitHub Personal Access Token**（推荐）：从 GitHub → Settings → Developer settings → Personal access tokens 生成
+- 或确认 NAS 上已配置 SSH key 并添加到 GitHub 账户
+
+### 3. 配置文件
 请用户复制以下模板，填写后发给你：
 
 ```env
@@ -65,8 +70,11 @@ https://docker.1ms.run
 id -u
 id -g
 
-# 2. 克隆仓库
-git clone https://github.com/kevinplus66/MT-Engine.git [安装路径]
+# 2. 克隆仓库（私有仓库需要认证）
+# 如果用户提供了 GitHub Token：
+git clone https://[TOKEN]@github.com/kevinplus66/MT-Engine.git [安装路径]
+# 如果 NAS 已配置 SSH key：
+# git clone git@github.com:kevinplus66/MT-Engine.git [安装路径]
 cd [安装路径]/release
 
 # 3. 创建 .env 文件（用用户填写的配置 + 上面获取的 PUID/PGID）
@@ -98,6 +106,7 @@ curl http://localhost:5001/health
 
 | 问题 | 解决方法 |
 |------|----------|
+| clone 失败 (authentication) | 确认 GitHub Token 正确，或 NAS 已配置 SSH key |
 | 镜像拉取失败 | 检查 Docker 镜像加速源是否配置正确 |
 | 权限错误 | 确认 PUID/PGID 与当前用户一致（运行 `id` 检查） |
 | 端口被占用 | 运行 `netstat -tlnp \| grep 5001` 检查 |
