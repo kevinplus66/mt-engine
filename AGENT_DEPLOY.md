@@ -19,9 +19,25 @@ SSH 密码:
 ```
 
 ### 2. GitHub 认证（私有仓库）
-这是私有仓库，需要 GitHub 认证才能 clone。请用户提供以下任一方式：
-- **GitHub Personal Access Token**（推荐）：从 GitHub → Settings → Developer settings → Personal access tokens 生成
-- 或确认 NAS 上已配置 SSH key 并添加到 GitHub 账户
+这是私有仓库，需要 GitHub 认证才能 clone。
+
+**先询问用户：** 你之前在这台 NAS 上部署过 MT-Engine 吗？安装文件夹还在吗？
+
+**如果之前部署过且文件夹还在：**
+- 不需要 Token，跳过此步骤
+- 部署时用 `git pull` 更新代码即可
+
+**如果是全新安装或已删除旧文件夹：**
+需要 GitHub Token，询问用户是否有（以 `ghp_` 开头）
+
+如果没有或忘记了，指导用户创建：
+1. 打开 https://github.com/settings/tokens
+2. 点击 `Generate new token` → `Generate new token (classic)`
+3. Note 填：`MT-Engine`（备注，随便写）
+4. Expiration 选：`No expiration`（永不过期）
+5. 勾选 `repo`（第一个选项）
+6. 点击最下方 `Generate token`
+7. **立即复制** `ghp_xxxx...`（只显示一次！）
 
 ### 3. 配置文件
 请用户复制以下模板，填写后发给你：
