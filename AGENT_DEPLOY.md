@@ -125,3 +125,34 @@ docker compose down
 docker compose build
 docker compose up -d
 ```
+
+---
+
+## 升级/重装（可选）
+
+如果用户已有旧版本 MT-Engine，需要先清理再重新部署。
+
+**先询问用户**：是全新安装还是升级/重装旧版本？
+
+如果是升级/重装，先执行清理：
+
+```bash
+# 1. 进入旧安装目录
+cd [旧安装路径]
+
+# 2. 停止并删除容器
+sudo docker compose down
+
+# 3. 删除旧镜像
+sudo docker rmi $(sudo docker images | grep mt-engine | awk '{print $3}') 2>/dev/null
+
+# 4. 删除旧文件夹
+cd ~
+rm -rf [旧安装路径]
+
+# 5. 确认清理干净
+sudo docker ps -a | grep mt-engine  # 应该没有输出
+sudo docker images | grep mt-engine  # 应该没有输出
+```
+
+清理完成后，回到「第一步：收集用户信息」重新部署。
