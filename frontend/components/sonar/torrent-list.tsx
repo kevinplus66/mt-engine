@@ -206,7 +206,7 @@ export function TorrentList({
                   sortKey="size"
                   sortDirection={getSortDirection("size")}
                   onSort={onSort}
-                  className="w-[120px] min-w-[120px] max-w-[120px] sticky right-[210px] bg-black dark:bg-white z-20 shadow-[-1px_0_0_0_rgba(255,255,255,0.1)] dark:shadow-[-1px_0_0_0_rgba(0,0,0,0.1)]"
+                  className="w-[120px] min-w-[120px] max-w-[120px] sticky right-[210px] bg-black dark:bg-white z-20 shadow-[-1px_0_0_0_rgba(255,255,255,0.2)] dark:shadow-[-1px_0_0_0_rgba(0,0,0,0.1)]"
                 >
                   大小
                 </SortableTableHead>
@@ -244,10 +244,10 @@ export function TorrentList({
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap sticky right-[210px] w-[120px] min-w-[120px] max-w-[120px] bg-white dark:bg-zinc-950 z-10 shadow-[-1px_0_0_0_rgba(0,0,0,0.1)] dark:shadow-[-1px_0_0_0_rgba(255,255,255,0.1)]">
+                  <TableCell className="whitespace-nowrap sticky right-[210px] w-[120px] min-w-[120px] max-w-[120px] bg-card group-hover:bg-gray-100 dark:group-hover:bg-zinc-800 z-10 shadow-[-1px_0_0_0_rgba(0,0,0,0.1)] dark:shadow-[-1px_0_0_0_rgba(255,255,255,0.1)]">
                     {torrent.size_display}
                   </TableCell>
-                  <TableCell className="sticky right-[90px] w-[120px] min-w-[120px] max-w-[120px] bg-white dark:bg-zinc-950 z-10">
+                  <TableCell className="sticky right-[90px] w-[120px] min-w-[120px] max-w-[120px] bg-card group-hover:bg-gray-100 dark:group-hover:bg-zinc-800 z-10">
                     <div className="flex gap-1">
                       <Badge variant="outline" className="text-[10px] px-1.5 h-5 flex items-center justify-center border-2 text-green-600 border-green-600 whitespace-nowrap">
                         ↑ <NumberTicker value={torrent.seeders} />
@@ -257,7 +257,7 @@ export function TorrentList({
                       </Badge>
                     </div>
                   </TableCell>
-                  <TableCell className="text-center sticky right-0 w-[90px] min-w-[90px] max-w-[90px] bg-white dark:bg-zinc-950 z-10">
+                  <TableCell className="text-center sticky right-0 w-[90px] min-w-[90px] max-w-[90px] bg-card group-hover:bg-gray-100 dark:group-hover:bg-zinc-800 z-10">
                     <div className="flex gap-1 justify-center">
                       <Button
                         size="sm"
@@ -297,15 +297,15 @@ export function TorrentList({
   // Desktop View: Full Table
   return (
     <Card>
-      <div className="overflow-x-auto md:overflow-x-visible">
-        <Table className="table-fixed w-full">
+      <div className="overflow-x-auto relative">
+        <Table className="w-full min-w-[800px]">
           <TableHeader>
             <TableRow>
               <SortableTableHead
                 sortKey="name"
                 sortDirection={getSortDirection("name")}
                 onSort={onSort}
-                className="min-w-[200px]"
+                className="w-auto min-w-[200px]"
               >
                 名称
               </SortableTableHead>
@@ -313,37 +313,37 @@ export function TorrentList({
                 sortKey="size"
                 sortDirection={getSortDirection("size")}
                 onSort={onSort}
-                className="w-[120px]"
+                className="w-[120px] min-w-[120px] max-w-[120px] sticky right-[510px] bg-black dark:bg-white z-20 shadow-[-1px_0_0_0_rgba(255,255,255,0.2)] dark:shadow-[-1px_0_0_0_rgba(0,0,0,0.1)]"
               >
                 大小
               </SortableTableHead>
+              <TableHead className="w-[90px] min-w-[90px] max-w-[90px] sticky right-[420px] bg-black dark:bg-white z-20">分类</TableHead>
               <SortableTableHead
                 sortKey="seeders"
                 sortDirection={getSortDirection("seeders")}
                 onSort={onSort}
-                className="w-[120px]"
+                className="w-[120px] min-w-[120px] max-w-[120px] sticky right-[300px] bg-black dark:bg-white z-20"
               >
                 做种/下载
               </SortableTableHead>
-              <TableHead className="w-[90px]">分类</TableHead>
-              <TableHead className="w-[100px]">状态</TableHead>
+              <TableHead className="w-[100px] min-w-[100px] max-w-[100px] sticky right-[200px] bg-black dark:bg-white z-20">状态</TableHead>
               <SortableTableHead
                 sortKey="remaining"
                 sortDirection={getSortDirection("remaining")}
                 onSort={onSort}
-                className="w-[100px]"
+                className="w-[100px] min-w-[100px] max-w-[100px] sticky right-[100px] bg-black dark:bg-white z-20"
               >
                 剩余时间
               </SortableTableHead>
-              <TableHead className="w-[100px] text-center">操作</TableHead>
+              <TableHead className="w-[100px] min-w-[100px] max-w-[100px] text-center sticky right-0 bg-black dark:bg-white z-20">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody ref={tableBodyRef}>
             {torrents.map((torrent) => (
               <TableRow key={torrent.id}>
-                <TableCell>
+                <TableCell className="min-w-[200px]">
                   <div className="space-y-1 min-w-0">
-                    <div className="font-medium line-clamp-2">
+                    <div className="font-medium whitespace-nowrap">
                       {torrent.name}
                     </div>
                     {torrent.small_descr && (
@@ -364,10 +364,15 @@ export function TorrentList({
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="whitespace-nowrap">
+                <TableCell className="whitespace-nowrap sticky right-[510px] w-[120px] min-w-[120px] max-w-[120px] bg-card group-hover:bg-gray-100 dark:group-hover:bg-zinc-800 z-10 shadow-[-1px_0_0_0_rgba(0,0,0,0.1)] dark:shadow-[-1px_0_0_0_rgba(255,255,255,0.1)]">
                   {torrent.size_display}
                 </TableCell>
-                <TableCell>
+                <TableCell className="sticky right-[420px] w-[90px] min-w-[90px] max-w-[90px] bg-card group-hover:bg-gray-100 dark:group-hover:bg-zinc-800 z-10">
+                  <Badge variant="secondary" className="h-5 border-2 border-black dark:border-white text-[10px] px-1.5 flex items-center justify-center">
+                    {getCategoryName(torrent.category)}
+                  </Badge>
+                </TableCell>
+                <TableCell className="sticky right-[300px] w-[120px] min-w-[120px] max-w-[120px] bg-card group-hover:bg-gray-100 dark:group-hover:bg-zinc-800 z-10">
                   <div className="flex gap-2">
                     <Badge variant="outline" className="text-green-600 h-5 border-2 text-[10px] px-1.5 flex items-center justify-center border-green-600">
                       ↑ <NumberTicker value={torrent.seeders} />
@@ -377,12 +382,7 @@ export function TorrentList({
                     </Badge>
                   </div>
                 </TableCell>
-                <TableCell>
-                  <Badge variant="secondary" className="h-5 border-2 border-black dark:border-white text-[10px] px-1.5 flex items-center justify-center">
-                    {getCategoryName(torrent.category)}
-                  </Badge>
-                </TableCell>
-                <TableCell>
+                <TableCell className="sticky right-[200px] w-[100px] min-w-[100px] max-w-[100px] bg-card group-hover:bg-gray-100 dark:group-hover:bg-zinc-800 z-10">
                   {(() => {
                     const status = torrent.user_status;
                     if (status === "seeding") {
@@ -395,7 +395,7 @@ export function TorrentList({
                   })()}
                 </TableCell>
                 <TableCell
-                  className={`text-sm whitespace-nowrap font-medium ${
+                  className={`text-sm whitespace-nowrap font-medium sticky right-[100px] w-[100px] min-w-[100px] max-w-[100px] bg-card group-hover:bg-gray-100 dark:group-hover:bg-zinc-800 z-10 ${
                     torrent.remaining && torrent.remaining.hours < 0.5
                       ? "text-red-600"
                       : "text-muted-foreground"
@@ -403,7 +403,7 @@ export function TorrentList({
                 >
                   {torrent.remaining ? torrent.remaining.display : "-"}
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="text-center sticky right-0 w-[100px] min-w-[100px] max-w-[100px] bg-card group-hover:bg-gray-100 dark:group-hover:bg-zinc-800 z-10">
                   <div className="flex gap-1 justify-center">
                     <Button
                       size="sm"
