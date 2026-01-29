@@ -9,7 +9,10 @@ import { FilterSelects } from "@/components/radar/filter-selects";
 import { TorrentTable } from "@/components/radar/torrent-table";
 import { PageTransition } from "@/components/common/page-transition";
 import { useRadarSearch } from "@/hooks/use-radar-search";
+import { useSortable } from "@/hooks/use-sortable";
+import { RADAR_SORT_FIELD_MAP } from "@/lib/sort-utils";
 import type { SearchMode, Torrent } from "@/lib/types";
+import { Telescope } from "lucide-react";
 
 export default function RadarPage() {
   const [keyword, setKeyword] = useState("");
@@ -26,7 +29,22 @@ export default function RadarPage() {
 
   const { trigger, data, isMutating, error } = useRadarSearch();
 
+  // Sorting state
+  const {
+    sortField,
+    sortDirection,
+    handleSort,
+    getSortDirection,
+  } = useSortable({
+    defaultField: "time",
+    defaultDirection: "desc",
+  });
+
   const handleSearch = async () => {
+    // Map internal sort field to API field name
+    const apiSortField = RADAR_SORT_FIELD_MAP[sortField] || "CREATED_DATE";
+    const apiSortDirection = sortDirection.toUpperCase();
+
     await trigger({
       keyword,
       mode,
@@ -37,8 +55,8 @@ export default function RadarPage() {
       sources: filters.sources,
       countries: filters.countries,
       discount: filters.discount,
-      sortField: "CREATED_DATE",
-      sortDirection: "DESC",
+      sortField: apiSortField,
+      sortDirection: apiSortDirection,
       pageNumber: 1,
       pageSize: 50,
     });
@@ -105,12 +123,24 @@ export default function RadarPage() {
             torrents={data.data}
             total={data.total}
             isLoading={isMutating}
+            sortField={sortField}
+            sortDirection={sortDirection}
+            onSort={(field) => {
+              handleSort(field);
+              // Re-trigger search with new sort
+              setTimeout(handleSearch, 0);
+            }}
+            getSortDirection={getSortDirection}
           />
         )}
 
         {!data && !error && !isMutating && (
           <Card className="p-12 text-center">
-            <div className="text-6xl mb-4">🔍</div>
+            <div className="flex justify-center mb-4">
+              <div className="p-6 bg-gray-100 dark:bg-zinc-900 rounded-full border-4 border-gray-200 dark:border-zinc-800">
+                <Telescope className="h-16 w-16 text-gray-400 dark:text-gray-500" />
+              </div>
+            </div>
             <h3 className="text-xl font-semibold mb-2">开始搜索</h3>
             <p className="text-muted-foreground">
               输入关键词并点击搜索按钮

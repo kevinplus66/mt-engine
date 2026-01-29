@@ -46,7 +46,7 @@ export function TorrentDetailSheet({
     const style = styleMap[discount] || styleMap.NORMAL;
 
     return (
-      <span className={`inline-flex items-center justify-center px-2 py-1 text-xs font-mono font-bold uppercase tracking-widest border-2 border-black dark:border-white bg-white dark:bg-zinc-900 ${style.color} w-fit whitespace-nowrap transition-all`}>
+      <span className={`inline-flex items-center justify-center px-1.5 py-0 h-5 text-[10px] font-mono font-bold uppercase tracking-widest border-2 border-black dark:border-white bg-white dark:bg-zinc-900 ${style.color} w-fit whitespace-nowrap transition-all`}>
         {style.label}
       </span>
     );
@@ -56,19 +56,19 @@ export function TorrentDetailSheet({
     switch (status) {
       case "seeding":
         return (
-          <Badge variant="outline" className="text-green-600 border-green-600">
+          <Badge variant="outline" className="text-green-600 border-green-600 h-5 border-2 text-[10px] px-1.5 flex items-center justify-center">
             做种中
           </Badge>
         );
       case "leeching":
         return (
-          <Badge variant="outline" className="text-blue-600 border-blue-600">
+          <Badge variant="outline" className="text-blue-600 border-blue-600 h-5 border-2 text-[10px] px-1.5 flex items-center justify-center">
             下载中
           </Badge>
         );
       default:
         return (
-          <Badge variant="outline" className="text-gray-600">
+          <Badge variant="outline" className="text-gray-600 h-5 border-2 text-[10px] px-1.5 flex items-center justify-center">
             未下载
           </Badge>
         );
@@ -120,56 +120,58 @@ export function TorrentDetailSheet({
           )}
 
           {/* Info Grid */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-y-6 gap-x-4">
             {/* Category */}
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">分类</div>
-              <Badge variant="secondary">{getCategoryName(torrent.category)}</Badge>
+            <div className="flex flex-col gap-2">
+              <div className="text-xs text-muted-foreground">分类</div>
+              <Badge variant="secondary" className="h-5 border-2 border-black dark:border-white text-[10px] px-1.5 flex items-center justify-center w-fit">
+                {getCategoryName(torrent.category)}
+              </Badge>
             </div>
 
             {/* Discount */}
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">优惠</div>
+            <div className="flex flex-col gap-2">
+              <div className="text-xs text-muted-foreground">优惠</div>
               {getDiscountBadge(torrent.discount)}
             </div>
 
             {/* Size */}
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">大小</div>
-              <div className="font-mono font-medium">{torrent.size_display}</div>
+            <div className="flex flex-col gap-2">
+              <div className="text-xs text-muted-foreground">大小</div>
+              <div className="font-mono font-medium h-5 flex items-center">{torrent.size_display}</div>
             </div>
 
             {/* Status */}
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">状态</div>
+            <div className="flex flex-col gap-2">
+              <div className="text-xs text-muted-foreground">状态</div>
               {getUserStatusBadge(torrent.user_status)}
             </div>
 
             {/* Seeders/Leechers */}
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">做种/下载</div>
+            <div className="flex flex-col gap-2">
+              <div className="text-xs text-muted-foreground">做种/下载</div>
               <div className="flex gap-2">
-                <Badge variant="outline" className="text-green-600 border-green-600">
+                <Badge variant="outline" className="text-green-600 border-green-600 h-5 border-2 text-[10px] px-1.5 flex items-center justify-center">
                   ↑ {torrent.seeders}
                 </Badge>
-                <Badge variant="outline" className="text-blue-600 border-blue-600">
+                <Badge variant="outline" className="text-blue-600 border-blue-600 h-5 border-2 text-[10px] px-1.5 flex items-center justify-center">
                   ↓ {torrent.leechers}
                 </Badge>
               </div>
             </div>
 
             {/* Upload Date */}
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">上传时间</div>
-              <div className="text-sm">{formatDate(torrent.created_date)}</div>
+            <div className="flex flex-col gap-2">
+              <div className="text-xs text-muted-foreground">上传时间</div>
+              <div className="text-sm h-5 flex items-center">{formatDate(torrent.created_date)}</div>
             </div>
 
             {/* Remaining Time */}
             {torrent.remaining && (
-              <div className="col-span-2">
-                <div className="text-xs text-muted-foreground mb-1">剩余时间</div>
+              <div className="col-span-2 flex flex-col gap-2">
+                <div className="text-xs text-muted-foreground">剩余时间</div>
                 <div
-                  className={`text-sm font-medium ${
+                  className={`text-sm font-medium h-5 flex items-center ${
                     torrent.remaining.hours < 0.5 ? "text-red-600" : ""
                   }`}
                 >
@@ -185,21 +187,21 @@ export function TorrentDetailSheet({
               <div className="text-xs text-muted-foreground mb-2">质量信息</div>
               <div className="flex flex-wrap gap-2">
                 {torrent.quality_metadata.resolution && (
-                  <Badge variant="outline">{torrent.quality_metadata.resolution}</Badge>
+                  <Badge variant="outline" className="h-5 border-2 text-[10px] px-1.5 flex items-center justify-center">{torrent.quality_metadata.resolution}</Badge>
                 )}
                 {torrent.quality_metadata.video_codec && (
-                  <Badge variant="outline">{torrent.quality_metadata.video_codec}</Badge>
+                  <Badge variant="outline" className="h-5 border-2 text-[10px] px-1.5 flex items-center justify-center">{torrent.quality_metadata.video_codec}</Badge>
                 )}
                 {torrent.quality_metadata.audio_codec && (
-                  <Badge variant="outline">{torrent.quality_metadata.audio_codec}</Badge>
+                  <Badge variant="outline" className="h-5 border-2 text-[10px] px-1.5 flex items-center justify-center">{torrent.quality_metadata.audio_codec}</Badge>
                 )}
                 {torrent.quality_metadata.source && (
-                  <Badge variant="outline">{torrent.quality_metadata.source}</Badge>
+                  <Badge variant="outline" className="h-5 border-2 text-[10px] px-1.5 flex items-center justify-center">{torrent.quality_metadata.source}</Badge>
                 )}
                 {/* Labels (中字, DoVi, HDR, etc.) */}
                 {torrent.quality_metadata.labels_new && torrent.quality_metadata.labels_new.length > 0 && (
                   torrent.quality_metadata.labels_new.map((label, idx) => (
-                    <Badge key={idx} variant="outline" className="border-2 border-black dark:border-white bg-white dark:bg-zinc-900 text-black dark:text-white">
+                    <Badge key={idx} variant="outline" className="h-5 border-2 border-black dark:border-white bg-white dark:bg-zinc-900 text-black dark:text-white text-[10px] px-1.5 flex items-center justify-center">
                       {label}
                     </Badge>
                   ))

@@ -12,7 +12,7 @@ export const CONFIG = {
   // 生产模式：使用完整 URL（同源部署）
   API_BASE: process.env.NODE_ENV === "development"
     ? ""
-    : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001"),
+    : (process.env.NEXT_PUBLIC_API_URL || ""),
   HAPTIC_DURATION: 30,
   TOAST_DURATION: 3000,
   SCROLL_THRESHOLD: 300,

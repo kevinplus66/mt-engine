@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
           return [
             {
               source: "/api/:path*",
-              destination: `${process.env.NEXT_PUBLIC_API_URL || "http://192.168.0.38:5001"}/api/:path*`,
+              destination: `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001"}/api/:path*`,
             },
           ];
         },

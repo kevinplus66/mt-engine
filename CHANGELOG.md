@@ -2,6 +2,61 @@
 
 All notable changes to M-Team Engine.
 
+## [6.0.0] - 2026-01 - Table Sorting & Deployment Improvements
+
+### New Features
+
+**Table Sorting System**:
+- Added sortable columns to all table views (RADAR, SONAR, PANEL)
+- Created reusable sorting infrastructure:
+  - `hooks/use-sortable.ts`: Centralized sort state management
+  - `components/ui/sortable-table-head.tsx`: Clickable column headers with visual indicators
+  - `lib/sort-utils.ts`: Generic client-side sorting utilities
+- Visual feedback: Arrow icons (↕ unsorted, ↑ ascending, ↓ descending)
+- Click behavior: Same column toggles direction, new column defaults to descending
+
+**RADAR (Server-Side Sorting)**:
+- Sortable columns: 名称 (name), 大小 (size), 做种数 (seeders), 时间 (time)
+- Sort parameters sent to API for efficient server-side processing
+- Default sort: Time descending (newest first)
+
+**SONAR (Client-Side Sorting)**:
+- Sortable columns: 名称 (name), 大小 (size), 做种数 (seeders), 剩余时间 (remaining)
+- Applied after filtering for real-time results
+- Default sort: Remaining time ascending (most critical first)
+
+**PANEL (Client-Side Sorting)**:
+- Sortable columns: 名称 (name), 进度 (progress)
+- Integrates with status filters
+- Default sort: Name ascending (alphabetical)
+
+### Bug Fixes
+
+**Docker Deployment Configuration**:
+- Fixed API URL fallback for better portability across different networks
+- Changed production fallback from `http://localhost:5001` to empty string (enables relative paths)
+- Changed development proxy default from NAS IP to `http://localhost:5001`
+- Maintains `.env.local` override capability for custom configurations
+- Users can now access frontend from different machines without connection issues
+
+### Files Modified
+
+**New Files**:
+- `frontend/hooks/use-sortable.ts`: Sort state management hook
+- `frontend/components/ui/sortable-table-head.tsx`: Reusable sortable header component
+- `frontend/lib/sort-utils.ts`: Sorting utilities and field extractors
+
+**Updated Files**:
+- `frontend/lib/constants.ts`: Fixed API URL fallback
+- `frontend/next.config.ts`: Updated dev proxy default
+- `frontend/app/radar/page.tsx`: Added server-side sorting
+- `frontend/app/sonar/page.tsx`: Added client-side sorting
+- `frontend/components/panel/torrent-monitor.tsx`: Added client-side sorting
+- `frontend/components/radar/torrent-table.tsx`: Added sortable headers
+- `frontend/components/sonar/torrent-list.tsx`: Added sortable headers
+
+---
+
 ## [6.0.0] - 2026-01 - Table Layout Optimization & PANEL Enhancements
 
 ### Bug Fixes

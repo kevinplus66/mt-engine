@@ -28,7 +28,7 @@ export function TorrentCard({ torrent, onTap }: TorrentCardProps) {
     const style = styleMap[discount] || styleMap.NORMAL;
 
     return (
-      <span className={`inline-flex items-center justify-center px-1.5 py-0 text-[10px] font-mono font-bold uppercase tracking-widest border-2 border-black dark:border-white bg-white dark:bg-zinc-900 ${style.color} w-fit whitespace-nowrap transition-all`}>
+      <span className={`inline-flex items-center justify-center px-1.5 py-0 h-5 text-[10px] font-mono font-bold uppercase tracking-widest border-2 border-black dark:border-white bg-white dark:bg-zinc-900 ${style.color} w-fit whitespace-nowrap transition-all`}>
         {style.label}
       </span>
     );
@@ -65,15 +65,15 @@ export function TorrentCard({ torrent, onTap }: TorrentCardProps) {
         <span className="font-mono font-medium">{torrent.size_display}</span>
         <span className="text-gray-300 dark:text-gray-700">•</span>
         <div className="flex gap-1">
-          <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 text-green-600 border-green-600">
+          <Badge variant="outline" className="text-[10px] px-1.5 h-5 flex items-center justify-center border-2 text-green-600 border-green-600">
             ↑{torrent.seeders}
           </Badge>
-          <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 text-blue-600 border-blue-600">
+          <Badge variant="outline" className="text-[10px] px-1.5 h-5 flex items-center justify-center border-2 text-blue-600 border-blue-600">
             ↓{torrent.leechers}
           </Badge>
         </div>
         <span className="text-gray-300 dark:text-gray-700">•</span>
-        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">
+        <Badge variant="secondary" className="text-[10px] px-1.5 h-5 flex items-center justify-center border-2 border-black dark:border-white">
           {getCategoryName(torrent.category)}
         </Badge>
       </div>

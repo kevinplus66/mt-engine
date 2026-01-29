@@ -1,16 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RefreshCw, Search } from "lucide-react";
+import { RefreshCw, Search, Waves } from "lucide-react";
 import { StatusTabs } from "@/components/sonar/status-tabs";
 import { FilterPills, type SizeFilter, type SeederFilter } from "@/components/sonar/filter-pills";
 import { DropdownFilters, type RemainingFilter, type ModeFilter } from "@/components/sonar/dropdown-filters";
 import { TorrentList } from "@/components/sonar/torrent-list";
 import { PageTransition } from "@/components/common/page-transition";
 import { useSonarTorrents } from "@/hooks/use-sonar-torrents";
+import { useSortable } from "@/hooks/use-sortable";
+import { sortData, torrentSortExtractors } from "@/lib/sort-utils";
 import { refreshTorrents } from "@/lib/api";
 import { toast } from "sonner";
 import type { Torrent } from "@/lib/types";
@@ -26,6 +28,17 @@ export default function SonarPage() {
   const [modeFilter, setModeFilter] = useState<ModeFilter>("all");
   const [searchKeyword, setSearchKeyword] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Sorting state - default to remaining time ascending (critical first)
+  const {
+    sortField,
+    sortDirection,
+    handleSort,
+    getSortDirection,
+  } = useSortable({
+    defaultField: "remaining",
+    defaultDirection: "asc", // ascending = shortest remaining time first
+  });
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -89,6 +102,12 @@ export default function SonarPage() {
 
     return true;
   });
+
+  // Apply sorting to filtered torrents
+  const sortedTorrents = useMemo(() => {
+    if (!filteredTorrents) return [];
+    return sortData(filteredTorrents, sortField, sortDirection, torrentSortExtractors);
+  }, [filteredTorrents, sortField, sortDirection]);
 
   return (
     <PageTransition>
@@ -158,8 +177,8 @@ export default function SonarPage() {
           {/* 统计信息 */}
           {torrents && (
             <div className="text-sm text-muted-foreground">
-              共 <strong>{filteredTorrents?.length || 0}</strong> 个种子
-              {filteredTorrents?.length !== torrents.length && (
+              共 <strong>{sortedTorrents?.length || 0}</strong> 个种子
+              {sortedTorrents?.length !== torrents.length && (
                 <span className="ml-2">
                   （筛选自 {torrents.length} 个）
                 </span>
@@ -182,13 +201,21 @@ export default function SonarPage() {
           </Card>
         )}
 
-        {!isLoading && !error && filteredTorrents && (
-          <TorrentList torrents={filteredTorrents} />
+        {!isLoading && !error && sortedTorrents && (
+          <TorrentList
+            torrents={sortedTorrents}
+            onSort={handleSort}
+            getSortDirection={getSortDirection}
+          />
         )}
 
-        {!isLoading && !error && filteredTorrents?.length === 0 && (
+        {!isLoading && !error && sortedTorrents?.length === 0 && (
           <Card className="p-12 text-center">
-            <div className="text-6xl mb-4">📭</div>
+            <div className="flex justify-center mb-4">
+              <div className="p-6 bg-gray-100 dark:bg-zinc-900 rounded-full border-4 border-gray-200 dark:border-zinc-800">
+                <Waves className="h-16 w-16 text-gray-400 dark:text-gray-500 animate-pulse" />
+              </div>
+            </div>
             <h3 className="text-xl font-semibold mb-2">暂无种子</h3>
             <p className="text-muted-foreground">
               {statusFilter === "all"

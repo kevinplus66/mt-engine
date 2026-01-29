@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -20,6 +21,7 @@ import { DISCOUNT_STYLES, PARENT_CATEGORY_NAMES, CHILD_TO_PARENT } from "@/lib/c
 import { downloadSonarTorrent } from "@/lib/api";
 import { toast } from "sonner";
 import type { Torrent } from "@/lib/types";
+import type { SortDirection } from "@/hooks/use-sortable";
 import { useState, useRef, useEffect } from "react";
 import { autoAnimate } from "@formkit/auto-animate";
 import { useIsMobile, useIsTablet } from "@/hooks/use-media-query";
@@ -28,9 +30,15 @@ import { TorrentDetailSheet } from "@/components/common/torrent-detail-sheet";
 
 interface TorrentListProps {
   torrents: Torrent[];
+  onSort?: (field: string) => void;
+  getSortDirection?: (field: string) => SortDirection | null;
 }
 
-export function TorrentList({ torrents }: TorrentListProps) {
+export function TorrentList({
+  torrents,
+  onSort = () => {},
+  getSortDirection = () => null,
+}: TorrentListProps) {
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
   const [selectedTorrent, setSelectedTorrent] = useState<Torrent | null>(null);
   const [detailSheetOpen, setDetailSheetOpen] = useState(false);
@@ -92,7 +100,7 @@ export function TorrentList({ torrents }: TorrentListProps) {
     const style = styleMap[torrent.discount] || styleMap.NORMAL;
 
     return (
-      <span className={`inline-flex items-center justify-center px-1.5 py-0 text-[10px] font-mono font-bold uppercase tracking-widest border-2 border-black dark:border-white bg-white dark:bg-zinc-900 ${style.color} w-fit whitespace-nowrap transition-all`}>
+      <span className={`inline-flex items-center justify-center px-1.5 py-0 h-5 text-[10px] font-mono font-bold uppercase tracking-widest border-2 border-black dark:border-white bg-white dark:bg-zinc-900 ${style.color} w-fit whitespace-nowrap transition-all`}>
         {style.label}
       </span>
     );
@@ -180,43 +188,74 @@ export function TorrentList({ torrents }: TorrentListProps) {
   if (isTablet) {
     return (
       <Card>
-        <div className="overflow-x-auto">
-          <Table className="table-fixed w-full">
+        <div className="overflow-x-auto relative">
+          <Table className="w-full min-w-[600px]">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[35%]">名称</TableHead>
-                <TableHead className="w-[15%]">大小</TableHead>
-                <TableHead className="w-[28%]">做种/下载</TableHead>
-                <TableHead className="w-[22%] text-center">操作</TableHead>
+                <SortableTableHead
+                  sortKey="name"
+                  sortDirection={getSortDirection("name")}
+                  onSort={onSort}
+                  className="w-auto min-w-[300px]"
+                >
+                  名称
+                </SortableTableHead>
+                <SortableTableHead
+                  sortKey="size"
+                  sortDirection={getSortDirection("size")}
+                  onSort={onSort}
+                  className="w-[120px] min-w-[120px] max-w-[120px] sticky right-[210px] bg-black dark:bg-white z-20 shadow-[-1px_0_0_0_rgba(255,255,255,0.1)] dark:shadow-[-1px_0_0_0_rgba(0,0,0,0.1)]"
+                >
+                  大小
+                </SortableTableHead>
+                <SortableTableHead
+                  sortKey="seeders"
+                  sortDirection={getSortDirection("seeders")}
+                  onSort={onSort}
+                  className="w-[120px] min-w-[120px] max-w-[120px] sticky right-[90px] bg-black dark:bg-white z-20"
+                >
+                  做种/下载
+                </SortableTableHead>
+                <TableHead className="w-[90px] min-w-[90px] max-w-[90px] text-center sticky right-0 bg-black dark:bg-white z-20">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody ref={tableBodyRef}>
               {torrents.map((torrent) => (
                 <TableRow key={torrent.id}>
-                  <TableCell>
-                    <div className="space-y-1 min-w-0">
-                      <div className="flex items-start gap-2">
-                        <div className="font-medium line-clamp-2 flex-1">
-                          {torrent.name}
-                        </div>
+                  <TableCell className="min-w-[300px]">
+                    <div className="space-y-1">
+                      <div className="font-medium whitespace-nowrap">
+                        {torrent.name}
+                      </div>
+                      <div className="flex items-center gap-1 w-max">
+                        <Badge variant="secondary" className="text-[10px] px-1.5 h-5 flex items-center justify-center border-2 border-black dark:border-white whitespace-nowrap">
+                           {getCategoryName(torrent.category)}
+                        </Badge>
                         {getDiscountBadge(torrent)}
+                        {torrent.quality_metadata?.labels_new && torrent.quality_metadata.labels_new.length > 0 && (
+                          torrent.quality_metadata.labels_new.map((label, idx) => (
+                            <Badge key={idx} variant="outline" className="text-[10px] px-1.5 h-5 flex items-center justify-center border-2 border-black dark:border-white bg-white dark:bg-zinc-900 text-black dark:text-white whitespace-nowrap">
+                              {label}
+                            </Badge>
+                          ))
+                        )}
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap">
+                  <TableCell className="whitespace-nowrap sticky right-[210px] w-[120px] min-w-[120px] max-w-[120px] bg-white dark:bg-zinc-950 z-10 shadow-[-1px_0_0_0_rgba(0,0,0,0.1)] dark:shadow-[-1px_0_0_0_rgba(255,255,255,0.1)]">
                     {torrent.size_display}
                   </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Badge variant="outline" className="text-green-600">
+                  <TableCell className="sticky right-[90px] w-[120px] min-w-[120px] max-w-[120px] bg-white dark:bg-zinc-950 z-10">
+                    <div className="flex gap-1">
+                      <Badge variant="outline" className="text-[10px] px-1.5 h-5 flex items-center justify-center border-2 text-green-600 border-green-600 whitespace-nowrap">
                         ↑ {torrent.seeders}
                       </Badge>
-                      <Badge variant="outline" className="text-blue-600">
+                      <Badge variant="outline" className="text-[10px] px-1.5 h-5 flex items-center justify-center border-2 text-blue-600 border-blue-600 whitespace-nowrap">
                         ↓ {torrent.leechers}
                       </Badge>
                     </div>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="text-center sticky right-0 w-[90px] min-w-[90px] max-w-[90px] bg-white dark:bg-zinc-950 z-10">
                     <div className="flex gap-1 justify-center">
                       <Button
                         size="sm"
@@ -228,11 +267,11 @@ export function TorrentList({ torrents }: TorrentListProps) {
                           torrent.user_status === "leeching"
                         }
                         aria-label="下载种子"
-                        className="h-9"
+                        className="h-9 w-9 p-0"
                       >
                         <Download className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="outline" asChild className="h-9">
+                      <Button size="sm" variant="outline" asChild className="h-9 w-9 p-0">
                         <a
                           href={torrent.detail_url}
                           target="_blank"
@@ -260,12 +299,40 @@ export function TorrentList({ torrents }: TorrentListProps) {
         <Table className="table-fixed w-full">
           <TableHeader>
             <TableRow>
-              <TableHead className="min-w-[200px]">名称</TableHead>
-              <TableHead className="w-[90px]">大小</TableHead>
-              <TableHead className="w-[120px]">做种/下载</TableHead>
-              <TableHead className="w-[70px]">分类</TableHead>
-              <TableHead className="w-[90px]">状态</TableHead>
-              <TableHead className="w-[90px]">剩余时间</TableHead>
+              <SortableTableHead
+                sortKey="name"
+                sortDirection={getSortDirection("name")}
+                onSort={onSort}
+                className="min-w-[200px]"
+              >
+                名称
+              </SortableTableHead>
+              <SortableTableHead
+                sortKey="size"
+                sortDirection={getSortDirection("size")}
+                onSort={onSort}
+                className="w-[120px]"
+              >
+                大小
+              </SortableTableHead>
+              <SortableTableHead
+                sortKey="seeders"
+                sortDirection={getSortDirection("seeders")}
+                onSort={onSort}
+                className="w-[120px]"
+              >
+                做种/下载
+              </SortableTableHead>
+              <TableHead className="w-[90px]">分类</TableHead>
+              <TableHead className="w-[100px]">状态</TableHead>
+              <SortableTableHead
+                sortKey="remaining"
+                sortDirection={getSortDirection("remaining")}
+                onSort={onSort}
+                className="w-[100px]"
+              >
+                剩余时间
+              </SortableTableHead>
               <TableHead className="w-[100px] text-center">操作</TableHead>
             </TableRow>
           </TableHeader>
@@ -282,6 +349,17 @@ export function TorrentList({ torrents }: TorrentListProps) {
                         {torrent.small_descr}
                       </div>
                     )}
+                    {/* Discount badge and Labels on same row */}
+                    <div className="flex flex-wrap gap-1 items-center">
+                      {getDiscountBadge(torrent)}
+                      {torrent.quality_metadata?.labels_new && torrent.quality_metadata.labels_new.length > 0 && (
+                        torrent.quality_metadata.labels_new.map((label, idx) => (
+                          <Badge key={idx} variant="outline" className="text-[10px] px-1.5 h-5 flex items-center justify-center border-2 border-black dark:border-white bg-white dark:bg-zinc-900 text-black dark:text-white whitespace-nowrap">
+                            {label}
+                          </Badge>
+                        ))
+                      )}
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell className="whitespace-nowrap">
@@ -289,20 +367,31 @@ export function TorrentList({ torrents }: TorrentListProps) {
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-2">
-                    <Badge variant="outline" className="text-green-600">
+                    <Badge variant="outline" className="text-green-600 h-5 border-2 text-[10px] px-1.5 flex items-center justify-center border-green-600">
                       ↑ {torrent.seeders}
                     </Badge>
-                    <Badge variant="outline" className="text-blue-600">
+                    <Badge variant="outline" className="text-blue-600 h-5 border-2 text-[10px] px-1.5 flex items-center justify-center border-blue-600">
                       ↓ {torrent.leechers}
                     </Badge>
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="secondary">
+                  <Badge variant="secondary" className="h-5 border-2 border-black dark:border-white text-[10px] px-1.5 flex items-center justify-center">
                     {getCategoryName(torrent.category)}
                   </Badge>
                 </TableCell>
-                <TableCell>{getUserStatusBadge(torrent.user_status)}</TableCell>
+                <TableCell>
+                  {(() => {
+                    const status = torrent.user_status;
+                    if (status === "seeding") {
+                      return <Badge variant="outline" className="text-green-600 border-green-600 h-5 border-2 text-[10px] px-1.5 flex items-center justify-center">做种中</Badge>;
+                    } else if (status === "leeching") {
+                      return <Badge variant="outline" className="text-blue-600 border-blue-600 h-5 border-2 text-[10px] px-1.5 flex items-center justify-center">下载中</Badge>;
+                    } else {
+                      return <Badge variant="outline" className="text-gray-600 h-5 border-2 text-[10px] px-1.5 flex items-center justify-center">未下载</Badge>;
+                    }
+                  })()}
+                </TableCell>
                 <TableCell
                   className={`text-sm whitespace-nowrap font-medium ${
                     torrent.remaining && torrent.remaining.hours < 0.5

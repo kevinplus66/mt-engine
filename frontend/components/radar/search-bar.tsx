@@ -5,7 +5,7 @@
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, RotateCcw, Loader2 } from "lucide-react";
+import { Search, RotateCcw, Loader2, Telescope } from "lucide-react";
 
 interface SearchBarProps {
   keyword: string;
@@ -52,7 +52,7 @@ export function SearchBar({
           </>
         ) : (
           <>
-            <Search className="mr-2 h-4 w-4" />
+            <Telescope className="mr-2 h-4 w-4" />
             搜索
           </>
         )}

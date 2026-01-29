@@ -12,12 +12,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Trash2, Pause, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePanelTorrents } from "@/hooks/use-panel-torrents";
-import { useRef, useEffect, useState } from "react";
+import { useSortable } from "@/hooks/use-sortable";
+import { sortData, panelTorrentSortExtractors } from "@/lib/sort-utils";
+import { useRef, useEffect, useState, useMemo } from "react";
 import { autoAnimate } from "@formkit/auto-animate";
 import { deletePanelTorrents, pausePanelTorrents, resumePanelTorrents } from "@/lib/api";
 import { toast } from "sonner";
@@ -57,6 +60,17 @@ export function TorrentMonitor() {
       autoAnimate(cardContainerRef.current);
     }
   }, []);
+
+  // Sorting state - default to name ascending
+  const {
+    sortField,
+    sortDirection,
+    handleSort,
+    getSortDirection,
+  } = useSortable({
+    defaultField: "name",
+    defaultDirection: "asc",
+  });
 
   const getUserStatusBadge = (status: string) => {
     // 后端返回的状态: downloading, uploading, stalledDL, pausedDL, stoppedDL, etc.
@@ -206,6 +220,12 @@ export function TorrentMonitor() {
     return torrentStatus === statusFilter;
   });
 
+  // Apply sorting to filtered torrents
+  const sortedTorrents = useMemo(() => {
+    if (!filteredTorrents) return [];
+    return sortData(filteredTorrents, sortField, sortDirection, panelTorrentSortExtractors);
+  }, [filteredTorrents, sortField, sortDirection]);
+
   const formatBytes = (bytes: number) => {
     if (!bytes || bytes === 0) return "0 B";
     const k = 1024;
@@ -304,7 +324,7 @@ export function TorrentMonitor() {
           </CardHeader>
           <CardContent>
             <div ref={cardContainerRef} className="space-y-3">
-              {filteredTorrents && filteredTorrents.map((torrent) => (
+              {sortedTorrents && sortedTorrents.map((torrent) => (
                 <Card
                   key={torrent.hash || torrent.id}
                   className="p-3"
@@ -448,53 +468,69 @@ export function TorrentMonitor() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <Table className="table-fixed w-full">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[45%]">名称</TableHead>
-                    <TableHead className="w-[35%]">进度</TableHead>
-                    <TableHead className="w-[20%] text-right">操作</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody ref={tableBodyRef}>
-                  {filteredTorrents && filteredTorrents.map((torrent) => (
-                    <TableRow key={torrent.hash || torrent.id}>
-                      <TableCell>
-                        <div className="font-medium line-clamp-2 min-w-0">
-                          {torrent.name}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="w-full space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-semibold font-mono">
-                              {Math.round(((torrent as any).progress || 0) * 100)}%
-                            </span>
-                          </div>
-                          <div className="w-full h-3 bg-white dark:bg-zinc-900 border-2 border-black dark:border-white overflow-hidden">
-                            <div
-                              className={`h-full transition-all duration-300 ${
-                                ((torrent as any).progress || 0) >= 1
-                                  ? 'bg-green-500'
-                                  : ((torrent as any).status === 'pausedDL' || (torrent as any).status === 'pausedUP')
-                                  ? 'bg-gray-400'
-                                  : 'bg-blue-500'
-                              }`}
-                              style={{ width: `${((torrent as any).progress || 0) * 100}%` }}
-                            />
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
-                          {isPaused((torrent as any).status) ? (
+            <div className="overflow-x-auto relative">
+              <Table className="w-full min-w-[600px]">
+                            <TableHeader>
+                              <TableRow>
+                                <SortableTableHead
+                                  sortKey="name"
+                                  sortDirection={getSortDirection("name")}
+                                  onSort={handleSort}
+                                  className="w-auto min-w-[300px]"
+                                >
+                                  名称
+                                </SortableTableHead>
+                                <SortableTableHead
+                                  sortKey="progress"
+                                  sortDirection={getSortDirection("progress")}
+                                  onSort={handleSort}
+                                  className="w-[200px] min-w-[200px] max-w-[200px] sticky right-[90px] bg-black dark:bg-white z-20 shadow-[-1px_0_0_0_rgba(255,255,255,0.1)] dark:shadow-[-1px_0_0_0_rgba(0,0,0,0.1)]"
+                                >
+                                  进度
+                                </SortableTableHead>
+                                <TableHead className="w-[90px] min-w-[90px] max-w-[90px] text-right sticky right-0 bg-black dark:bg-white z-20">操作</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody ref={tableBodyRef}>
+                              {sortedTorrents && sortedTorrents.map((torrent) => (
+                                <TableRow key={torrent.hash || torrent.id}>
+                                  <TableCell className="min-w-[300px]">
+                                    <div className="font-medium whitespace-nowrap">
+                                      {torrent.name}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="sticky right-[90px] w-[200px] min-w-[200px] max-w-[200px] bg-white dark:bg-zinc-950 z-10 shadow-[-1px_0_0_0_rgba(0,0,0,0.1)] dark:shadow-[-1px_0_0_0_rgba(255,255,255,0.1)]">
+                                    <div className="w-full space-y-1">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-sm font-semibold font-mono">
+                                          {Math.round(((torrent as any).progress || 0) * 100)}%
+                                        </span>
+                                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                          {getSizeDisplay(torrent)}
+                                        </span>
+                                      </div>
+                                      <div className="w-full h-3 bg-white dark:bg-zinc-900 border-2 border-black dark:border-white overflow-hidden">
+                                        <div
+                                          className={`h-full transition-all duration-300 ${
+                                            ((torrent as any).progress || 0) >= 1
+                                              ? 'bg-green-500'
+                                              : ((torrent as any).status === 'pausedDL' || (torrent as any).status === 'pausedUP')
+                                              ? 'bg-gray-400'
+                                              : 'bg-blue-500'
+                                          }`}
+                                          style={{ width: `${((torrent as any).progress || 0) * 100}%` }}
+                                        />
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-right sticky right-0 w-[90px] min-w-[90px] max-w-[90px] bg-white dark:bg-zinc-950 z-10">
+                                    <div className="flex gap-2 justify-end">                          {isPaused((torrent as any).status) ? (
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => handleResumeClick((torrent as any).hash || torrent.id, torrent.name)}
                               disabled={processingHashes.has((torrent as any).hash || torrent.id)}
-                              className="h-9"
+                              className="h-9 w-9 p-0"
                               aria-label="恢复种子"
                             >
                               <Play className="h-4 w-4" />
@@ -505,7 +541,7 @@ export function TorrentMonitor() {
                               variant="outline"
                               onClick={() => handlePauseClick((torrent as any).hash || torrent.id, torrent.name)}
                               disabled={processingHashes.has((torrent as any).hash || torrent.id)}
-                              className="h-9"
+                              className="h-9 w-9 p-0"
                               aria-label="暂停种子"
                             >
                               <Pause className="h-4 w-4" />
@@ -516,7 +552,7 @@ export function TorrentMonitor() {
                             variant="outline"
                             onClick={() => handleDeleteClick((torrent as any).hash || torrent.id, torrent.name)}
                             disabled={isDeleting}
-                            className="h-9"
+                            className="h-9 w-9 p-0"
                             aria-label="删除种子"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -587,15 +623,29 @@ export function TorrentMonitor() {
           <Table className="table-fixed w-full">
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[200px]">名称</TableHead>
-                <TableHead className="w-[100px]">标签</TableHead>
+                <SortableTableHead
+                  sortKey="name"
+                  sortDirection={getSortDirection("name")}
+                  onSort={handleSort}
+                  className="min-w-[200px]"
+                >
+                  名称
+                </SortableTableHead>
+                <TableHead className="w-[120px]">标签</TableHead>
                 <TableHead className="w-[120px]">做种/下载</TableHead>
-                <TableHead className="w-[220px] pl-6">进度</TableHead>
+                <SortableTableHead
+                  sortKey="progress"
+                  sortDirection={getSortDirection("progress")}
+                  onSort={handleSort}
+                  className="w-[220px] pl-6"
+                >
+                  进度
+                </SortableTableHead>
                 <TableHead className="w-[100px] text-right">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody ref={tableBodyRef}>
-              {filteredTorrents && filteredTorrents.map((torrent) => (
+              {sortedTorrents && sortedTorrents.map((torrent) => (
                 <TableRow key={torrent.hash || torrent.id}>
                   <TableCell>
                     <div className="font-medium line-clamp-2 min-w-0">
@@ -605,7 +655,7 @@ export function TorrentMonitor() {
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {((torrent as any).tags || []).map((tag: string) => (
-                        <Badge key={tag} variant="outline" className="text-xs">
+                        <Badge key={tag} variant="outline" className="text-[10px] px-1.5 h-5 flex items-center justify-center border-2 border-black dark:border-white bg-white dark:bg-zinc-900 text-black dark:text-white whitespace-nowrap">
                           {tag}
                         </Badge>
                       ))}
@@ -613,13 +663,13 @@ export function TorrentMonitor() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <div className="flex items-center gap-1 px-2 py-1 border-2 border-black dark:border-white bg-white dark:bg-zinc-900">
-                        <span className="text-green-600 font-bold">↑</span>
-                        <span className="text-sm font-mono">{(torrent as any).seeders || 0}</span>
+                      <div className="flex items-center gap-1 px-2 h-5 border-2 border-black dark:border-white bg-white dark:bg-zinc-900">
+                        <span className="text-green-600 font-bold text-xs">↑</span>
+                        <span className="text-[10px] font-mono">{(torrent as any).seeders || 0}</span>
                       </div>
-                      <div className="flex items-center gap-1 px-2 py-1 border-2 border-black dark:border-white bg-white dark:bg-zinc-900">
-                        <span className="text-blue-600 font-bold">↓</span>
-                        <span className="text-sm font-mono">{(torrent as any).leechers || 0}</span>
+                      <div className="flex items-center gap-1 px-2 h-5 border-2 border-black dark:border-white bg-white dark:bg-zinc-900">
+                        <span className="text-blue-600 font-bold text-xs">↓</span>
+                        <span className="text-[10px] font-mono">{(torrent as any).leechers || 0}</span>
                       </div>
                     </div>
                   </TableCell>
