@@ -12,7 +12,7 @@ from app.models import AutomationConfig
 from app.core.rules import RuleEngine
 from app.services.qbittorrent import (
     qb_login, qb_add_torrent_file, qb_get_torrents,
-    qb_delete_torrent, download_torrent_file
+    qb_delete_torrent, download_torrent_file, qb_get_existing_mteam_ids
 )
 from app.config import logger
 import app.state as state
@@ -29,6 +29,10 @@ class PilotManager:
         self.rule_engine = RuleEngine(self.config)
         self.pending_downloads: Set[str] = set()  # Prevent duplicate downloads
         self._upload_history: Dict[str, List[Tuple[float, int]]] = {}  # Upload history for sliding window
+
+        # Cache for existing M-Team IDs in qBittorrent
+        self._existing_ids_cache: Set[str] = set()
+        self._cache_updated: float = 0
 
         # Statistics tracking
         self.total_downloads = 0
@@ -106,32 +110,44 @@ class PilotManager:
             logger.error(f"Failed to save pilot config: {e}")
 
     def _load_stats(self):
-        """Load statistics from JSON file"""
-        if STATS_PATH.exists():
-            try:
-                with open(STATS_PATH) as f:
-                    data = json.load(f)
-                self.total_downloads = data.get('total_downloads', 0)
-                self.total_cleanups = data.get('total_cleanups', 0)
-                self.last_run = data.get('last_run')
-                self.next_run = data.get('next_run')
-                logger.info(f"Loaded pilot stats: {self.total_downloads} downloads, {self.total_cleanups} cleanups")
-            except Exception as e:
-                logger.error(f"Failed to load pilot stats: {e}")
+        """Load statistics - disabled for per-session tracking"""
+        # Stats are now tracked per container session (reset on restart)
+        # No persistence to avoid stale data across restarts
+        logger.info("Stats tracking initialized (per-session mode)")
 
     def _save_stats(self):
-        """Persist statistics to JSON file"""
-        try:
-            STATS_PATH.parent.mkdir(parents=True, exist_ok=True)
-            with open(STATS_PATH, "w") as f:
-                json.dump({
-                    'total_downloads': self.total_downloads,
-                    'total_cleanups': self.total_cleanups,
-                    'last_run': self.last_run,
-                    'next_run': self.next_run
-                }, f, indent=2)
-        except Exception as e:
-            logger.error(f"Failed to save pilot stats: {e}")
+        """Persist statistics - disabled for per-session tracking"""
+        # Stats are not persisted, they reset on container restart
+        # This keeps data accurate and reflects current session only
+        pass
+
+    async def _get_existing_mteam_ids(self, sid: str) -> Set[str]:
+        """
+        Get existing M-Team IDs in qBittorrent (with 60s cache)
+
+        Args:
+            sid: qBittorrent session ID
+
+        Returns:
+            Set[str]: Set of M-Team torrent IDs already in qBittorrent
+        """
+        now = time.time()
+        cache_ttl = 60  # 60 seconds cache
+
+        # Return cached data if still valid
+        if now - self._cache_updated < cache_ttl:
+            return self._existing_ids_cache
+
+        # Refresh cache
+        self._existing_ids_cache = await qb_get_existing_mteam_ids(sid)
+        self._cache_updated = now
+        logger.debug(f"Refreshed existing IDs cache: {len(self._existing_ids_cache)} torrents")
+
+        return self._existing_ids_cache
+
+    def _invalidate_cache(self):
+        """Invalidate the existing IDs cache"""
+        self._cache_updated = 0
 
     def get_disk_usage_percent(self) -> Optional[float]:
         """
@@ -206,6 +222,7 @@ class PilotManager:
 
         # Filter and score candidates
         candidates = []
+        skipped_existing = 0
         for t in torrents:
             tid = t.get('id', '')
 
@@ -213,9 +230,17 @@ class PilotManager:
             if tid in self.pending_downloads:
                 continue
 
+            # Skip if already exists in qBittorrent
+            if tid in existing_mteam_ids:
+                skipped_existing += 1
+                continue
+
             should_dl, score, reason = self.rule_engine.evaluate_download(t)
             if should_dl:
                 candidates.append((score, t))
+
+        if skipped_existing > 0:
+            logger.debug(f"Skipped {skipped_existing} torrents already in qBittorrent")
 
         if not candidates:
             logger.debug("No download candidates after filtering")
@@ -239,6 +264,9 @@ class PilotManager:
             logger.info(f"Download cycle skipped: {len(auto_tasks)}/{max_tasks} slots used")
             return
 
+        # Get existing M-Team IDs to avoid duplicates
+        existing_mteam_ids = await self._get_existing_mteam_ids(sid)
+
         logger.info(
             f"Download cycle: {len(candidates)} candidates, "
             f"{available_slots}/{max_tasks} slots available"
@@ -253,6 +281,7 @@ class PilotManager:
                 success = await self._download_torrent(torrent, sid, score)
                 if success:
                     downloaded_count += 1
+                    self._invalidate_cache()  # Invalidate cache after successful download
             finally:
                 self.pending_downloads.discard(tid)
 

@@ -12,7 +12,36 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FILTER_CONFIG, FILTER_OPTIONS } from "@/lib/constants";
+import { useFilterOptions } from "@/hooks/use-filter-options";
 import type { SearchMode } from "@/lib/types";
+
+// Hardcoded fallback data for standards (resolution)
+const FALLBACK_STANDARDS = [
+  { id: "7", name_zh: "8K", name_en: "8K" },
+  { id: "6", name_zh: "4K", name_en: "4K" },
+  { id: "1", name_zh: "1080p", name_en: "1080p" },
+  { id: "2", name_zh: "1080i", name_en: "1080i" },
+  { id: "3", name_zh: "720p", name_en: "720p" },
+  { id: "5", name_zh: "SD", name_en: "SD" },
+];
+
+// Hardcoded fallback data for video codecs
+const FALLBACK_VIDEO_CODECS = [
+  { id: "1", name_zh: "H.264/AVC", name_en: "H.264/AVC" },
+  { id: "16", name_zh: "H.265/HEVC", name_en: "H.265/HEVC" },
+  { id: "19", name_zh: "AV1", name_en: "AV1" },
+  { id: "2", name_zh: "VC-1", name_en: "VC-1" },
+  { id: "4", name_zh: "MPEG-2", name_en: "MPEG-2" },
+];
+
+// Hardcoded fallback data for audio codecs
+const FALLBACK_AUDIO_CODECS = [
+  { id: "10", name_zh: "TrueHD Atmos", name_en: "TrueHD Atmos" },
+  { id: "11", name_zh: "DTS-HD MA", name_en: "DTS-HD MA" },
+  { id: "9", name_zh: "TrueHD", name_en: "TrueHD" },
+  { id: "3", name_zh: "DTS", name_en: "DTS" },
+  { id: "1", name_zh: "FLAC", name_en: "FLAC" },
+];
 
 interface FilterSelectsProps {
   mode: SearchMode;
@@ -32,6 +61,7 @@ export function FilterSelects({
   filters,
   onFiltersChange,
 }: FilterSelectsProps) {
+  const { data: filterOptions, isLoading, error } = useFilterOptions();
   const visibleFilters = FILTER_CONFIG[mode] || [];
 
   if (visibleFilters.length === 0) {
@@ -42,6 +72,24 @@ export function FilterSelects({
     onFiltersChange({ ...filters, discount: value === "all" ? "" : value });
   };
 
+  // 使用动态数据或回退到硬编码数据
+  const countries = filterOptions?.countries || FILTER_OPTIONS.countries;
+  const standards = (filterOptions?.standards && filterOptions.standards.length > 0)
+    ? filterOptions.standards
+    : FALLBACK_STANDARDS;
+  const videoCodecs = (filterOptions?.videoCodecs && filterOptions.videoCodecs.length > 0)
+    ? filterOptions.videoCodecs
+    : FALLBACK_VIDEO_CODECS;
+  const audioCodecs = (filterOptions?.audioCodecs && filterOptions.audioCodecs.length > 0)
+    ? filterOptions.audioCodecs
+    : FALLBACK_AUDIO_CODECS;
+  const discounts = FILTER_OPTIONS.discounts; // 优惠选项保持从常量获取
+
+  // Debug logging
+  if (typeof window !== 'undefined') {
+    console.log('Filter options:', { standards, videoCodecs, audioCodecs, isLoading, error });
+  }
+
   return (
     <div className="flex flex-wrap gap-3">
       {/* 优惠筛选 - 所有模式都显示 */}
@@ -51,8 +99,8 @@ export function FilterSelects({
             <SelectValue placeholder="优惠" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">全部优惠</SelectItem>
-            {FILTER_OPTIONS.discounts.map((discount) => (
+            <SelectItem value="all">优惠</SelectItem>
+            {discounts.map((discount) => (
               <SelectItem key={discount.id} value={discount.id}>
                 {discount.name_zh}
               </SelectItem>
@@ -76,9 +124,9 @@ export function FilterSelects({
             <SelectValue placeholder="国家/地区" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">全部地区</SelectItem>
-            {FILTER_OPTIONS.countries.map((country) => (
-              <SelectItem key={country.id} value={country.id}>
+            <SelectItem value="all">地区</SelectItem>
+            {countries.map((country) => (
+              <SelectItem key={country.id} value={country.id.toString()}>
                 {country.name_zh}
               </SelectItem>
             ))}
@@ -101,13 +149,12 @@ export function FilterSelects({
             <SelectValue placeholder="清晰度" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">全部清晰度</SelectItem>
-            <SelectItem value="7">8K</SelectItem>
-            <SelectItem value="6">4K</SelectItem>
-            <SelectItem value="1">1080p</SelectItem>
-            <SelectItem value="2">1080i</SelectItem>
-            <SelectItem value="3">720p</SelectItem>
-            <SelectItem value="5">SD</SelectItem>
+            <SelectItem value="all">清晰度</SelectItem>
+            {standards.map((standard) => (
+              <SelectItem key={standard.id} value={standard.id.toString()}>
+                {(standard as any).name_zh || (standard as any).name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       )}
@@ -127,12 +174,12 @@ export function FilterSelects({
             <SelectValue placeholder="视频编码" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">全部编码</SelectItem>
-            <SelectItem value="1">H.264/AVC</SelectItem>
-            <SelectItem value="16">H.265/HEVC</SelectItem>
-            <SelectItem value="19">AV1</SelectItem>
-            <SelectItem value="2">VC-1</SelectItem>
-            <SelectItem value="4">MPEG-2</SelectItem>
+            <SelectItem value="all">视频编码</SelectItem>
+            {videoCodecs.map((codec) => (
+              <SelectItem key={codec.id} value={codec.id.toString()}>
+                {(codec as any).name_zh || (codec as any).name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       )}
@@ -152,12 +199,12 @@ export function FilterSelects({
             <SelectValue placeholder="音频编码" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">全部编码</SelectItem>
-            <SelectItem value="10">TrueHD Atmos</SelectItem>
-            <SelectItem value="11">DTS-HD MA</SelectItem>
-            <SelectItem value="9">TrueHD</SelectItem>
-            <SelectItem value="3">DTS</SelectItem>
-            <SelectItem value="1">FLAC</SelectItem>
+            <SelectItem value="all">音频编码</SelectItem>
+            {audioCodecs.map((codec) => (
+              <SelectItem key={codec.id} value={codec.id.toString()}>
+                {(codec as any).name_zh || (codec as any).name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       )}

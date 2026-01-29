@@ -1,7 +1,11 @@
+# 生产模式 - 适合分享部署
+# 使用方法: docker compose up -d
+
 services:
   mt-engine:
     build: .
     container_name: mt-engine
+    # 使用 .env 中的 PUID/PGID，解决 NAS 权限问题
     user: "${PUID:-1000}:${PGID:-1000}"
     restart: unless-stopped
     ports:
@@ -13,7 +17,7 @@ services:
       - MT_TOKEN=${MT_TOKEN}
       - MT_USER_ID=${MT_USER_ID}
       - MT_SITE_URL=${MT_SITE_URL:-https://kp.m-team.cc}
-      - REFRESH_INTERVAL=${REFRESH_INTERVAL:-600}
+      - REFRESH_INTERVAL=${REFRESH_INTERVAL:-300}
       - RIVAL_USER_ID=${RIVAL_USER_ID:-}
       - PUSHPLUS_TOKEN=${PUSHPLUS_TOKEN:-}
       - QBITTORRENT_URL=${QBITTORRENT_URL:-}

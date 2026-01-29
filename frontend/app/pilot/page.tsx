@@ -151,10 +151,10 @@ export default function PilotPage() {
         <div className="mx-auto max-w-7xl space-y-6">
         {/* 标题 */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">PILOT</h1>
-            <p className="text-muted-foreground">自动化配置</p>
-          </div>
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+            <span>PILOT</span>
+            <span className="text-base font-normal text-muted-foreground">· 自动化配置</span>
+          </h1>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button
               onClick={handleDryRun}

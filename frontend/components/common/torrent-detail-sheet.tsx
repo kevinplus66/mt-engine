@@ -33,27 +33,20 @@ export function TorrentDetailSheet({
   if (!torrent) return null;
 
   const getDiscountBadge = (discount: string) => {
-    const styleMap: Record<string, { bg: string; color: string; label: string }> = {
-      FREE: { bg: "#22c55e", color: "#ffffff", label: "免费" },
-      "_2X_FREE": { bg: "#3b82f6", color: "#ffffff", label: "2x免费" },
-      "_2X": { bg: "#a855f7", color: "#ffffff", label: "2x" },
-      PERCENT_50: { bg: "#f97316", color: "#ffffff", label: "50%" },
-      PERCENT_70: { bg: "#eab308", color: "#000000", label: "70%" },
-      PERCENT_30: { bg: "#ef4444", color: "#ffffff", label: "30%" },
-      NORMAL: { bg: "#e5e7eb", color: "#000000", label: "普通" },
+    const styleMap: Record<string, { color: string; label: string }> = {
+      FREE: { color: "text-green-600 dark:text-green-400", label: "免费" },
+      "_2X_FREE": { color: "text-blue-600 dark:text-blue-400", label: "2X免费" },
+      "_2X": { color: "text-purple-600 dark:text-purple-400", label: "2X" },
+      PERCENT_50: { color: "text-orange-600 dark:text-orange-400", label: "50%" },
+      PERCENT_70: { color: "text-yellow-600 dark:text-yellow-400", label: "70%" },
+      PERCENT_30: { color: "text-red-600 dark:text-red-400", label: "30%" },
+      NORMAL: { color: "text-gray-600 dark:text-gray-400", label: "普通" },
     };
 
     const style = styleMap[discount] || styleMap.NORMAL;
 
     return (
-      <span
-        style={{
-          backgroundColor: style.bg,
-          color: style.color,
-          borderColor: "#000000",
-        }}
-        className="inline-flex items-center justify-center px-2 py-1 text-xs font-mono font-bold uppercase tracking-widest border-2 w-fit whitespace-nowrap transition-all"
-      >
+      <span className={`inline-flex items-center justify-center px-2 py-1 text-xs font-mono font-bold uppercase tracking-widest border-2 border-black dark:border-white bg-white dark:bg-zinc-900 ${style.color} w-fit whitespace-nowrap transition-all`}>
         {style.label}
       </span>
     );
@@ -202,6 +195,14 @@ export function TorrentDetailSheet({
                 )}
                 {torrent.quality_metadata.source && (
                   <Badge variant="outline">{torrent.quality_metadata.source}</Badge>
+                )}
+                {/* Labels (中字, DoVi, HDR, etc.) */}
+                {torrent.quality_metadata.labels_new && torrent.quality_metadata.labels_new.length > 0 && (
+                  torrent.quality_metadata.labels_new.map((label, idx) => (
+                    <Badge key={idx} variant="outline" className="border-2 border-black dark:border-white bg-white dark:bg-zinc-900 text-black dark:text-white">
+                      {label}
+                    </Badge>
+                  ))
                 )}
               </div>
             </div>

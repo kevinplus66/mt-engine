@@ -29,14 +29,19 @@ export function StatsBar({ stats }: StatsBarProps) {
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {/* 历史统计 - 合并下载和清理 */}
+      {/* 本次运行统计 - 合并下载和清理 */}
       <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.1 }}>
         <Card className="h-full">
         <CardContent className="p-6 h-full flex flex-col justify-center">
           <div className="space-y-3">
-            <p className="text-sm font-medium text-muted-foreground font-mono">
-              历史统计
-            </p>
+            <div>
+              <p className="text-sm font-medium text-muted-foreground font-mono">
+                本次运行
+              </p>
+              <p className="text-xs text-muted-foreground/60 mt-0.5">
+                自容器启动
+              </p>
+            </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Download className="h-4 w-4 text-blue-500" />

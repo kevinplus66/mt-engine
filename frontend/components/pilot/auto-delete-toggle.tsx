@@ -1,6 +1,6 @@
 /**
- * AutoDeleteToggle - 自动删除开关
- * 控制是否自动删除完成的种子
+ * AutoDeleteToggle - 到期删除开关
+ * 控制是否自动删除到期的种子
  */
 
 import { Switch } from "@/components/ui/switch";
@@ -14,7 +14,7 @@ export function AutoDeleteToggle() {
   const handleToggle = async (checked: boolean) => {
     try {
       await toggle(checked);
-      toast.success(checked ? "已开启自动删除" : "已关闭自动删除");
+      toast.success(checked ? "已开启到期删除" : "已关闭到期删除");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "操作失败");
     }
@@ -28,8 +28,8 @@ export function AutoDeleteToggle() {
         onCheckedChange={handleToggle}
         disabled={isLoading}
       />
-      <Label htmlFor="auto-delete" className="cursor-pointer">
-        自动删除
+      <Label htmlFor="auto-delete" className="cursor-pointer text-sm">
+        到期删除
       </Label>
     </div>
   );

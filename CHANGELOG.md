@@ -4,6 +4,24 @@ All notable changes to M-Team Engine.
 
 ## [6.0.0] - 2026-01 - Table Layout Optimization & PANEL Enhancements
 
+### Bug Fixes
+
+**qBittorrent v5.0.0 API Compatibility**:
+- Fixed pause/resume API endpoints for qBittorrent v5.0.0+
+- `/api/v2/torrents/pause` → `/api/v2/torrents/stop`
+- `/api/v2/torrents/resume` → `/api/v2/torrents/start`
+
+**PANEL Torrent Monitor**:
+- Fixed resume icon not appearing after pausing torrent (added 500ms delay before state refresh)
+
+**Configuration Consistency**:
+- Unified `REFRESH_INTERVAL` default to 300 seconds across all files
+- Fixed docker-compose.yml, .env.example, README.md (was incorrectly 600)
+
+**Deployment Guide**:
+- Added `AGENT_DEPLOY.md` for AI agent-assisted deployment
+- Added Docker mirror reminder (`https://docker.1ms.run`) for China users
+
 ### Frontend Table System Overhaul
 
 **Adaptive Table Width System**:

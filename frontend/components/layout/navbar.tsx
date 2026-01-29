@@ -113,7 +113,7 @@ export function Navbar() {
 
       {/* Mobile Navigation Drawer */}
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <SheetContent side="left" className="w-[280px] bg-white dark:bg-zinc-900 p-0">
+        <SheetContent side="right" className="w-[280px] bg-white dark:bg-zinc-900 p-0">
           <SheetHeader className="border-b-2 border-black dark:border-white p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-red-600 flex items-center justify-center border-2 border-black text-white font-black text-xl dark:border-white">

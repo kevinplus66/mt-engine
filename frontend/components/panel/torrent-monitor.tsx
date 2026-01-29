@@ -14,12 +14,12 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Trash2 } from "lucide-react";
+import { Trash2, Pause, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePanelTorrents } from "@/hooks/use-panel-torrents";
 import { useRef, useEffect, useState } from "react";
 import { autoAnimate } from "@formkit/auto-animate";
-import { deletePanelTorrents } from "@/lib/api";
+import { deletePanelTorrents, pausePanelTorrents, resumePanelTorrents } from "@/lib/api";
 import { toast } from "sonner";
 import { useIsMobile, useIsTablet } from "@/hooks/use-media-query";
 import {
@@ -43,6 +43,7 @@ export function TorrentMonitor() {
   const [deleteHash, setDeleteHash] = useState<string | null>(null);
   const [deleteName, setDeleteName] = useState<string>("");
   const [isDeleting, setIsDeleting] = useState(false);
+  const [processingHashes, setProcessingHashes] = useState<Set<string>>(new Set());
 
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
@@ -58,7 +59,7 @@ export function TorrentMonitor() {
   }, []);
 
   const getUserStatusBadge = (status: string) => {
-    // 后端返回的状态: downloading, uploading, stalledDL, pausedDL, etc.
+    // 后端返回的状态: downloading, uploading, stalledDL, pausedDL, stoppedDL, etc.
     switch (status) {
       case "uploading":
       case "seeding":
@@ -82,6 +83,8 @@ export function TorrentMonitor() {
         );
       case "pausedDL":
       case "pausedUP":
+      case "stoppedDL":
+      case "stoppedUP":
         return (
           <Badge variant="outline" className="text-gray-600 border-gray-600">
             已暂停
@@ -118,6 +121,71 @@ export function TorrentMonitor() {
     }
   };
 
+  const handlePauseClick = async (hash: string, name: string) => {
+    setProcessingHashes(prev => new Set(prev).add(hash));
+    try {
+      const result = await pausePanelTorrents({ hashes: [hash] });
+      if (result.success) {
+        toast.success(`已暂停: ${name}`);
+        // 只更新这一条种子的状态，不重新请求整个列表
+        mutate(
+          torrents?.map(t =>
+            (t.hash || t.id) === hash
+              ? { ...t, status: 'stoppedUP' } as any
+              : t
+          ),
+          { revalidate: false }
+        );
+      } else {
+        toast.error(result.error || "暂停失败");
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "暂停失败");
+    } finally {
+      setProcessingHashes(prev => {
+        const next = new Set(prev);
+        next.delete(hash);
+        return next;
+      });
+    }
+  };
+
+  const handleResumeClick = async (hash: string, name: string) => {
+    setProcessingHashes(prev => new Set(prev).add(hash));
+    try {
+      const result = await resumePanelTorrents({ hashes: [hash] });
+      if (result.success) {
+        toast.success(`已恢复: ${name}`);
+        // 只更新这一条种子的状态，不重新请求整个列表
+        mutate(
+          torrents?.map(t =>
+            (t.hash || t.id) === hash
+              ? { ...t, status: 'uploading' } as any
+              : t
+          ),
+          { revalidate: false }
+        );
+      } else {
+        toast.error(result.error || "恢复失败");
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "恢复失败");
+    } finally {
+      setProcessingHashes(prev => {
+        const next = new Set(prev);
+        next.delete(hash);
+        return next;
+      });
+    }
+  };
+
+  const isPaused = (status: string) => {
+    // qBittorrent v4.x: pausedDL, pausedUP
+    // qBittorrent v5.0.0+: stoppedDL, stoppedUP
+    return status === "pausedDL" || status === "pausedUP" ||
+           status === "stoppedDL" || status === "stoppedUP";
+  };
+
   const getStatusFromState = (state: string): StatusFilter => {
     if (state.includes("downloading") || state === "stalledDL" || state === "metaDL") {
       return "downloading";
@@ -125,7 +193,8 @@ export function TorrentMonitor() {
     if (state.includes("uploading") || state === "stalledUP" || state === "seeding") {
       return "seeding";
     }
-    if (state.includes("paused")) {
+    // qBittorrent v4.x: paused, v5.0.0+: stopped
+    if (state.includes("paused") || state.includes("stopped")) {
       return "paused";
     }
     return "all";
@@ -138,11 +207,33 @@ export function TorrentMonitor() {
   });
 
   const formatBytes = (bytes: number) => {
-    if (bytes === 0) return "0 B";
+    if (!bytes || bytes === 0) return "0 B";
     const k = 1024;
     const sizes = ["B", "KB", "MB", "GB", "TB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
+  };
+
+  const getSizeDisplay = (torrent: any) => {
+    // 直接使用 size (bytes) 来格式化，确保有单位
+    const sizeBytes = torrent.size;
+    if (sizeBytes && sizeBytes > 0) {
+      return formatBytes(sizeBytes);
+    }
+
+    // 如果没有 size，尝试使用 size_display
+    const sizeDisplay = torrent.size_display;
+    if (sizeDisplay) {
+      const sizeStr = String(sizeDisplay);
+      // 如果已经有单位，直接返回
+      if (/[A-Za-z]/.test(sizeStr)) {
+        return sizeStr;
+      }
+      // 否则添加 GB 单位
+      return `${sizeStr} GB`;
+    }
+
+    return "0 B";
   };
 
   if (error) {
@@ -226,10 +317,10 @@ export function TorrentMonitor() {
                     <div className="w-full space-y-1">
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-semibold font-mono">
-                          {Math.round(((torrent as any).progress || 0) * 100).toFixed(1)}%
+                          {Math.round(((torrent as any).progress || 0) * 100)}%
                         </span>
                         <span className="text-muted-foreground">
-                          {torrent.size_display || formatBytes(torrent.size)}
+                          {getSizeDisplay(torrent)}
                         </span>
                       </div>
                       <div className="w-full h-3 bg-white dark:bg-zinc-900 border-2 border-black dark:border-white overflow-hidden">
@@ -237,7 +328,7 @@ export function TorrentMonitor() {
                           className={`h-full transition-all duration-300 ${
                             ((torrent as any).progress || 0) >= 1
                               ? 'bg-green-500'
-                              : ((torrent as any).status === 'pausedDL' || (torrent as any).status === 'pausedUP')
+                              : isPaused((torrent as any).status)
                               ? 'bg-gray-400'
                               : 'bg-blue-500'
                           }`}
@@ -256,13 +347,36 @@ export function TorrentMonitor() {
                         </Badge>
                       ))}
                     </div>
-                    <div className="flex gap-1">
+                    <div className="flex gap-2">
                       <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 text-green-600 border-green-600">
                         ↑{(torrent as any).seeders || 0}
                       </Badge>
                       <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 text-blue-600 border-blue-600">
                         ↓{(torrent as any).leechers || 0}
                       </Badge>
+                      {isPaused((torrent as any).status) ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleResumeClick((torrent as any).hash || torrent.id, torrent.name)}
+                          disabled={processingHashes.has((torrent as any).hash || torrent.id)}
+                          className="h-6 w-6 p-0 ml-4"
+                          aria-label="恢复种子"
+                        >
+                          <Play className="h-3 w-3" />
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handlePauseClick((torrent as any).hash || torrent.id, torrent.name)}
+                          disabled={processingHashes.has((torrent as any).hash || torrent.id)}
+                          className="h-6 w-6 p-0 ml-4"
+                          aria-label="暂停种子"
+                        >
+                          <Pause className="h-3 w-3" />
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="outline"
@@ -335,12 +449,12 @@ export function TorrentMonitor() {
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="table-fixed w-full">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="min-w-[200px]">名称</TableHead>
-                    <TableHead className="w-[150px]">进度</TableHead>
-                    <TableHead className="w-[80px] text-right">操作</TableHead>
+                    <TableHead className="w-[45%]">名称</TableHead>
+                    <TableHead className="w-[35%]">进度</TableHead>
+                    <TableHead className="w-[20%] text-right">操作</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody ref={tableBodyRef}>
@@ -355,7 +469,7 @@ export function TorrentMonitor() {
                         <div className="w-full space-y-1">
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-semibold font-mono">
-                              {Math.round(((torrent as any).progress || 0) * 100).toFixed(1)}%
+                              {Math.round(((torrent as any).progress || 0) * 100)}%
                             </span>
                           </div>
                           <div className="w-full h-3 bg-white dark:bg-zinc-900 border-2 border-black dark:border-white overflow-hidden">
@@ -373,16 +487,41 @@ export function TorrentMonitor() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDeleteClick((torrent as any).hash || torrent.id, torrent.name)}
-                          disabled={isDeleting}
-                          className="h-9"
-                          aria-label="删除种子"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-2 justify-end">
+                          {isPaused((torrent as any).status) ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleResumeClick((torrent as any).hash || torrent.id, torrent.name)}
+                              disabled={processingHashes.has((torrent as any).hash || torrent.id)}
+                              className="h-9"
+                              aria-label="恢复种子"
+                            >
+                              <Play className="h-4 w-4" />
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handlePauseClick((torrent as any).hash || torrent.id, torrent.name)}
+                              disabled={processingHashes.has((torrent as any).hash || torrent.id)}
+                              className="h-9"
+                              aria-label="暂停种子"
+                            >
+                              <Pause className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeleteClick((torrent as any).hash || torrent.id, torrent.name)}
+                            disabled={isDeleting}
+                            className="h-9"
+                            aria-label="删除种子"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -451,8 +590,8 @@ export function TorrentMonitor() {
                 <TableHead className="min-w-[200px]">名称</TableHead>
                 <TableHead className="w-[100px]">标签</TableHead>
                 <TableHead className="w-[120px]">做种/下载</TableHead>
-                <TableHead className="w-[180px]">进度</TableHead>
-                <TableHead className="w-[80px] text-right">操作</TableHead>
+                <TableHead className="w-[220px] pl-6">进度</TableHead>
+                <TableHead className="w-[100px] text-right">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody ref={tableBodyRef}>
@@ -484,14 +623,14 @@ export function TorrentMonitor() {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="pl-6">
                     <div className="w-full space-y-1">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-semibold font-mono">
-                          {Math.round(((torrent as any).progress || 0) * 100).toFixed(1)}%
+                          {Math.round(((torrent as any).progress || 0) * 100)}%
                         </span>
-                        <span className="text-xs text-muted-foreground">
-                          {torrent.size_display || formatBytes(torrent.size)}
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          {getSizeDisplay(torrent)}
                         </span>
                       </div>
                       <div className="w-full h-3 bg-white dark:bg-zinc-900 border-2 border-black dark:border-white overflow-hidden">
@@ -499,7 +638,7 @@ export function TorrentMonitor() {
                           className={`h-full transition-all duration-300 ${
                             ((torrent as any).progress || 0) >= 1
                               ? 'bg-green-500'
-                              : ((torrent as any).status === 'pausedDL' || (torrent as any).status === 'pausedUP')
+                              : isPaused((torrent as any).status)
                               ? 'bg-gray-400'
                               : 'bg-blue-500'
                           }`}
@@ -509,15 +648,38 @@ export function TorrentMonitor() {
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleDeleteClick((torrent as any).hash || torrent.id, torrent.name)}
-                      disabled={isDeleting}
-                      aria-label="删除种子"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-2 justify-end">
+                      {isPaused((torrent as any).status) ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleResumeClick((torrent as any).hash || torrent.id, torrent.name)}
+                          disabled={processingHashes.has((torrent as any).hash || torrent.id)}
+                          aria-label="恢复种子"
+                        >
+                          <Play className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handlePauseClick((torrent as any).hash || torrent.id, torrent.name)}
+                          disabled={processingHashes.has((torrent as any).hash || torrent.id)}
+                          aria-label="暂停种子"
+                        >
+                          <Pause className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDeleteClick((torrent as any).hash || torrent.id, torrent.name)}
+                        disabled={isDeleting}
+                        aria-label="删除种子"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

@@ -8,7 +8,6 @@ import { RefreshCw, Search } from "lucide-react";
 import { StatusTabs } from "@/components/sonar/status-tabs";
 import { FilterPills, type SizeFilter, type SeederFilter } from "@/components/sonar/filter-pills";
 import { DropdownFilters, type RemainingFilter, type ModeFilter } from "@/components/sonar/dropdown-filters";
-import { AutoDeleteToggle } from "@/components/sonar/auto-delete-toggle";
 import { TorrentList } from "@/components/sonar/torrent-list";
 import { PageTransition } from "@/components/common/page-transition";
 import { useSonarTorrents } from "@/hooks/use-sonar-torrents";
@@ -97,10 +96,10 @@ export default function SonarPage() {
         <div className="mx-auto max-w-7xl space-y-6">
         {/* 标题 */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">SONAR</h1>
-            <p className="text-muted-foreground">免费种子监控</p>
-          </div>
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+            <span>SONAR</span>
+            <span className="text-base font-normal text-muted-foreground">· 免费种子监控</span>
+          </h1>
           <Button
             onClick={handleRefresh}
             disabled={isRefreshing || isLoading}
@@ -136,9 +135,8 @@ export default function SonarPage() {
           </div>
 
           {/* 第二行：状态标签 */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <StatusTabs status={statusFilter} onStatusChange={setStatusFilter} />
-            <AutoDeleteToggle />
           </div>
 
           {/* 第三行：快速过滤按钮 */}

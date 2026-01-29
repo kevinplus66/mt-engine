@@ -63,10 +63,10 @@ export default function RadarPage() {
       <div className="min-h-screen bg-background p-4 md:p-6">
         <div className="mx-auto max-w-7xl space-y-6">
         {/* 标题 */}
-        <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight">RADAR</h1>
-          <p className="text-muted-foreground">种子搜索引擎</p>
-        </div>
+        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+          <span>RADAR</span>
+          <span className="text-base font-normal text-muted-foreground">· 种子搜索引擎</span>
+        </h1>
 
         {/* 搜索和筛选卡片 */}
         <Card className="p-6 space-y-4">

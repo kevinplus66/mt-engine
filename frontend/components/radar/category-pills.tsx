@@ -59,7 +59,7 @@ export function CategoryPills({
 
   return (
     <div className="space-y-2">
-      <div className="text-sm text-muted-foreground font-mono uppercase">分类筛选</div>
+      <div className="text-base text-muted-foreground font-mono uppercase">分类筛选</div>
       <div className="flex flex-wrap gap-2">
         {categories.map((category) => {
           const selected = isSelected(category.id);
@@ -67,7 +67,7 @@ export function CategoryPills({
             <Badge
               key={String(category.id)}
               variant={selected ? "default" : "outline"}
-              className="cursor-pointer hover:translate-y-[-1px] transition-transform"
+              className="cursor-pointer hover:translate-y-[-1px] transition-transform text-sm px-3 py-1"
               onClick={() => handleToggle(category.id)}
             >
               {category.name_zh}

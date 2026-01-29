@@ -97,6 +97,7 @@ import type {
   PanelStats,
   AutoDeleteStatus,
   Torrent,
+  FilterOptions,
 } from "./types";
 
 /**
@@ -105,7 +106,7 @@ import type {
 export async function searchTorrents(
   request: SearchRequest
 ): Promise<SearchResponse> {
-  return api.post<SearchResponse>("/radar", request);
+  return api.post<SearchResponse>("/api/radar", request);
 }
 
 /**
@@ -114,21 +115,28 @@ export async function searchTorrents(
 export async function downloadTorrent(
   request: DownloadRequest
 ): Promise<DownloadResponse> {
-  return api.post<DownloadResponse>("/radar/download", request);
+  return api.post<DownloadResponse>("/api/radar/download", request);
+}
+
+/**
+ * RADAR - 获取筛选选项
+ */
+export async function getFilterOptions(): Promise<FilterOptions> {
+  return api.get<FilterOptions>("/api/filter-options");
 }
 
 /**
  * SONAR - 获取免费种子列表
  */
 export async function getFreeTorrents(): Promise<Torrent[]> {
-  return api.get<Torrent[]>("/torrents");
+  return api.get<Torrent[]>("/api/torrents");
 }
 
 /**
  * SONAR - 触发手动刷新
  */
 export async function refreshTorrents(): Promise<ApiResponse> {
-  return api.post<ApiResponse>("/refresh");
+  return api.post<ApiResponse>("/api/refresh");
 }
 
 /**
@@ -137,7 +145,7 @@ export async function refreshTorrents(): Promise<ApiResponse> {
 export async function downloadSonarTorrent(
   request: DownloadRequest
 ): Promise<DownloadResponse> {
-  return api.post<DownloadResponse>("/download", request);
+  return api.post<DownloadResponse>("/api/download", request);
 }
 
 /**
@@ -146,21 +154,21 @@ export async function downloadSonarTorrent(
 export async function toggleAutoDelete(
   enabled: boolean
 ): Promise<AutoDeleteStatus> {
-  return api.post<AutoDeleteStatus>("/auto-delete/toggle", { enabled });
+  return api.post<AutoDeleteStatus>("/api/auto-delete/toggle", { enabled });
 }
 
 /**
  * SONAR - 获取自动删除状态
  */
 export async function getAutoDeleteStatus(): Promise<AutoDeleteStatus> {
-  return api.get<AutoDeleteStatus>("/auto-delete/status");
+  return api.get<AutoDeleteStatus>("/api/auto-delete/status");
 }
 
 /**
  * PILOT - 获取配置
  */
 export async function getPilotConfig(): Promise<AutomationConfig> {
-  return api.get<AutomationConfig>("/pilot/config");
+  return api.get<AutomationConfig>("/api/pilot/config");
 }
 
 /**
@@ -169,56 +177,63 @@ export async function getPilotConfig(): Promise<AutomationConfig> {
 export async function savePilotConfig(
   config: AutomationConfig
 ): Promise<ApiResponse> {
-  return api.post<ApiResponse>("/pilot/config", config);
+  return api.post<ApiResponse>("/api/pilot/config", config);
 }
 
 /**
  * PILOT - 获取统计数据
  */
 export async function getPilotStats(): Promise<PilotStats> {
-  return api.get<PilotStats>("/pilot/stats");
+  return api.get<PilotStats>("/api/pilot/stats");
 }
 
 /**
  * PILOT - 模拟运行
  */
 export async function dryRunPilot(): Promise<any> {
-  return api.get("/pilot/dry-run");
+  return api.get("/api/pilot/dry-run");
 }
 
 /**
  * PILOT - 手动触发下载
  */
 export async function triggerDownload(): Promise<ApiResponse> {
-  return api.post<ApiResponse>("/pilot/run-download");
+  return api.post<ApiResponse>("/api/pilot/run-download");
 }
 
 /**
  * PILOT - 手动触发清理
  */
 export async function triggerCleanup(): Promise<ApiResponse> {
-  return api.post<ApiResponse>("/pilot/run-cleanup");
+  return api.post<ApiResponse>("/api/pilot/run-cleanup");
 }
 
 /**
  * PANEL - 获取统计数据
  */
 export async function getPanelStats(): Promise<PanelStats> {
-  return api.get<PanelStats>("/panel/stats");
+  return api.get<PanelStats>("/api/panel/stats");
 }
 
 /**
  * PANEL - 获取历史数据
  */
 export async function getPanelHistory(range: string): Promise<unknown> {
-  return api.get(`/panel/history?range=${range}`);
+  return api.get(`/api/panel/history?range=${range}`);
+}
+
+/**
+ * PANEL - 获取分享率历史数据
+ */
+export async function getPanelShareRatio(range: string): Promise<unknown> {
+  return api.get(`/api/panel/share-ratio?range=${range}`);
 }
 
 /**
  * PANEL - 获取种子列表
  */
 export async function getPanelTorrents(): Promise<Torrent[]> {
-  return api.get<Torrent[]>("/panel/torrents");
+  return api.get<Torrent[]>("/api/panel/torrents");
 }
 
 /**
@@ -228,5 +243,23 @@ export async function deletePanelTorrents(data: {
   hashes: string[];
   delete_files: boolean;
 }): Promise<ApiResponse> {
-  return api.post<ApiResponse>("/panel/torrents/delete", data);
+  return api.post<ApiResponse>("/api/panel/torrents/delete", data);
+}
+
+/**
+ * PANEL - 暂停种子
+ */
+export async function pausePanelTorrents(data: {
+  hashes: string[];
+}): Promise<ApiResponse> {
+  return api.post<ApiResponse>("/api/panel/torrents/pause", data);
+}
+
+/**
+ * PANEL - 恢复种子
+ */
+export async function resumePanelTorrents(data: {
+  hashes: string[];
+}): Promise<ApiResponse> {
+  return api.post<ApiResponse>("/api/panel/torrents/resume", data);
 }

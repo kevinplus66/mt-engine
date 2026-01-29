@@ -28,6 +28,7 @@ export interface QualityMetadata {
   video_codec?: string;
   audio_codec?: string;
   source?: string;
+  labels_new?: string[];
 }
 
 export interface Torrent {
@@ -188,4 +189,13 @@ export interface FilterOption {
   id: string;
   name_zh: string;
   name_en: string;
+}
+
+export interface FilterOptions {
+  categories: CategoryOption[];
+  standards: FilterOption[];
+  videoCodecs: FilterOption[];
+  audioCodecs: FilterOption[];
+  sources: FilterOption[];
+  countries: FilterOption[];
 }

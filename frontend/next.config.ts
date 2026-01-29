@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
 
+const isDev = process.env.NODE_ENV !== "production";
+
 const nextConfig: NextConfig = {
-  // 静态导出模式 - 构建为纯静态 HTML/CSS/JS
-  output: "export",
+  // 静态导出模式 - 仅在生产构建时使用
+  ...(isDev ? {} : { output: "export" }),
 
   // 禁用图片优化（静态导出必需）
   images: {
@@ -12,7 +14,20 @@ const nextConfig: NextConfig = {
   // 生成带尾部斜杠的路径（/radar/ 而非 /radar）
   trailingSlash: true,
 
-  // 移除 rewrites - 静态导出不支持，且不需要（同源部署）
+  // 开发模式：代理 API 请求到后端（绕过 CORS）
+  // 生产模式：静态导出不支持 rewrites（同源部署）
+  ...(isDev
+    ? {
+        async rewrites() {
+          return [
+            {
+              source: "/api/:path*",
+              destination: `${process.env.NEXT_PUBLIC_API_URL || "http://192.168.0.38:5001"}/api/:path*`,
+            },
+          ];
+        },
+      }
+    : {}),
 };
 
 export default nextConfig;

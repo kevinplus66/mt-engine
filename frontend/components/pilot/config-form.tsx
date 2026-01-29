@@ -60,22 +60,22 @@ export function ConfigForm({ config, onConfigChange }: ConfigFormProps) {
     <Card>
       <Accordion type="single" collapsible defaultValue="download-settings" className="w-full">
         {/* Section 1: Download Settings */}
-        <AccordionItem value="download-settings">
-          <AccordionTrigger>
-            <div className="flex items-center justify-between w-full pr-4">
+        <AccordionItem value="download-settings" className="relative">
+          <div className="flex items-center justify-between py-4 px-4">
+            <AccordionTrigger className="flex-1 hover:no-underline">
               <span>下载设置</span>
-              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                <Switch
-                  id="download-enabled-trigger"
-                  checked={config.download.enabled}
-                  onCheckedChange={(checked) => updateDownload("enabled", checked)}
-                />
-                <Label htmlFor="download-enabled-trigger" className="text-xs cursor-pointer">
-                  {config.download.enabled ? "已启用" : "已禁用"}
-                </Label>
-              </div>
+            </AccordionTrigger>
+            <div className="flex items-center gap-2 ml-4">
+              <Switch
+                id="download-enabled-trigger"
+                checked={config.download.enabled}
+                onCheckedChange={(checked) => updateDownload("enabled", checked)}
+              />
+              <Label htmlFor="download-enabled-trigger" className="text-xs cursor-pointer">
+                {config.download.enabled ? "已启用" : "已禁用"}
+              </Label>
             </div>
-          </AccordionTrigger>
+          </div>
           <AccordionContent>
             <div className="space-y-6">
               {/* Basic Config */}
@@ -147,8 +147,12 @@ export function ConfigForm({ config, onConfigChange }: ConfigFormProps) {
         </AccordionItem>
 
         {/* Section 2: Download Rules */}
-        <AccordionItem value="download-rules">
-          <AccordionTrigger>筛选规则</AccordionTrigger>
+        <AccordionItem value="download-rules" className="relative">
+          <div className="flex items-center justify-between py-4 px-4">
+            <AccordionTrigger className="flex-1 hover:no-underline">
+              <span>筛选规则</span>
+            </AccordionTrigger>
+          </div>
           <AccordionContent>
             <div className="space-y-6">
               {/* Size & Seeders */}
@@ -338,22 +342,22 @@ export function ConfigForm({ config, onConfigChange }: ConfigFormProps) {
         </AccordionItem>
 
         {/* Section 3: Cleanup Rules */}
-        <AccordionItem value="cleanup-rules">
-          <AccordionTrigger>
-            <div className="flex items-center justify-between w-full pr-4">
+        <AccordionItem value="cleanup-rules" className="relative">
+          <div className="flex items-center justify-between py-4 px-4">
+            <AccordionTrigger className="flex-1 hover:no-underline">
               <span>清理规则</span>
-              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                <Switch
-                  id="cleanup-enabled-trigger"
-                  checked={config.cleanup.enabled}
-                  onCheckedChange={(checked) => updateCleanup("enabled", checked)}
-                />
-                <Label htmlFor="cleanup-enabled-trigger" className="text-xs cursor-pointer">
-                  {config.cleanup.enabled ? "已启用" : "已禁用"}
-                </Label>
-              </div>
+            </AccordionTrigger>
+            <div className="flex items-center gap-2 ml-4">
+              <Switch
+                id="cleanup-enabled-trigger"
+                checked={config.cleanup.enabled}
+                onCheckedChange={(checked) => updateCleanup("enabled", checked)}
+              />
+              <Label htmlFor="cleanup-enabled-trigger" className="text-xs cursor-pointer">
+                {config.cleanup.enabled ? "已启用" : "已禁用"}
+              </Label>
             </div>
-          </AccordionTrigger>
+          </div>
           <AccordionContent>
             <div className="space-y-6">
               {/* Basic Cleanup */}
@@ -504,8 +508,12 @@ export function ConfigForm({ config, onConfigChange }: ConfigFormProps) {
         </AccordionItem>
 
         {/* Section 4: Notifications */}
-        <AccordionItem value="notifications">
-          <AccordionTrigger>通知设置</AccordionTrigger>
+        <AccordionItem value="notifications" className="relative">
+          <div className="flex items-center justify-between py-4 px-4">
+            <AccordionTrigger className="flex-1 hover:no-underline">
+              <span>通知设置</span>
+            </AccordionTrigger>
+          </div>
           <AccordionContent>
             <div className="flex items-center space-x-2">
               <Switch
@@ -515,7 +523,7 @@ export function ConfigForm({ config, onConfigChange }: ConfigFormProps) {
                   onConfigChange({ ...config, enable_notification: checked })
                 }
               />
-              <Label htmlFor="notification-enabled">启用通知</Label>
+              <Label htmlFor="notification-enabled">微信通知（关闭功能未开发）</Label>
             </div>
           </AccordionContent>
         </AccordionItem>

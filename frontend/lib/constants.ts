@@ -8,7 +8,11 @@ import type { CategoryOption, FilterOption } from "./types";
 // ============ 基础配置 ============
 
 export const CONFIG = {
-  API_BASE: "/api",
+  // 开发模式：使用空字符串（相对路径），触发 next.config.ts 的 proxy rewrites
+  // 生产模式：使用完整 URL（同源部署）
+  API_BASE: process.env.NODE_ENV === "development"
+    ? ""
+    : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001"),
   HAPTIC_DURATION: 30,
   TOAST_DURATION: 3000,
   SCROLL_THRESHOLD: 300,

@@ -187,25 +187,28 @@ async def qb_pause_torrents(sid: str, hashes: List[str]) -> Dict:
         Dict: {"success": bool, "paused_count": int, "failed": List[str]}
     """
     if not sid or not hashes:
-        return {"success": False, "paused_count": 0, "failed": hashes}
+        return {"success": False, "paused_count": 0, "failed": hashes, "error": "无效的会话或哈希"}
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.post(
-                f"{QBITTORRENT_URL.rstrip('/')}/api/v2/torrents/pause",
+                f"{QBITTORRENT_URL.rstrip('/')}/api/v2/torrents/stop",
                 data={"hashes": "|".join(hashes)},
                 cookies={"SID": sid},
             )
 
             if response.status_code == 200:
-                logger.info(f"批量暂停 {len(hashes)} 个种子成功")
+                # qBittorrent API 返回 200 表示命令已接受
+                logger.info(f"批量暂停成功: {len(hashes)} 个种子")
                 return {"success": True, "paused_count": len(hashes), "failed": []}
             else:
-                logger.error(f"批量暂停失败: HTTP {response.status_code}")
-                return {"success": False, "paused_count": 0, "failed": hashes}
+                error_msg = f"qBittorrent API 错误: HTTP {response.status_code}"
+                logger.error(f"批量暂停失败: {error_msg}")
+                return {"success": False, "paused_count": 0, "failed": hashes, "error": error_msg}
     except Exception as e:
+        error_msg = f"暂停异常: {str(e)}"
         logger.error(f"批量暂停异常: {e}")
-        return {"success": False, "paused_count": 0, "failed": hashes}
+        return {"success": False, "paused_count": 0, "failed": hashes, "error": error_msg}
 
 
 async def qb_resume_torrents(sid: str, hashes: List[str]) -> Dict:
@@ -220,25 +223,28 @@ async def qb_resume_torrents(sid: str, hashes: List[str]) -> Dict:
         Dict: {"success": bool, "resumed_count": int, "failed": List[str]}
     """
     if not sid or not hashes:
-        return {"success": False, "resumed_count": 0, "failed": hashes}
+        return {"success": False, "resumed_count": 0, "failed": hashes, "error": "无效的会话或哈希"}
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.post(
-                f"{QBITTORRENT_URL.rstrip('/')}/api/v2/torrents/resume",
+                f"{QBITTORRENT_URL.rstrip('/')}/api/v2/torrents/start",
                 data={"hashes": "|".join(hashes)},
                 cookies={"SID": sid},
             )
 
             if response.status_code == 200:
-                logger.info(f"批量恢复 {len(hashes)} 个种子成功")
+                # qBittorrent API 返回 200 表示命令已接受
+                logger.info(f"批量恢复成功: {len(hashes)} 个种子")
                 return {"success": True, "resumed_count": len(hashes), "failed": []}
             else:
-                logger.error(f"批量恢复失败: HTTP {response.status_code}")
-                return {"success": False, "resumed_count": 0, "failed": hashes}
+                error_msg = f"qBittorrent API 错误: HTTP {response.status_code}"
+                logger.error(f"批量恢复失败: {error_msg}")
+                return {"success": False, "resumed_count": 0, "failed": hashes, "error": error_msg}
     except Exception as e:
+        error_msg = f"恢复异常: {str(e)}"
         logger.error(f"批量恢复异常: {e}")
-        return {"success": False, "resumed_count": 0, "failed": hashes}
+        return {"success": False, "resumed_count": 0, "failed": hashes, "error": error_msg}
 
 
 async def qb_delete_torrents(sid: str, hashes: List[str], delete_files: bool = True) -> Dict:
@@ -844,3 +850,67 @@ async def qb_get_mteam_stats(sid: str) -> Dict:
         'upload_speed': upload_speed,
         'download_speed': download_speed
     }
+
+
+async def qb_get_existing_mteam_ids(sid: str) -> set:
+    """
+    批量获取 qBittorrent 中所有种子的 M-Team ID
+
+    用于 PILOT 下载前检查，避免重复添加已存在的种子。
+
+    Args:
+        sid: qBittorrent 会话 ID
+
+    Returns:
+        set: 已存在种子的 M-Team ID 集合
+    """
+    existing_ids = set()
+
+    if not sid:
+        return existing_ids
+
+    try:
+        torrents = await qb_get_torrents(sid)
+
+        for torrent in torrents:
+            torrent_hash = torrent.get("hash")
+            if not torrent_hash:
+                continue
+
+            # 获取 tracker 信息
+            trackers = await qb_get_torrent_trackers(torrent_hash, sid)
+
+            # 从 trackers 中提取 M-Team ID
+            for tracker in trackers:
+                tracker_url = tracker.get("url", "")
+                if "m-team" not in tracker_url.lower():
+                    continue
+
+                # 方式1: 直接匹配 torrent_id=xxx
+                match = re.search(r'torrent_id=(\d+)', tracker_url)
+                if match:
+                    mteam_id = match.group(1)
+                    existing_ids.add(mteam_id)
+                    break
+
+                # 方式2: 解析 base64 编码的 credential 参数
+                try:
+                    if "credential=" in tracker_url:
+                        credential_match = re.search(r'credential=([A-Za-z0-9+/=]+)', tracker_url)
+                        if credential_match:
+                            credential_b64 = credential_match.group(1)
+                            decoded = base64.b64decode(credential_b64).decode('utf-8', errors='ignore')
+                            tid_match = re.search(r'tid=(\d+)', decoded)
+                            if tid_match:
+                                mteam_id = tid_match.group(1)
+                                existing_ids.add(mteam_id)
+                                break
+                except Exception:
+                    continue
+
+        logger.debug(f"找到 {len(existing_ids)} 个已存在的 M-Team 种子")
+
+    except Exception as e:
+        logger.error(f"获取已存在 M-Team ID 失败: {e}")
+
+    return existing_ids

@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { AutoDeleteToggle } from "@/components/pilot/auto-delete-toggle";
 import type { PilotStats, AutomationConfig } from "@/lib/types";
 
 interface ControlBarProps {
@@ -60,6 +61,7 @@ export function ControlBar({
 
           {/* 右侧：Toggle 开关 */}
           <div className="flex flex-wrap items-center gap-4">
+            <AutoDeleteToggle />
             <div className="flex items-center space-x-2">
               <Switch
                 id="download-enabled"
