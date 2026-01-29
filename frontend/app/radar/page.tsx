@@ -14,6 +14,8 @@ import { RADAR_SORT_FIELD_MAP } from "@/lib/sort-utils";
 import type { SearchMode, Torrent } from "@/lib/types";
 import { Telescope } from "lucide-react";
 
+type RadarSortField = "name" | "size" | "seeders" | "time";
+
 export default function RadarPage() {
   const [keyword, setKeyword] = useState("");
   const [mode, setMode] = useState<SearchMode>("normal");
@@ -35,7 +37,7 @@ export default function RadarPage() {
     sortDirection,
     handleSort,
     getSortDirection,
-  } = useSortable({
+  } = useSortable<RadarSortField>({
     defaultField: "time",
     defaultDirection: "desc",
   });
@@ -126,11 +128,11 @@ export default function RadarPage() {
             sortField={sortField}
             sortDirection={sortDirection}
             onSort={(field) => {
-              handleSort(field);
+              handleSort(field as RadarSortField);
               // Re-trigger search with new sort
               setTimeout(handleSearch, 0);
             }}
-            getSortDirection={getSortDirection}
+            getSortDirection={(field) => getSortDirection(field as RadarSortField)}
           />
         )}
 

@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import type { Torrent } from "@/lib/types";
 
 type UserStatus = "all" | "seeding" | "leeching" | "none";
+type SonarSortField = "name" | "size" | "seeders" | "remaining";
 
 export default function SonarPage() {
   const { data: torrents, isLoading, error, mutate } = useSonarTorrents();
@@ -35,7 +36,7 @@ export default function SonarPage() {
     sortDirection,
     handleSort,
     getSortDirection,
-  } = useSortable({
+  } = useSortable<SonarSortField>({
     defaultField: "remaining",
     defaultDirection: "asc", // ascending = shortest remaining time first
   });
@@ -204,8 +205,8 @@ export default function SonarPage() {
         {!isLoading && !error && sortedTorrents && (
           <TorrentList
             torrents={sortedTorrents}
-            onSort={handleSort}
-            getSortDirection={getSortDirection}
+            onSort={(field) => handleSort(field as SonarSortField)}
+            getSortDirection={(field) => getSortDirection(field as SonarSortField)}
           />
         )}
 

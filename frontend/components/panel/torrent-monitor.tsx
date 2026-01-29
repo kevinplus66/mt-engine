@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 type StatusFilter = "all" | "downloading" | "seeding" | "paused";
+type PanelSortField = "name" | "progress";
 
 export function TorrentMonitor() {
   const { data: torrents, isLoading, error, mutate } = usePanelTorrents();
@@ -67,7 +68,7 @@ export function TorrentMonitor() {
     sortDirection,
     handleSort,
     getSortDirection,
-  } = useSortable({
+  } = useSortable<PanelSortField>({
     defaultField: "name",
     defaultDirection: "asc",
   });
@@ -475,7 +476,7 @@ export function TorrentMonitor() {
                                 <SortableTableHead
                                   sortKey="name"
                                   sortDirection={getSortDirection("name")}
-                                  onSort={handleSort}
+                                  onSort={(key) => handleSort(key as PanelSortField)}
                                   className="w-auto min-w-[300px]"
                                 >
                                   名称
@@ -483,7 +484,7 @@ export function TorrentMonitor() {
                                 <SortableTableHead
                                   sortKey="progress"
                                   sortDirection={getSortDirection("progress")}
-                                  onSort={handleSort}
+                                  onSort={(key) => handleSort(key as PanelSortField)}
                                   className="w-[200px] min-w-[200px] max-w-[200px] sticky right-[90px] bg-black dark:bg-white z-20 shadow-[-1px_0_0_0_rgba(255,255,255,0.1)] dark:shadow-[-1px_0_0_0_rgba(0,0,0,0.1)]"
                                 >
                                   进度
@@ -626,7 +627,7 @@ export function TorrentMonitor() {
                 <SortableTableHead
                   sortKey="name"
                   sortDirection={getSortDirection("name")}
-                  onSort={handleSort}
+                  onSort={(key) => handleSort(key as PanelSortField)}
                   className="min-w-[200px]"
                 >
                   名称
@@ -636,7 +637,7 @@ export function TorrentMonitor() {
                 <SortableTableHead
                   sortKey="progress"
                   sortDirection={getSortDirection("progress")}
-                  onSort={handleSort}
+                  onSort={(key) => handleSort(key as PanelSortField)}
                   className="w-[220px] pl-6"
                 >
                   进度
