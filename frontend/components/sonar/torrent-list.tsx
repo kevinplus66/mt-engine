@@ -27,6 +27,7 @@ import { autoAnimate } from "@formkit/auto-animate";
 import { useIsMobile, useIsTablet } from "@/hooks/use-media-query";
 import { TorrentCard } from "@/components/common/torrent-card";
 import { TorrentDetailSheet } from "@/components/common/torrent-detail-sheet";
+import { NumberTicker } from "@/components/common/number-ticker";
 
 interface TorrentListProps {
   torrents: Torrent[];
@@ -170,6 +171,7 @@ export function TorrentList({
               key={torrent.id}
               torrent={torrent}
               onTap={handleCardTap}
+              showRemaining={true}
             />
           ))}
         </div>
@@ -248,10 +250,10 @@ export function TorrentList({
                   <TableCell className="sticky right-[90px] w-[120px] min-w-[120px] max-w-[120px] bg-white dark:bg-zinc-950 z-10">
                     <div className="flex gap-1">
                       <Badge variant="outline" className="text-[10px] px-1.5 h-5 flex items-center justify-center border-2 text-green-600 border-green-600 whitespace-nowrap">
-                        ↑ {torrent.seeders}
+                        ↑ <NumberTicker value={torrent.seeders} />
                       </Badge>
                       <Badge variant="outline" className="text-[10px] px-1.5 h-5 flex items-center justify-center border-2 text-blue-600 border-blue-600 whitespace-nowrap">
-                        ↓ {torrent.leechers}
+                        ↓ <NumberTicker value={torrent.leechers} />
                       </Badge>
                     </div>
                   </TableCell>
@@ -368,10 +370,10 @@ export function TorrentList({
                 <TableCell>
                   <div className="flex gap-2">
                     <Badge variant="outline" className="text-green-600 h-5 border-2 text-[10px] px-1.5 flex items-center justify-center border-green-600">
-                      ↑ {torrent.seeders}
+                      ↑ <NumberTicker value={torrent.seeders} />
                     </Badge>
                     <Badge variant="outline" className="text-blue-600 h-5 border-2 text-[10px] px-1.5 flex items-center justify-center border-blue-600">
-                      ↓ {torrent.leechers}
+                      ↓ <NumberTicker value={torrent.leechers} />
                     </Badge>
                   </div>
                 </TableCell>
@@ -414,7 +416,7 @@ export function TorrentList({
                       }
                       aria-label="下载种子"
                     >
-                      <Download className="h-4 w-4" />
+                      <Download className="h-4 w-4" aria-hidden="true" />
                     </Button>
                     <Button size="sm" variant="outline" asChild>
                       <a
@@ -423,7 +425,7 @@ export function TorrentList({
                         rel="noopener noreferrer"
                         aria-label="查看详情"
                       >
-                        <ExternalLink className="h-4 w-4" />
+                        <ExternalLink className="h-4 w-4" aria-hidden="true" />
                       </a>
                     </Button>
                   </div>

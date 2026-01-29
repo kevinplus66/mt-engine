@@ -174,6 +174,8 @@ export function TorrentTable({
               key={torrent.id}
               torrent={torrent}
               onTap={handleCardTap}
+              hideDiscount={true}
+              showUploadTime={true}
             />
           ))}
         </div>

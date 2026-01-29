@@ -21,14 +21,14 @@ export function AutoDeleteToggle() {
   };
 
   return (
-    <div className="flex items-center space-x-2">
+    <div className="flex items-center space-x-3">
       <Switch
         id="auto-delete"
         checked={data?.enabled ?? false}
         onCheckedChange={handleToggle}
         disabled={isLoading}
       />
-      <Label htmlFor="auto-delete" className="cursor-pointer text-sm">
+      <Label htmlFor="auto-delete" className="cursor-pointer text-sm font-medium whitespace-nowrap">
         到期删除
       </Label>
     </div>

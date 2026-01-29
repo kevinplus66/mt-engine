@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,19 +17,60 @@ import { sortData, torrentSortExtractors } from "@/lib/sort-utils";
 import { refreshTorrents } from "@/lib/api";
 import { toast } from "sonner";
 import type { Torrent } from "@/lib/types";
+import { useDebounce } from "@/hooks/use-debounce";
 
 type UserStatus = "all" | "seeding" | "leeching" | "none";
 type SonarSortField = "name" | "size" | "seeders" | "remaining";
 
-export default function SonarPage() {
+function SonarPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: torrents, isLoading, error, mutate } = useSonarTorrents();
-  const [statusFilter, setStatusFilter] = useState<UserStatus>("all");
-  const [sizeFilter, setSizeFilter] = useState<SizeFilter>("all");
-  const [seederFilter, setSeederFilter] = useState<SeederFilter>("all");
-  const [remainingFilter, setRemainingFilter] = useState<RemainingFilter>("all");
-  const [modeFilter, setModeFilter] = useState<ModeFilter>("all");
-  const [searchKeyword, setSearchKeyword] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // URL state helpers
+  const createQueryString = useCallback(
+    (name: string, value: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (value === "all" || value === "") {
+        params.delete(name);
+      } else {
+        params.set(name, value);
+      }
+      return params.toString();
+    },
+    [searchParams]
+  );
+
+  const updateParam = (name: string, value: string) => {
+    router.replace(`?${createQueryString(name, value)}`, { scroll: false });
+  };
+
+  // State from URL with defaults
+  const statusFilter = (searchParams.get("status") as UserStatus) || "all";
+  const sizeFilter = (searchParams.get("size") as SizeFilter) || "all";
+  const seederFilter = (searchParams.get("seeders") as SeederFilter) || "all";
+  const remainingFilter = (searchParams.get("remaining") as RemainingFilter) || "all";
+  const modeFilter = (searchParams.get("mode") as ModeFilter) || "all";
+  
+  // Search state handling
+  const searchParam = searchParams.get("q") || "";
+  const [searchValue, setSearchValue] = useState(searchParam);
+  const debouncedSearch = useDebounce(searchValue, 300);
+
+  // Sync debounced search to URL
+  useEffect(() => {
+    if (debouncedSearch !== searchParam) {
+      updateParam("q", debouncedSearch);
+    }
+  }, [debouncedSearch, searchParam, createQueryString]);
+
+  // Keep local input in sync if URL changes externally
+  useEffect(() => {
+    if (searchParam !== searchValue) {
+      setSearchValue(searchParam);
+    }
+  }, [searchParam]);
 
   // Sorting state - default to remaining time ascending (critical first)
   const {
@@ -55,11 +97,8 @@ export default function SonarPage() {
   };
 
   const handleReset = () => {
-    setSearchKeyword("");
-    setSizeFilter("all");
-    setSeederFilter("all");
-    setRemainingFilter("all");
-    setModeFilter("all");
+    router.replace("/sonar", { scroll: false });
+    setSearchValue("");
   };
 
   // 过滤逻辑
@@ -70,7 +109,7 @@ export default function SonarPage() {
     }
 
     // 关键词搜索
-    if (searchKeyword && !torrent.name.toLowerCase().includes(searchKeyword.toLowerCase())) {
+    if (debouncedSearch && !torrent.name.toLowerCase().includes(debouncedSearch.toLowerCase())) {
       return false;
     }
 
@@ -138,14 +177,15 @@ export default function SonarPage() {
           {/* 第一行：搜索栏 */}
           <div className="flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
               <Input
                 type="text"
                 name="search"
                 autoComplete="off"
                 placeholder="搜索种子名称..."
-                value={searchKeyword}
-                onChange={(e) => setSearchKeyword(e.target.value)}
+                aria-label="搜索种子"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
                 className="pl-9"
               />
             </div>
@@ -156,23 +196,26 @@ export default function SonarPage() {
 
           {/* 第二行：状态标签 */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <StatusTabs status={statusFilter} onStatusChange={setStatusFilter} />
+            <StatusTabs 
+              status={statusFilter} 
+              onStatusChange={(val) => updateParam("status", val)} 
+            />
           </div>
 
           {/* 第三行：快速过滤按钮 */}
           <FilterPills
             sizeFilter={sizeFilter}
             seederFilter={seederFilter}
-            onSizeChange={setSizeFilter}
-            onSeederChange={setSeederFilter}
+            onSizeChange={(val) => updateParam("size", val)}
+            onSeederChange={(val) => updateParam("seeders", val)}
           />
 
           {/* 第四行：下拉过滤器 */}
           <DropdownFilters
             remainingFilter={remainingFilter}
             modeFilter={modeFilter}
-            onRemainingChange={setRemainingFilter}
-            onModeChange={setModeFilter}
+            onRemainingChange={(val) => updateParam("remaining", val)}
+            onModeChange={(val) => updateParam("mode", val)}
           />
 
           {/* 统计信息 */}
@@ -228,5 +271,22 @@ export default function SonarPage() {
         </div>
       </div>
     </PageTransition>
+  );
+}
+
+export default function SonarPage() {
+  return (
+    <Suspense fallback={
+      <PageTransition>
+        <div className="container mx-auto p-6 space-y-6">
+          <Card className="p-12 text-center">
+            <div className="text-6xl mb-4">⏳</div>
+            <p className="text-muted-foreground">加载中...</p>
+          </Card>
+        </div>
+      </PageTransition>
+    }>
+      <SonarPageContent />
+    </Suspense>
   );
 }

@@ -80,7 +80,7 @@ export function Navbar() {
               className="md:hidden"
               aria-label="Open menu"
             >
-              <Menu className="h-5 w-5" />
+              <Menu className="h-5 w-5" aria-hidden="true" />
               <span className="sr-only">Open menu</span>
             </Button>
 
@@ -92,8 +92,8 @@ export function Navbar() {
               className="w-10 h-10 hidden md:flex"
               aria-label="Toggle theme"
             >
-              <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" aria-hidden="true" />
+              <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" aria-hidden="true" />
               <span className="sr-only">Toggle theme</span>
             </Button>
 
@@ -104,7 +104,7 @@ export function Navbar() {
               className="w-10 h-10 hidden md:flex"
               aria-label="Settings"
             >
-              <Settings className="h-4 w-4" />
+              <Settings className="h-4 w-4" aria-hidden="true" />
               <span className="sr-only">Settings</span>
             </Button>
           </div>
@@ -141,7 +141,7 @@ export function Navbar() {
                       : "bg-white text-black hover:bg-gray-100 dark:bg-zinc-900 dark:text-white dark:hover:bg-zinc-800"
                   )}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon className="h-5 w-5" aria-hidden="true" />
                   <div className="flex flex-col">
                     <span>{module.name}</span>
                     <span className="text-[10px] font-normal normal-case opacity-70">
@@ -158,11 +158,13 @@ export function Navbar() {
             <Button
               variant="outline"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="w-full"
+              className="w-full justify-center gap-2"
             >
-              <Sun className="mr-2 h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute mr-2 h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-              <span className="ml-6">
+              <div className="relative h-4 w-4">
+                <Sun className="absolute h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" aria-hidden="true" />
+                <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" aria-hidden="true" />
+              </div>
+              <span>
                 {theme === "dark" ? "Light Mode" : "Dark Mode"}
               </span>
             </Button>

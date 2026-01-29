@@ -103,18 +103,20 @@ export function TrafficChart({ timeRange }: TrafficChartProps) {
               <YAxis hide />
               <Tooltip
                 contentStyle={{
+                  backgroundColor: "#ffffff",
+                  color: "#000000",
                   border: "2px solid black",
                   borderRadius: "0px",
                   boxShadow: "4px 4px 0px 0px rgba(0,0,0,0.1)",
                   fontFamily: "monospace",
                 }}
-                itemStyle={{ fontFamily: "monospace", fontSize: "12px" }}
+                itemStyle={{ fontFamily: "monospace", fontSize: "12px", color: "#000000" }}
                 formatter={(value: number) => formatBytes(value)}
               />
               <Area
                 type="monotone"
                 dataKey="上传"
-                stroke="#000000"
+                stroke="var(--foreground)"
                 strokeWidth={2}
                 fillOpacity={1}
                 fill="url(#colorUpload)"

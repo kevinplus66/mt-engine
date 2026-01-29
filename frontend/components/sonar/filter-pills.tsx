@@ -47,9 +47,11 @@ export function FilterPills({
           <button
             key={option.value}
             onClick={() => onSizeChange(option.value)}
+            aria-pressed={sizeFilter === option.value}
             className={cn(
               "px-3 py-1 text-xs font-mono border-2 border-black transition-all",
               "hover:translate-y-[-1px] active:translate-y-0",
+              "focus:outline-none focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:focus:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.8)]",
               "dark:border-white",
               sizeFilter === option.value
                 ? "bg-black text-white dark:bg-white dark:text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.8)]"
@@ -67,9 +69,11 @@ export function FilterPills({
           <button
             key={option.value}
             onClick={() => onSeederChange(option.value)}
+            aria-pressed={seederFilter === option.value}
             className={cn(
               "px-3 py-1 text-xs font-mono border-2 border-black transition-all",
               "hover:translate-y-[-1px] active:translate-y-0",
+              "focus:outline-none focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:focus:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.8)]",
               "dark:border-white",
               seederFilter === option.value
                 ? "bg-black text-white dark:bg-white dark:text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.8)]"
