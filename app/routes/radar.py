@@ -10,8 +10,9 @@ from app.config import (
     MT_TOKEN, MT_SEARCH_URL, MT_SITE_URL, QBITTORRENT_URL,
     QBITTORRENT_USER, QBITTORRENT_PASSWORD, logger
 )
-from app.constants import FILTER_OPTIONS, QUALITY_LABELS, QB_TAG_RADAR
-from app.state import user_torrent_status, COUNTRY_LABELS
+from app.constants import FILTER_OPTIONS, QUALITY_LABELS, QB_TAG_RADAR, COUNTRY_NAME_ZH
+from app.state import user_torrent_status
+import app.state as state
 from app.utils import is_api_success, format_size, get_discount_label, _safe_int
 from app.services.http_client import get_http_client, get_headers
 from app.services.qbittorrent import download_torrent_file, qb_login, qb_add_torrent_file
@@ -19,7 +20,46 @@ from app.services.qbittorrent import download_torrent_file, qb_login, qb_add_tor
 
 async def api_filter_options():
     """获取雷达筛选选项"""
-    return FILTER_OPTIONS
+    # 常见影视作品出产国/地区列表（中文名称）
+    COMMON_COUNTRIES_ZH = [
+        "中国", "中国香港", "中国台湾", "中国澳门",
+        "美国", "英国", "日本", "韩国",
+        "法国", "德国", "意大利", "西班牙",
+        "加拿大", "澳大利亚", "俄罗斯",
+        "印度", "泰国", "新加坡",
+        "巴西", "墨西哥", "阿根廷"
+    ]
+
+    # Build country options from real M-Team data (only if data exists)
+    if state.COUNTRY_LABELS:
+        # 先翻译所有国家名称
+        all_countries = [
+            {
+                "id": country_id,
+                "name": COUNTRY_NAME_ZH.get(country_name, country_name),
+                "name_zh": COUNTRY_NAME_ZH.get(country_name, country_name),
+                "name_en": country_name
+            }
+            for country_id, country_name in state.COUNTRY_LABELS.items()
+        ]
+
+        # 只保留常见国家
+        countries = [
+            country for country in all_countries
+            if country["name"] in COMMON_COUNTRIES_ZH
+        ]
+
+        # 按照常见国家列表的顺序排序
+        countries.sort(key=lambda x: COMMON_COUNTRIES_ZH.index(x["name"]) if x["name"] in COMMON_COUNTRIES_ZH else 999)
+
+        return {
+            **FILTER_OPTIONS,
+            "countries": countries
+        }
+    else:
+        # If no country data loaded, don't include countries field
+        # Frontend will use its fallback data
+        return FILTER_OPTIONS
 
 
 async def api_radar(request: Request, data: SearchRequest, check_rate_limit_func, radar_throttle_func):
@@ -112,19 +152,26 @@ async def api_radar(request: Request, data: SearchRequest, check_rate_limit_func
                 countries = torrent_info.get("countries", "")
                 category_id = torrent_info.get("category", "")
 
-                # 处理国家字段（ID转名称）
+                # 处理国家字段（ID转名称，并翻译为中文）
                 country_name = ""
                 if countries:
                     # countries 可能是: 单个ID字符串 "1", 逗号分隔 "1,2,3", 整数, 或数组
                     if isinstance(countries, str):
                         # 处理逗号分隔的字符串 "1,2,3"
                         country_ids = [cid.strip() for cid in countries.split(",") if cid.strip().isdigit()]
-                        country_names = [COUNTRY_LABELS.get(int(cid), "") for cid in country_ids]
+                        country_names = [
+                            COUNTRY_NAME_ZH.get(state.COUNTRY_LABELS.get(int(cid), ""), state.COUNTRY_LABELS.get(int(cid), ""))
+                            for cid in country_ids
+                        ]
                         country_name = ", ".join(filter(None, country_names))
                     elif isinstance(countries, int):
-                        country_name = COUNTRY_LABELS.get(countries, "")
+                        english_name = state.COUNTRY_LABELS.get(countries, "")
+                        country_name = COUNTRY_NAME_ZH.get(english_name, english_name)
                     elif isinstance(countries, list):
-                        country_names = [COUNTRY_LABELS.get(int(cid), "") for cid in countries if str(cid).isdigit()]
+                        country_names = [
+                            COUNTRY_NAME_ZH.get(state.COUNTRY_LABELS.get(int(cid), ""), state.COUNTRY_LABELS.get(int(cid), ""))
+                            for cid in countries if str(cid).isdigit()
+                        ]
                         country_name = ", ".join(filter(None, country_names))
 
                 detail_url = f"{MT_SITE_URL}/detail/{torrent_id}"

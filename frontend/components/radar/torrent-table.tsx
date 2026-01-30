@@ -252,6 +252,11 @@ export function TorrentTable({
                           </Badge>
                         </div>
                         {getDiscountBadge(torrent)}
+                        {torrent.quality_metadata?.country && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 h-5 flex items-center justify-center border-2 border-black dark:border-white bg-white dark:bg-zinc-900 text-black dark:text-white whitespace-nowrap">
+                            {torrent.quality_metadata.country}
+                          </Badge>
+                        )}
                         {torrent.quality_metadata?.labels_new && torrent.quality_metadata.labels_new.length > 0 && (
                           torrent.quality_metadata.labels_new.map((label, idx) => (
                             <Badge key={idx} variant="outline" className="text-[10px] px-1.5 h-5 flex items-center justify-center border-2 border-black dark:border-white bg-white dark:bg-zinc-900 text-black dark:text-white whitespace-nowrap">
@@ -366,6 +371,11 @@ export function TorrentTable({
                     {/* Discount badge and Labels on same row */}
                     <div className="flex flex-wrap gap-1 items-center">
                       {getDiscountBadge(torrent)}
+                      {torrent.quality_metadata?.country && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 h-5 flex items-center justify-center border-2 border-black dark:border-white bg-white dark:bg-zinc-900 text-black dark:text-white whitespace-nowrap">
+                          {torrent.quality_metadata.country}
+                        </Badge>
+                      )}
                       {torrent.quality_metadata?.labels_new && torrent.quality_metadata.labels_new.length > 0 && (
                         torrent.quality_metadata.labels_new.map((label, idx) => (
                           <Badge key={idx} variant="outline" className="text-[10px] px-1.5 h-5 flex items-center justify-center border-2 border-black dark:border-white bg-white dark:bg-zinc-900 text-black dark:text-white whitespace-nowrap">

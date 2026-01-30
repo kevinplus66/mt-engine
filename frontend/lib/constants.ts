@@ -163,14 +163,14 @@ export const NORMAL_CATEGORY_IDS = [
 
 export const FILTER_OPTIONS = {
   countries: [
-    { id: "CN", name_zh: "中国大陆", name_en: "China" },
-    { id: "HK", name_zh: "香港", name_en: "Hong Kong" },
-    { id: "TW", name_zh: "台湾", name_en: "Taiwan" },
-    { id: "US", name_zh: "美国", name_en: "USA" },
-    { id: "JP", name_zh: "日本", name_en: "Japan" },
-    { id: "KR", name_zh: "韩国", name_en: "Korea" },
-    { id: "UK", name_zh: "英国", name_en: "UK" },
-    { id: "FR", name_zh: "法国", name_en: "France" },
+    { id: 1, name_zh: "中国大陆", name_en: "China" },
+    { id: 2, name_zh: "香港", name_en: "Hong Kong" },
+    { id: 3, name_zh: "台湾", name_en: "Taiwan" },
+    { id: 4, name_zh: "美国", name_en: "USA" },
+    { id: 5, name_zh: "日本", name_en: "Japan" },
+    { id: 6, name_zh: "韩国", name_en: "Korea" },
+    { id: 7, name_zh: "英国", name_en: "UK" },
+    { id: 8, name_zh: "法国", name_en: "France" },
   ] as FilterOption[],
   discounts: [
     { id: "FREE", name_zh: "免费", name_en: "Free" },

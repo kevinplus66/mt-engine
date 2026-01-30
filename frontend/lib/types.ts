@@ -29,6 +29,7 @@ export interface QualityMetadata {
   audio_codec?: string;
   source?: string;
   labels_new?: string[];
+  country?: string;
 }
 
 export interface Torrent {
@@ -186,7 +187,7 @@ export interface CategoryOption {
 }
 
 export interface FilterOption {
-  id: string;
+  id: string | number;
   name_zh: string;
   name_en: string;
 }

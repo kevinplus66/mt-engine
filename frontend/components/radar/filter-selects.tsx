@@ -101,7 +101,7 @@ export function FilterSelects({
           <SelectContent>
             <SelectItem value="all">优惠</SelectItem>
             {discounts.map((discount) => (
-              <SelectItem key={discount.id} value={discount.id}>
+              <SelectItem key={discount.id} value={discount.id.toString()}>
                 {discount.name_zh}
               </SelectItem>
             ))}

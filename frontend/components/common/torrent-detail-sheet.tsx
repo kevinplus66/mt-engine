@@ -181,6 +181,16 @@ export function TorrentDetailSheet({
             )}
           </div>
 
+          {/* Country/Region */}
+          {torrent.quality_metadata?.country && (
+            <div>
+              <div className="text-xs text-muted-foreground mb-2">国家/地区</div>
+              <Badge variant="outline" className="h-5 border-2 border-black dark:border-white bg-white dark:bg-zinc-900 text-black dark:text-white text-[10px] px-1.5 flex items-center justify-center w-fit">
+                {torrent.quality_metadata.country}
+              </Badge>
+            </div>
+          )}
+
           {/* Quality Metadata */}
           {torrent.quality_metadata && (
             <div>

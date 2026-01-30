@@ -2,6 +2,39 @@
 
 All notable changes to M-Team Engine.
 
+## [6.0.0] - 2026-01 - Country Display & Filter Improvements
+
+### Bug Fixes
+
+**Country/Region Localization**:
+- Fixed all country and region names to display in Chinese instead of English
+- Added comprehensive COUNTRY_NAME_ZH mapping dictionary with 165+ country translations
+- Applied translations in filter options API and torrent search results
+- Examples: "United States of America" → "美国", "Japan" → "日本", "South Korea" → "韩国"
+
+**Country Filter Optimization**:
+- Simplified country filter dropdown to show only 21 common film-producing countries
+- Reduced options from 165 to most relevant countries for media content
+- Countries sorted by importance: China regions, major Asian countries, Europe/Americas, South America
+- Improves user experience by reducing overwhelming choices
+
+**Mobile UI Enhancement**:
+- Added country/region badge to mobile detail sheet (torrent-detail-sheet.tsx)
+- Badge displays above quality information section
+- Consistent styling with other metadata badges
+- Only shows when country data is available
+
+### Files Modified
+
+**Backend**:
+- `app/constants.py`: Added COUNTRY_NAME_ZH translation mapping dictionary (165+ entries)
+- `app/routes/radar.py`: Updated api_filter_options() to filter and translate countries, updated country name processing in api_radar()
+
+**Frontend**:
+- `frontend/components/common/torrent-detail-sheet.tsx`: Added country badge section (lines 184-192)
+
+---
+
 ## [6.0.0] - 2026-01 - Table Sorting & Deployment Improvements
 
 ### New Features
