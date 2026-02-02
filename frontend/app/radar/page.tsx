@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { SearchBar } from "@/components/radar/search-bar";
 import { ModeTabs } from "@/components/radar/mode-tabs";
@@ -30,6 +30,9 @@ export default function RadarPage() {
   });
 
   const { trigger, data, isMutating, error } = useRadarSearch();
+
+  // Debounce timer for sort-triggered searches
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Sorting state
   const {
@@ -63,6 +66,16 @@ export default function RadarPage() {
       pageSize: 50,
     });
   };
+
+  // Debounced search for sort changes (300ms delay)
+  const debouncedSearch = useCallback(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    searchTimeoutRef.current = setTimeout(() => {
+      handleSearch();
+    }, 300);
+  }, [keyword, mode, selectedCategories, filters, sortField, sortDirection]);
 
   const handleReset = () => {
     setKeyword("");
@@ -129,8 +142,8 @@ export default function RadarPage() {
             sortDirection={sortDirection}
             onSort={(field) => {
               handleSort(field as RadarSortField);
-              // Re-trigger search with new sort
-              setTimeout(handleSearch, 0);
+              // Debounced re-trigger search with new sort (prevents rapid API calls)
+              debouncedSearch();
             }}
             getSortDirection={(field) => getSortDirection(field as RadarSortField)}
           />
