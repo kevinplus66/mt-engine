@@ -40,6 +40,10 @@ async def check_emergency_alerts(torrents: List[Dict]) -> None:
 
     logger.debug(f"当前追踪的免费种子数量: {len(state.known_free_torrent_ids)}")
 
+    # 智能轮询：构建当前免费种子ID集合
+    current_free_ids = {str(t["id"]) for t in torrents}
+    logger.debug(f"当前免费列表种子数量: {len(current_free_ids)}")
+
     # 第二步：检查下载中的种子是否有紧急情况
     for torrent_id, leeching_info in state.user_torrent_status.get("leeching", {}).items():
         # 获取下载进度
@@ -63,12 +67,15 @@ async def check_emergency_alerts(torrents: List[Dict]) -> None:
             current_discount = status_info.get("discount", "")
             discount_end_time_str = status_info.get("discountEndTime")
 
+            # 智能轮询：直接检查种子是否在当前免费列表中
+            is_currently_free = torrent_id in current_free_ids
+
         except (ValueError, TypeError, KeyError) as e:
             logger.debug(f"解析种子 {torrent_id} 信息失败: {e}")
             continue
 
         # 情况 A：免费即将到期且未下载完（剩余时间 < 10 分钟时自动删除）
-        if is_free_discount(current_discount) and discount_end_time_str:
+        if is_currently_free and discount_end_time_str:
             discount_end_time = parse_datetime(discount_end_time_str)
             if discount_end_time:
                 remaining = calculate_remaining_time(discount_end_time)
@@ -128,7 +135,7 @@ async def check_emergency_alerts(torrents: List[Dict]) -> None:
                         })
 
         # 情况 B：免费突然失效（变节检测）
-        if not is_free_discount(current_discount) and torrent_id in state.known_free_torrent_ids:
+        if not is_currently_free and torrent_id in state.known_free_torrent_ids:
             if can_send_alert(torrent_id, "changed"):
                 # 初始化状态变量
                 deleted_successfully = False
@@ -174,7 +181,7 @@ async def check_emergency_alerts(torrents: List[Dict]) -> None:
                         f"<h3>🚨 免费优惠已失效</h3>"
                         f"<p><b>{torrent_name}</b></p>"
                         f"📉 进度: <b style='color:orange;'>{progress:.1f}%</b><br>"
-                        f"❌ 状态: <b style='color:red;'>{current_discount or 'NORMAL'}</b><br>"
+                        f"❌ 状态: <b style='color:red;'>已从免费列表移除</b><br>"
                         f"<hr>"
                         f"{deletion_message}"
                     )
