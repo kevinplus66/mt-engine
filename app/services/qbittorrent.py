@@ -819,13 +819,13 @@ async def qb_add_torrent_file(torrent_content: bytes, sid: str, tag: str = "", s
 
 async def qb_get_mteam_stats(sid: str) -> Dict:
     """
-    统计 M-Team 相关标签的种子流量
+    统计 M-Team 相关标签的种子流量和数量
 
     Args:
         sid: qBittorrent 会话 ID
 
     Returns:
-        Dict: 包含上传下载总量和速率
+        Dict: 包含上传下载总量、速率、做种数和下载数
     """
     torrents = await qb_get_torrents(sid)
 
@@ -834,6 +834,12 @@ async def qb_get_mteam_stats(sid: str) -> Dict:
     total_downloaded = 0
     upload_speed = 0
     download_speed = 0
+    seeding_count = 0
+    leeching_count = 0
+
+    # qBittorrent 种子状态定义
+    seeding_states = ('uploading', 'stalledUP', 'pausedUP', 'queuedUP', 'forcedUP', 'checkingUP')
+    leeching_states = ('downloading', 'stalledDL', 'metaDL', 'pausedDL', 'queuedDL', 'forcedDL', 'checkingDL')
 
     for torrent in torrents:
         tags = torrent.get('tags', '').split(',')
@@ -844,12 +850,21 @@ async def qb_get_mteam_stats(sid: str) -> Dict:
             upload_speed += torrent.get('upspeed', 0)
             download_speed += torrent.get('dlspeed', 0)
 
-    logger.debug(f"M-Team 标签统计: 上传={total_uploaded}, 下载={total_downloaded}")
+            # 统计做种和下载数量
+            state = torrent.get('state', '')
+            if state in seeding_states:
+                seeding_count += 1
+            elif state in leeching_states:
+                leeching_count += 1
+
+    logger.debug(f"M-Team 标签统计: 上传={total_uploaded}, 下载={total_downloaded}, 做种={seeding_count}, 下载中={leeching_count}")
     return {
         'uploaded': total_uploaded,
         'downloaded': total_downloaded,
         'upload_speed': upload_speed,
-        'download_speed': download_speed
+        'download_speed': download_speed,
+        'seeding_count': seeding_count,
+        'leeching_count': leeching_count
     }
 
 

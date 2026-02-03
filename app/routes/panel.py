@@ -58,6 +58,8 @@ async def get_panel_stats() -> Dict:
 
             # 采集 qBittorrent 数据
             qb_data = {}
+            qb_seeding_count = 0
+            qb_leeching_count = 0
             try:
                 sid = await qb_login()
                 if sid:
@@ -70,6 +72,8 @@ async def get_panel_stats() -> Dict:
                         "upload_speed": qb_stats.get('upload_speed', 0),
                         "download_speed": qb_stats.get('download_speed', 0)
                     }
+                    qb_seeding_count = qb_stats.get('seeding_count', 0)
+                    qb_leeching_count = qb_stats.get('leeching_count', 0)
             except Exception as e:
                 logger.error(f"实时采集 qBittorrent 失败: {e}")
 
@@ -91,8 +95,8 @@ async def get_panel_stats() -> Dict:
                         "downloaded": profile['downloaded'],
                         "uploaded_display": profile['uploaded_display'],
                         "downloaded_display": profile['downloaded_display'],
-                        "seeding_count": len(user_torrent_status.get("seeding", {})),
-                        "leeching_count": len(user_torrent_status.get("leeching", {}))
+                        "seeding_count": qb_seeding_count,      # 改用 qBittorrent 数据
+                        "leeching_count": qb_leeching_count     # 改用 qBittorrent 数据
                     }
             except Exception as e:
                 logger.error(f"实时采集 M-Team 失败: {e}")

@@ -15,6 +15,8 @@ async def collect_panel_data():
     timestamp = int(datetime.utcnow().timestamp())
 
     # 1. 采集 qBittorrent 数据
+    qb_seeding_count = 0
+    qb_leeching_count = 0
     try:
         sid = await qb_login()
         if sid:
@@ -27,6 +29,9 @@ async def collect_panel_data():
                 upload_speed=qb_stats.get('upload_speed', 0),
                 download_speed=qb_stats.get('download_speed', 0)
             )
+            # 获取 qBittorrent 的做种/下载数
+            qb_seeding_count = qb_stats.get('seeding_count', 0)
+            qb_leeching_count = qb_stats.get('leeching_count', 0)
             logger.info(f"采集 qBittorrent 数据成功")
     except Exception as e:
         logger.error(f"采集 qBittorrent 数据失败: {e}")
@@ -42,17 +47,14 @@ async def collect_panel_data():
                 downloaded=profile['downloaded']
             )
 
-            # 获取做种/下载数
-            seeding_count = len(user_torrent_status.get("seeding", {}))
-            leeching_count = len(user_torrent_status.get("leeching", {}))
-
+            # 使用 qBittorrent 的做种/下载数
             await save_user_stats(
                 timestamp=timestamp,
                 share_ratio=profile['share_ratio'],
                 uploaded=profile['uploaded'],
                 downloaded=profile['downloaded'],
-                seeding_count=seeding_count,
-                leeching_count=leeching_count
+                seeding_count=qb_seeding_count,
+                leeching_count=qb_leeching_count
             )
             logger.info(f"采集 M-Team 数据成功")
     except Exception as e:

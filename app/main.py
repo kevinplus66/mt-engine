@@ -196,6 +196,18 @@ async def add_security_headers(request: Request, call_next):
     return response
 
 
+# ============ URL 规范化中间件 ============
+@app.middleware("http")
+async def normalize_trailing_slash(request: Request, call_next):
+    """Remove trailing slash from panel path to ensure consistent routing"""
+    if request.url.path == "/panel/":
+        # 构造新的 scope，将路径改为 /panel
+        scope = request.scope.copy()
+        scope["path"] = "/panel"
+        request = Request(scope, request.receive)
+    return await call_next(request)
+
+
 # ============ 静态文件 ============
 try:
     app.mount("/static", StaticFiles(directory="app/static"), name="static")

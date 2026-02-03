@@ -96,7 +96,7 @@ PUID=[id -u 的结果]
 PGID=[id -g 的结果]
 MT_SITE_URL=https://kp.m-team.cc
 REFRESH_INTERVAL=300
-API_DELAY=2
+API_DELAY=3
 [用户填写的其他配置项]
 EOF
 
@@ -127,7 +127,7 @@ curl http://localhost:5001/health
 | 容器启动失败 | 运行 `docker compose logs -f` 查看日志 |
 | MT_TOKEN 无效 | 确认从 M-Team 控制面板正确复制 |
 | Page not found | 运行 `docker compose up -d --build` 重新构建镜像 |
-| SONAR/RADAR 搜索失败 "請求過於頻繁" | 检查 `.env` 中 `API_DELAY` 是否为 2，如果不是则修改并重启容器 |
+| SONAR/RADAR 搜索失败 "請求過於頻繁" | 检查 `.env` 中 `API_DELAY` 是否为 3，如果不是则修改并重启容器 |
 
 ---
 
@@ -150,19 +150,19 @@ docker compose up -d
 grep API_DELAY .env
 ```
 
-如果输出是 `API_DELAY=1` 或没有此配置，建议修改为 `2`：
+如果输出是 `API_DELAY=1` 或 `API_DELAY=2` 或没有此配置，建议修改为 `3`：
 ```bash
-# 如果已有 API_DELAY=1，修改为 2
-sed -i 's/^API_DELAY=.*/API_DELAY=2/' .env
+# 如果已有 API_DELAY 配置，修改为 3
+sed -i 's/^API_DELAY=.*/API_DELAY=3/' .env
 
 # 如果没有 API_DELAY 配置，添加它
-echo "API_DELAY=2" >> .env
+echo "API_DELAY=3" >> .env
 ```
 
 **为什么要修改？**
 - `API_DELAY` 控制向 M-Team API 发送请求的间隔时间
-- 设置为 1 秒可能触发 M-Team 的频率限制，导致 SONAR 和 RADAR 搜索失败
-- 建议设置为 2-3 秒以避免 "請求過於頻繁" 错误
+- 设置为 1-2 秒可能触发 M-Team 的动态频率限制，导致 SONAR 和 RADAR 搜索失败
+- 建议设置为 3 秒以避免 "請求過於頻繁" 错误
 
 **2. 重启容器使配置生效**
 ```bash
@@ -172,7 +172,7 @@ docker compose restart
 **3. 验证配置已生效**
 ```bash
 docker exec mt-engine env | grep API_DELAY
-# 应该输出: API_DELAY=2
+# 应该输出: API_DELAY=3
 ```
 
 ---

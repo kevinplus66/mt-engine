@@ -139,8 +139,8 @@ MT_SITE_URL=https://kp.m-team.cc
 # 自动刷新间隔（秒，默认300）
 REFRESH_INTERVAL=300
 
-# API 请求间隔（秒，默认1）
-API_DELAY=1
+# API 请求间隔（秒，建议3以避免M-Team动态限流）
+API_DELAY=3
 
 # 对手用户ID（可选，用于分享率对比）
 RIVAL_USER_ID=
@@ -197,7 +197,7 @@ docker-compose up -d
 | `MT_USER_ID` | 用户ID，用于获取做种/下载状态 | - |
 | `MT_SITE_URL` | M-Team 网站地址 | `https://kp.m-team.cc` |
 | `REFRESH_INTERVAL` | 自动刷新间隔（秒） | `300` |
-| `API_DELAY` | API 请求间隔（秒） | `1` |
+| `API_DELAY` | API 请求间隔（秒，建议设为 3 避免动态限流） | `3` |
 | `RIVAL_USER_ID` | 对手用户ID，用于分享率对比 | - |
 | `PUSHPLUS_TOKEN` | PushPlus 微信推送 Token | - |
 | `QBITTORRENT_URL` | qBittorrent Web UI 地址 | `http://192.168.x.x:8080` (需填写 NAS IP) |
@@ -323,7 +323,7 @@ services:
       - MT_USER_ID=${MT_USER_ID}
       - MT_SITE_URL=${MT_SITE_URL:-https://kp.m-team.cc}
       - REFRESH_INTERVAL=${REFRESH_INTERVAL:-300}
-      - API_DELAY=${API_DELAY:-1}
+      - API_DELAY=${API_DELAY:-3}
       - RIVAL_USER_ID=${RIVAL_USER_ID:-}
     env_file:
       - .env
