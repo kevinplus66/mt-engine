@@ -106,7 +106,14 @@ import type {
 export async function searchTorrents(
   request: SearchRequest
 ): Promise<SearchResponse> {
-  return api.post<SearchResponse>("/api/radar", request);
+  const response = await api.post<SearchResponse>("/api/radar", request);
+
+  // 检查业务层错误
+  if (!response.success) {
+    throw new ApiError(400, response.message || "搜索失败");
+  }
+
+  return response;
 }
 
 /**

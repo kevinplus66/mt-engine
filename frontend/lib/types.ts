@@ -59,6 +59,8 @@ export interface Torrent {
 }
 
 export interface SearchResponse {
+  success: boolean;
+  message?: string;
   data: Torrent[];
   total: number;
   pageNumber: number;
