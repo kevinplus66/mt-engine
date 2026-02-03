@@ -15,7 +15,9 @@ from app.state import user_torrent_status
 import app.state as state
 from app.utils import is_api_success, format_size, get_discount_label, _safe_int
 from app.services.http_client import get_http_client, get_headers
-from app.services.qbittorrent import download_torrent_file, qb_login, qb_add_torrent_file
+from app.services.qbittorrent import (
+    download_torrent_file, qb_login, qb_add_torrent_file, qb_find_torrent_by_mteam_id
+)
 
 
 async def api_filter_options():
@@ -110,8 +112,10 @@ async def api_radar(request: Request, data: SearchRequest, check_rate_limit_func
         payload["sortField"] = data.sortField
         payload["sortDirection"] = data.sortDirection
 
+        logger.info(f'执行了搜索的逻辑:<{payload}>')
         response = await client.post(MT_SEARCH_URL, headers=get_headers(), json=payload)
         result = response.json()
+        logger.info(f'RADAR 搜索 API 响应:<{result}>')
 
         if is_api_success(result.get("code")):
             raw_data = result.get("data", {}).get("data", [])
@@ -222,6 +226,7 @@ async def api_radar(request: Request, data: SearchRequest, check_rate_limit_func
             }
         else:
             logger.error(f"搜索失败: {result.get('message')}")
+            logger.info(f'搜索失败的详细报错:<{result}>')
             return {"success": False, "message": result.get("message", "搜索失败"), "data": [], "total": 0}
 
     except Exception as e:
@@ -240,17 +245,23 @@ async def radar_download_torrent(request: Request, data: DownloadRequest, check_
     if not QBITTORRENT_URL or not QBITTORRENT_USER or not QBITTORRENT_PASSWORD:
         return {"success": False, "error": "qb_not_configured", "message": "qBittorrent 未配置"}
 
-    # 服务器端下载 .torrent 文件（避免 qBittorrent 无法访问 M-Team 的问题）
-    torrent_content = await download_torrent_file(data.id)
-    if not torrent_content:
-        return {"success": False, "error": "download_link_failed", "message": "获取种子文件失败"}
-
-    # 登录 qBittorrent
+    # 1. 先登录 qBittorrent
     sid = await qb_login()
     if not sid:
         return {"success": False, "error": "qb_connection_failed", "message": "qBittorrent 连接失败"}
 
-    # 添加种子文件 (使用"雷达下载"标签)
+    # 2. 检查种子是否已存在 (避免重复消耗 M-Team API)
+    existing_hash = await qb_find_torrent_by_mteam_id(data.id, sid)
+    if existing_hash:
+        logger.info(f"种子 {data.id} 已在 qBittorrent 中 (hash={existing_hash})，跳过下载")
+        return {"success": True, "message": "种子已在下载队列中 (跳过重复下载)"}
+
+    # 3. 服务器端下载 .torrent 文件（避免 qBittorrent 无法访问 M-Team 的问题）
+    torrent_content = await download_torrent_file(data.id)
+    if not torrent_content:
+        return {"success": False, "error": "download_link_failed", "message": "获取种子文件失败"}
+
+    # 4. 添加种子文件 (使用"雷达下载"标签)
     success = await qb_add_torrent_file(torrent_content, sid, tag=QB_TAG_RADAR)
 
     if success:

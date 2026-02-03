@@ -122,6 +122,9 @@ async def fetch_all_free_torrents() -> Dict[str, Any]:
         elapsed_minutes = int((now - state._last_user_status_refresh).total_seconds() / 60)
         logger.info(f"→ 用户状态使用缓存 (已过 {elapsed_minutes} 分钟)")
 
+    # 打印 API_DELAY 的值
+    logger.info(f"当前 API_DELAY 值: {API_DELAY} 秒")
+
     all_torrents = []
     seen_ids = set()
 

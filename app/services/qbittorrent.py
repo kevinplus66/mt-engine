@@ -649,6 +649,7 @@ async def get_torrent_download_url(torrent_id: str) -> Optional[str]:
         logger.info(f"[下载] API响应状态码: {response.status_code}")
         try:
             data = response.json()
+            logger.info(f'genDlToken API 响应:<{data}>')
         except Exception as e:
             logger.error(f"[下载] JSON解析失败 - ID={torrent_id}, error={e}, response text: {response.text[:200]}")
             return None

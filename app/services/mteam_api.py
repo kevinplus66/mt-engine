@@ -19,14 +19,17 @@ async def fetch_categories() -> List[Dict]:
 
     try:
         client = await get_http_client()
-        response = await client.post(MT_CATEGORY_URL, headers=get_headers())
+        response = await client.post(MT_CATEGORY_URL, headers=get_headers(), json={})
         try:
             data = response.json()
+            logger.info(f'获取类别 API 响应:<{data}>')
         except Exception as e:
             logger.error(f"获取类别失败 - JSON解析错误: {e}")
             return []
         if is_api_success(data.get("code")):
             return data.get("data", [])
+        else:
+            logger.error(f"获取类别失败: {data.get('message')}")
     except Exception as e:
         logger.error(f"获取类别失败: {e}")
     return []
@@ -54,6 +57,7 @@ async def search_free_torrents(
         response = await client.post(MT_SEARCH_URL, headers=get_headers(), json=payload)
         try:
             data = response.json()
+            logger.info(f'搜索 {discount_type} (mode={mode}) API 响应:<{data}>')
         except Exception as e:
             logger.error(f"搜索 {discount_type} (mode={mode}) 失败 - JSON解析错误: {e}")
             return []
@@ -62,6 +66,7 @@ async def search_free_torrents(
             return data.get("data", {}).get("data", [])
         else:
             logger.error(f"搜索 {discount_type} (mode={mode}) 失败: {data.get('message')}")
+            logger.info(f'搜索失败的详细报错:<{data}>')
     except Exception as e:
         logger.error(f"搜索 {discount_type} (mode={mode}) 异常: {e}")
 
@@ -84,6 +89,7 @@ async def fetch_user_torrent_status() -> Dict[str, Dict]:
         seeding_payload = {"userid": userid, "type": "SEEDING", "pageNumber": 1, "pageSize": 200}
         seeding_response = await client.post(MT_USER_TORRENT_URL, headers=get_headers(), json=seeding_payload)
         seeding_data = seeding_response.json()
+        logger.info(f'获取做种中种子 API 响应:<{seeding_data}>')
 
         if is_api_success(seeding_data.get("code")):
             seeding_list = seeding_data.get("data", {}).get("data", [])
@@ -92,6 +98,8 @@ async def fetch_user_torrent_status() -> Dict[str, Dict]:
                 for item in seeding_list
             }
             logger.info(f"获取到 {len(result['seeding'])} 个做种中种子")
+        else:
+            logger.error(f"获取做种中种子失败: code={seeding_data.get('code')}, message={seeding_data.get('message')}")
 
         # 增加延迟避免 API 速率限制
         await asyncio.sleep(max(API_DELAY, 2))
@@ -100,6 +108,7 @@ async def fetch_user_torrent_status() -> Dict[str, Dict]:
         leeching_payload = {"userid": userid, "type": "LEECHING", "pageNumber": 1, "pageSize": 200}
         leeching_response = await client.post(MT_USER_TORRENT_URL, headers=get_headers(), json=leeching_payload)
         leeching_data = leeching_response.json()
+        logger.info(f'获取下载中种子 API 响应:<{leeching_data}>')
         logger.debug(f"LEECHING API 响应: code={leeching_data.get('code')}, data keys={list(leeching_data.get('data', {}).keys()) if isinstance(leeching_data.get('data'), dict) else type(leeching_data.get('data'))}")
 
         if is_api_success(leeching_data.get("code")):
@@ -149,6 +158,7 @@ async def _fetch_profile_by_uid(uid: str) -> Optional[Dict[str, Any]]:
         form_data = {"uid": str(uid)}
         response = await client.post(MT_PROFILE_URL, headers=headers, data=form_data)
         data = response.json()
+        logger.info(f'获取用户资料 (uid={uid}) API 响应:<{data}>')
 
         logger.debug(f"Profile API 响应 (uid={uid}): code={data.get('code')}")
 
@@ -215,9 +225,11 @@ async def fetch_country_list() -> Dict[int, str]:
         response = await client.post(
             f"{MT_API_BASE}/system/countryList",
             headers={"x-api-key": MT_TOKEN},
+            json={},
             timeout=10
         )
         result = response.json()
+        logger.info(f'获取国家列表 API 响应:<{result}>')
 
         # M-Team API返回code可能是0, "0", 或"SUCCESS"
         code = result.get("code")

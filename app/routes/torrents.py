@@ -9,7 +9,7 @@ from app.models import DownloadRequest
 from app.state import auto_delete_enabled
 from app.core.torrent import fetch_all_free_torrents
 from app.services.qbittorrent import (
-    download_torrent_file, qb_login, qb_add_torrent_file
+    download_torrent_file, qb_login, qb_add_torrent_file, qb_find_torrent_by_mteam_id
 )
 from app.constants import QB_TAG_SONAR
 from app.config import QBITTORRENT_URL, QBITTORRENT_USER, QBITTORRENT_PASSWORD, logger
@@ -66,17 +66,23 @@ async def api_download_torrent(request: Request, data: DownloadRequest, check_ra
     if not QBITTORRENT_URL or not QBITTORRENT_USER or not QBITTORRENT_PASSWORD:
         return {"success": False, "error": "qb_not_configured", "message": "qBittorrent 未配置"}
 
-    # 服务器端下载 .torrent 文件（避免 qBittorrent 无法访问 M-Team 的问题）
-    torrent_content = await download_torrent_file(data.id)
-    if not torrent_content:
-        return {"success": False, "error": "download_link_failed", "message": "获取种子文件失败"}
-
-    # 登录 qBittorrent
+    # 1. 先登录 qBittorrent
     sid = await qb_login()
     if not sid:
         return {"success": False, "error": "qb_connection_failed", "message": "qBittorrent 连接失败"}
 
-    # 添加种子文件 (使用"声呐做种"标签)
+    # 2. 检查种子是否已存在 (避免重复消耗 M-Team API)
+    existing_hash = await qb_find_torrent_by_mteam_id(data.id, sid)
+    if existing_hash:
+        logger.info(f"种子 {data.id} 已在 qBittorrent 中 (hash={existing_hash})，跳过下载")
+        return {"success": True, "message": "种子已在下载队列中 (跳过重复下载)"}
+
+    # 3. 服务器端下载 .torrent 文件（避免 qBittorrent 无法访问 M-Team 的问题）
+    torrent_content = await download_torrent_file(data.id)
+    if not torrent_content:
+        return {"success": False, "error": "download_link_failed", "message": "获取种子文件失败"}
+
+    # 4. 添加种子文件 (使用"声呐做种"标签)
     success = await qb_add_torrent_file(torrent_content, sid, tag=QB_TAG_SONAR)
 
     if success:
