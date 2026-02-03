@@ -10,15 +10,15 @@ from app.config import (
     USER_STATUS_CACHE_HOURS, CATEGORIES_CACHE_HOURS, logger
 )
 from app.state import (
-    cached_data, user_torrent_status, user_collection_ids,
+    cached_data, user_torrent_status,
     _last_user_status_refresh, _last_categories_refresh
 )
 from app.utils import (
     calculate_remaining_time, get_discount_label, format_size, _safe_int
 )
 from app.services.mteam_api import (
-    fetch_user_torrent_status, fetch_user_collection,
-    fetch_user_profile, fetch_rival_profile, fetch_categories,
+    fetch_user_torrent_status,
+    fetch_user_profile, fetch_categories,
     search_free_torrents
 )
 from app.config import MT_TOKEN, MT_SITE_URL
@@ -83,7 +83,6 @@ def process_torrent(item: Dict, discount_type: str, torrent_mode: str = "normal"
         "detail_url": detail_url,
         "user_status": user_status,
         "user_progress": user_progress,
-        "is_collected": torrent_id in user_collection_ids,
         "mode": torrent_mode
     }
 
@@ -113,20 +112,9 @@ async def fetch_all_free_torrents() -> Dict[str, Any]:
 
         await asyncio.sleep(API_DELAY)
 
-        collection_result = await fetch_user_collection()
-        state.user_collection_ids = collection_result
-
-        await asyncio.sleep(API_DELAY)
-
         user_profile_result = await fetch_user_profile()
         if user_profile_result:
             state.user_profile.update(user_profile_result)
-
-        await asyncio.sleep(API_DELAY)
-
-        rival_profile_result = await fetch_rival_profile()
-        if rival_profile_result:
-            state.rival_profile.update(rival_profile_result)
 
         state._last_user_status_refresh = now
         logger.info("✓ 用户状态已刷新 (1小时缓存)")

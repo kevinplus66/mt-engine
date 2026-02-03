@@ -120,35 +120,6 @@ async def fetch_user_torrent_status() -> Dict[str, Dict]:
         return {"seeding": {}, "leeching": {}}
 
 
-async def fetch_user_collection() -> set:
-    """获取用户收藏列表"""
-    if not MT_TOKEN:
-        return set()
-
-    try:
-        client = await get_http_client()
-        payload = {"pageNumber": 1, "pageSize": 200}
-        response = await client.post(MT_COLLECTION_LIST_URL, headers=get_headers(), json=payload)
-        data = response.json()
-
-        if is_api_success(data.get("code")):
-            collection_list = data.get("data", {}).get("data", [])
-            collection_ids = set()
-            for item in collection_list:
-                if isinstance(item, dict):
-                    torrent_id = str(item.get("torrent", {}).get("id", item.get("id", "")))
-                else:
-                    torrent_id = str(item)
-                if torrent_id:
-                    collection_ids.add(torrent_id)
-            logger.info(f"获取到 {len(collection_ids)} 个收藏种子")
-            return collection_ids
-
-    except Exception as e:
-        logger.error(f"获取收藏列表失败: {e}")
-    return set()
-
-
 async def fetch_user_profile() -> Optional[Dict[str, Any]]:
     """获取用户资料（分享率、上传、下载）"""
     if not MT_TOKEN or not MT_USER_ID:
@@ -163,27 +134,6 @@ async def fetch_user_profile() -> Optional[Dict[str, Any]]:
             return profile_data
     except Exception as e:
         logger.error(f"获取用户资料失败: {e}")
-    return None
-
-
-async def fetch_rival_profile() -> Optional[Dict[str, Any]]:
-    """获取对手用户资料（分享率）"""
-    from app.config import RIVAL_USER_ID
-
-    if not MT_TOKEN:
-        return None
-
-    if not RIVAL_USER_ID:
-        logger.info("未配置 RIVAL_USER_ID，跳过获取对手资料")
-        return None
-
-    try:
-        profile_data = await _fetch_profile_by_uid(RIVAL_USER_ID)
-        if profile_data:
-            logger.debug(f"获取对手资料: 分享率={profile_data['share_ratio']:.2f}")
-            return profile_data
-    except Exception as e:
-        logger.error(f"获取对手资料失败: {e}")
     return None
 
 
@@ -284,31 +234,3 @@ async def fetch_country_list() -> Dict[int, str]:
     except Exception as e:
         logger.error(f"获取国家列表异常: {e}")
         return {}
-
-
-async def toggle_collection(torrent_id: str, make: bool) -> Dict[str, Any]:
-    """切换种子收藏状态"""
-    if not MT_TOKEN:
-        return {"success": False, "message": "未配置 MT_TOKEN"}
-
-    try:
-        client = await get_http_client()
-        headers = {
-            "User-Agent": USER_AGENT,
-            "x-api-key": MT_TOKEN.strip(),
-            "Accept": "application/json",
-        }
-        form_data = {"id": torrent_id, "make": "true" if make else "false"}
-        response = await client.post(MT_COLLECTION_URL, headers=headers, data=form_data)
-        data = response.json()
-
-        if is_api_success(data.get("code")):
-            action = "收藏" if make else "取消收藏"
-            logger.info(f"{action}种子 {torrent_id} 成功")
-            return {"success": True, "message": f"{action}成功", "collected": make}
-        else:
-            return {"success": False, "message": data.get("message", "操作失败")}
-
-    except Exception as e:
-        logger.error(f"收藏操作失败: {e}")
-        return {"success": False, "message": str(e)}

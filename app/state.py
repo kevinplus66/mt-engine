@@ -21,17 +21,7 @@ user_torrent_status: Dict[str, Dict] = {
     "leeching": {},
 }
 
-user_collection_ids: set = set()
-
 user_profile: Dict[str, Any] = {
-    "share_ratio": 0,
-    "uploaded": 0,
-    "downloaded": 0,
-    "uploaded_display": "0 B",
-    "downloaded_display": "0 B"
-}
-
-rival_profile: Dict[str, Any] = {
     "share_ratio": 0,
     "uploaded": 0,
     "downloaded": 0,

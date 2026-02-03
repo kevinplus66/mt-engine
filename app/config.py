@@ -30,8 +30,6 @@ def safe_int(value: str, default: int, min_val: int = 0, max_val: int = 99999999
 MT_API_BASE = "https://api.m-team.io/api"
 MT_SEARCH_URL = f"{MT_API_BASE}/torrent/search"
 MT_CATEGORY_URL = f"{MT_API_BASE}/torrent/categoryList"
-MT_COLLECTION_URL = f"{MT_API_BASE}/torrent/collection"
-MT_COLLECTION_LIST_URL = f"{MT_API_BASE}/member/collection"
 MT_USER_TORRENT_URL = f"{MT_API_BASE}/member/getUserTorrentList"
 MT_PROFILE_URL = f"{MT_API_BASE}/member/profile"
 
@@ -41,9 +39,6 @@ MT_SITE_URL = os.getenv("MT_SITE_URL", "https://kp.m-team.cc")
 
 # API请求间隔（秒），限制0.5-10秒
 API_DELAY = max(0.5, min(float(os.getenv("API_DELAY", "1") or "1"), 10))
-
-# Rival user ID for comparison (optional)
-RIVAL_USER_ID = os.getenv("RIVAL_USER_ID", "")
 
 
 # ============ qBittorrent 配置 ============
