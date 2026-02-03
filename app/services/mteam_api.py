@@ -5,8 +5,7 @@ M-Team API 集成服务
 from typing import List, Dict, Optional, Any
 from app.config import (
     MT_TOKEN, MT_USER_ID, MT_API_BASE, MT_SEARCH_URL, MT_CATEGORY_URL,
-    MT_COLLECTION_URL, MT_COLLECTION_LIST_URL, MT_USER_TORRENT_URL,
-    MT_PROFILE_URL, USER_AGENT, logger
+    MT_USER_TORRENT_URL, MT_PROFILE_URL, USER_AGENT, logger
 )
 from app.services.http_client import get_http_client, get_headers
 from app.utils import is_api_success, format_size, _safe_int
