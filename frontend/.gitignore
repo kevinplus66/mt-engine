@@ -17,6 +17,25 @@
 /.next/
 /out/
 
+# static export build outputs (next build with output: 'export')
+/404.html
+/404/
+/index.html
+/index.txt
+/_next/
+/_not-found/
+/__next.*.txt
+/panel/
+/pilot/
+/radar/
+/sonar/
+/favicon.ico
+/file.svg
+/globe.svg
+/next.svg
+/vercel.svg
+/window.svg
+
 # production
 /build
 

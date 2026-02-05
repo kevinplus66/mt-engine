@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 from app.config import logger
 from app.services.panel_db import get_latest_stats, get_traffic_history, get_share_ratio_history, aggregate_data, calculate_30min_avg_speeds
-from app.services.mteam_api import fetch_user_profile
+from app.services.mteam_api import mt_client
 from app.services.qbittorrent import (
     qb_login, qb_get_mteam_stats, qb_get_mteam_torrents,
     qb_pause_torrents, qb_resume_torrents, qb_delete_torrents,
@@ -81,7 +81,7 @@ async def get_panel_stats() -> Dict:
             mt_data = {}
             user_data = {}
             try:
-                profile = await fetch_user_profile()
+                profile = await mt_client.fetch_user_profile()
                 if profile:
                     mt_data = {
                         "uploaded": profile['uploaded'],

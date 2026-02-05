@@ -15,8 +15,8 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 
 from app.config import logger, SEARCH_MIN_INTERVAL
-from app.services.http_client import http_client, get_http_client
-from app.services.mteam_api import fetch_country_list
+from app.services.http_client import http_client
+from app.services.mteam_api import mt_client
 from app.core.torrent import background_refresh
 from app.routes.torrents import (
     api_torrents, api_refresh, api_download_torrent,
@@ -112,11 +112,8 @@ async def daily_cleanup():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期管理"""
-    # 启动时初始化
-    client = await get_http_client()
-
     # 加载国家列表
-    country_labels = await fetch_country_list()
+    country_labels = await mt_client.fetch_country_list()
     state.COUNTRY_LABELS = country_labels
     logger.info(f"已加载 {len(country_labels)} 个国家映射")
 
@@ -125,6 +122,7 @@ async def lifespan(app: FastAPI):
     logger.info("PANEL 数据库已初始化")
 
     # 检查数据目录权限
+    # 跳过检查
     check_data_directory_permissions()
 
     # 启动后台刷新任务（会立即执行第一次刷新，并调用 collect_panel_data）
@@ -309,7 +307,7 @@ if FRONTEND_DIR.exists():
         pass
 
 
-@app.get("/{full_path:path}")
+@app.api_route("/{full_path:path}", methods=["GET", "HEAD"])
 async def serve_frontend(full_path: str):
     """
     Serve Next.js static files.

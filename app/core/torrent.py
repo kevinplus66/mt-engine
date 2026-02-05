@@ -3,24 +3,18 @@
 """
 
 import asyncio
+import random
 from datetime import datetime
 from typing import Dict, Any
 from app.config import (
     BEIJING_TZ, API_DELAY, REFRESH_INTERVAL,
     USER_STATUS_CACHE_HOURS, CATEGORIES_CACHE_HOURS, logger
 )
-from app.state import (
-    cached_data, user_torrent_status,
-    _last_user_status_refresh, _last_categories_refresh
-)
+from app.state import user_torrent_status
 from app.utils import (
     calculate_remaining_time, get_discount_label, format_size, _safe_int
 )
-from app.services.mteam_api import (
-    fetch_user_torrent_status,
-    fetch_user_profile, fetch_categories,
-    search_free_torrents
-)
+from app.services.mteam_api import mt_client
 from app.config import MT_TOKEN, MT_SITE_URL
 import app.state as state
 
@@ -89,8 +83,6 @@ def process_torrent(item: Dict, discount_type: str, torrent_mode: str = "normal"
 
 async def fetch_all_free_torrents() -> Dict[str, Any]:
     """获取所有免费种子"""
-    global cached_data
-
     if not MT_TOKEN:
         state.cached_data["error"] = "未配置 MT_TOKEN 环境变量"
         return state.cached_data
@@ -107,23 +99,23 @@ async def fetch_all_free_torrents() -> Dict[str, Any]:
 
     if should_refresh_user_status:
         # 顺序获取用户状态（避免触发 M-Team API 速率限制）
-        user_status_result = await fetch_user_torrent_status()
+        user_status_result = await mt_client.fetch_user_torrent_status()
         state.user_torrent_status.update(user_status_result)
 
-        await asyncio.sleep(API_DELAY)
+        await asyncio.sleep(API_DELAY + random.uniform(1, 3))
 
-        user_profile_result = await fetch_user_profile()
+        user_profile_result = await mt_client.fetch_user_profile()
         if user_profile_result:
             state.user_profile.update(user_profile_result)
 
         state._last_user_status_refresh = now
         logger.info("✓ 用户状态已刷新 (1小时缓存)")
+
+        # 用户状态刷新后，间隔一段时间再开始搜索
+        await asyncio.sleep(API_DELAY + random.uniform(1, 3))
     else:
         elapsed_minutes = int((now - state._last_user_status_refresh).total_seconds() / 60)
         logger.info(f"→ 用户状态使用缓存 (已过 {elapsed_minutes} 分钟)")
-
-    # 打印 API_DELAY 的值
-    logger.info(f"当前 API_DELAY 值: {API_DELAY} 秒")
 
     all_torrents = []
     seen_ids = set()
@@ -137,8 +129,8 @@ async def fetch_all_free_torrents() -> Dict[str, Any]:
     ]
 
     for discount_type, mode in search_tasks:
-        await asyncio.sleep(API_DELAY)
-        torrents = await search_free_torrents(discount_type, mode=mode)
+        await asyncio.sleep(API_DELAY + random.uniform(1, 5))
+        torrents = await mt_client.search_free_torrents(discount_type, mode=mode)
         for item in torrents:
             torrent = process_torrent(item, discount_type, mode)
             if torrent["id"] not in seen_ids:
@@ -155,7 +147,7 @@ async def fetch_all_free_torrents() -> Dict[str, Any]:
     )
 
     if should_refresh_categories:
-        categories = await fetch_categories()
+        categories = await mt_client.fetch_categories()
         state._last_categories_refresh = now
         logger.info("✓ 分类列表已刷新 (24小时缓存)")
     else:
@@ -180,8 +172,12 @@ async def fetch_all_free_torrents() -> Dict[str, Any]:
     logger.info(f"找到 {len(all_torrents)} 个免费种子 (Free: {free_count}, 2xFree: {free_2x_count})")
 
     # 检查紧急情况（免费即将到期/免费变收费）并执行自动删除
-    from app.core.alerts import check_emergency_alerts
-    await check_emergency_alerts(all_torrents)
+    # 免费列表为空说明 API 异常，跳过检查避免误删
+    if all_torrents:
+        from app.core.alerts import check_emergency_alerts
+        await check_emergency_alerts(all_torrents)
+    else:
+        logger.warning("免费种子列表为空，跳过紧急检查（疑似 API 异常）")
 
     return state.cached_data
 

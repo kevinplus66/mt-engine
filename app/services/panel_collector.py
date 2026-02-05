@@ -6,8 +6,7 @@ from datetime import datetime
 from app.config import logger
 from app.services.panel_db import save_traffic_stats, save_user_stats, cleanup_old_data
 from app.services.qbittorrent import qb_login, qb_get_mteam_stats
-from app.services.mteam_api import fetch_user_profile
-from app.state import user_torrent_status
+from app.state import user_profile
 
 
 async def collect_panel_data():
@@ -36,10 +35,10 @@ async def collect_panel_data():
     except Exception as e:
         logger.error(f"采集 qBittorrent 数据失败: {e}")
 
-    # 2. 采集 M-Team 数据
+    # 2. 使用已缓存的 M-Team 用户资料（由 fetch_all_free_torrents 刷新，避免重复调用 API）
     try:
-        profile = await fetch_user_profile()
-        if profile:
+        profile = user_profile
+        if profile and profile.get('uploaded') is not None:
             await save_traffic_stats(
                 timestamp=timestamp,
                 source='mteam',
@@ -57,6 +56,8 @@ async def collect_panel_data():
                 leeching_count=qb_leeching_count
             )
             logger.info(f"采集 M-Team 数据成功")
+        else:
+            logger.warning("无缓存的用户资料，跳过 M-Team 数据采集")
     except Exception as e:
         logger.error(f"采集 M-Team 数据失败: {e}")
 
