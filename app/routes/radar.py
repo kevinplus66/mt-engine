@@ -112,10 +112,8 @@ async def api_radar(request: Request, data: SearchRequest, check_rate_limit_func
         payload["sortField"] = data.sortField
         payload["sortDirection"] = data.sortDirection
 
-        logger.info(f'执行了搜索的逻辑:<{payload}>')
         response = await client.post(MT_SEARCH_URL, headers=get_headers(), json=payload)
         result = response.json()
-        logger.info(f'RADAR 搜索 API 响应:<{result}>')
 
         if is_api_success(result.get("code")):
             raw_data = result.get("data", {}).get("data", [])
