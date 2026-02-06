@@ -5,9 +5,6 @@
 import asyncio
 from typing import List, Dict
 from app.config import ALERT_THRESHOLD_MINUTES, PUSHPLUS_TOKEN, QBITTORRENT_URL, logger
-from app.state import (
-    auto_delete_enabled, known_free_torrent_ids, user_torrent_status
-)
 from app.services.pushplus import is_free_discount, can_send_alert, send_pushplus_alert
 from app.services.qbittorrent import qb_login, qb_find_torrent_by_mteam_id, qb_delete_torrent
 from app.utils import parse_datetime, calculate_remaining_time

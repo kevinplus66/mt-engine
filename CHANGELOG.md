@@ -1,6 +1,42 @@
-# Changelog
+## [6.1.0] - 2026-02-06 - Background Tasks Optimization
 
-All notable changes to M-Team Engine.
+### Improvements
+
+**Background Task Scheduling**:
+- Split background refresh into two independent tasks with different intervals
+- Torrent refresh (`fetch_all_free_torrents`): every 10 minutes (was 5 min)
+- PANEL data collection (`collect_panel_data`): every 1 minute
+- Added `PANEL_COLLECT_INTERVAL` environment variable for customization
+
+**User Status Refresh**:
+- Changed to hourly refresh (on the hour) instead of time-diff based
+- Simplified logic using Unix hour comparison
+- Removed `USER_STATUS_CACHE_HOURS` config (no longer needed)
+
+**API Call Reduction**:
+- Commented out `_2X_FREE` search tasks (currently no 2xFree torrents available)
+- Reduces API calls from 4 to 2 per refresh cycle
+
+**Debug Mode**:
+- Added `DEBUG` environment variable
+- When `DEBUG=true`, skips `/app/data` directory check (useful for local development)
+
+### Code Cleanup
+
+- Removed unused imports across multiple files
+- Consolidated duplicate `RATE_LIMIT_*` definitions (now only in config.py)
+- Merged duplicate `from app.config import` statements
+
+### Files Modified
+
+- `app/config.py`: Added `DEBUG`, `PANEL_COLLECT_INTERVAL`; removed `USER_STATUS_CACHE_HOURS`
+- `app/state.py`: Changed `_last_user_status_refresh` to `_last_user_status_refresh_hour`
+- `app/core/torrent.py`: Split into `background_refresh_torrents()` and `background_collect_panel()`
+- `app/core/pilot.py`: Skip data directory check in debug mode
+- `app/main.py`: Updated to use two separate background tasks
+- `app/core/alerts.py`, `app/routes/*.py`, `app/services/panel_db.py`: Removed unused imports
+
+---
 
 ## [6.0.0] - 2026-01 - Country Display & Filter Improvements
 

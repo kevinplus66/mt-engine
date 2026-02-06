@@ -18,7 +18,7 @@ from app.services.qbittorrent import (
     qb_get_storage_info
 )
 from app.utils import format_size, format_speed_int
-from app.state import user_torrent_status, user_profile
+from app.state import user_profile
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")

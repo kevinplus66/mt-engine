@@ -14,7 +14,7 @@ from app.services.qbittorrent import (
     qb_login, qb_add_torrent_file, qb_get_torrents,
     qb_delete_torrent, download_torrent_file, qb_get_existing_mteam_ids
 )
-from app.config import logger
+from app.config import logger, DEBUG
 import app.state as state
 
 CONFIG_PATH = Path("/app/data/pilot.json")
@@ -40,7 +40,8 @@ class PilotManager:
         self.last_run: Optional[float] = None
         self.next_run: Optional[float] = None
 
-        self._check_data_directory()
+        if not DEBUG:
+            self._check_data_directory()
         self._load_stats()
 
     def _check_data_directory(self):

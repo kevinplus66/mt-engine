@@ -37,6 +37,7 @@ class MTClient:
     ) -> Optional[Any]:
         """统一请求：token 检查 → post → parse JSON → is_api_success → return data 字段 or None"""
         if not MT_TOKEN:
+            logger.error(f'{label} 失败: MT_TOKEN 未配置')
             return None
 
         try:
@@ -215,6 +216,7 @@ class MTClient:
             label="获取国家列表",
         )
         if not isinstance(data, list):
+            logger.error(f'获取失败, data: {data}')
             return {}
         countries = {int(c["id"]): c.get("name", "") for c in data}
         logger.info(f"成功获取 {len(countries)} 个国家")

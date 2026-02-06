@@ -3,7 +3,6 @@ PANEL 数据库服务
 """
 
 import sqlite3
-import asyncio
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Tuple
 from pathlib import Path

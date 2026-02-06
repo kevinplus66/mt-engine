@@ -6,7 +6,6 @@ from typing import Optional
 from fastapi import Request, Query, HTTPException
 
 from app.models import DownloadRequest
-from app.state import auto_delete_enabled
 from app.core.torrent import fetch_all_free_torrents
 from app.services.qbittorrent import (
     download_torrent_file, qb_login, qb_add_torrent_file, qb_find_torrent_by_mteam_id

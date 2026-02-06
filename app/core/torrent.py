@@ -4,18 +4,18 @@
 
 import asyncio
 import random
+import time
 from datetime import datetime
 from typing import Dict, Any
 from app.config import (
-    BEIJING_TZ, API_DELAY, REFRESH_INTERVAL,
-    USER_STATUS_CACHE_HOURS, CATEGORIES_CACHE_HOURS, logger
+    BEIJING_TZ, API_DELAY, REFRESH_INTERVAL, PANEL_COLLECT_INTERVAL,
+    CATEGORIES_CACHE_HOURS, logger, MT_TOKEN, MT_SITE_URL
 )
 from app.state import user_torrent_status
 from app.utils import (
     calculate_remaining_time, get_discount_label, format_size, _safe_int
 )
 from app.services.mteam_api import mt_client
-from app.config import MT_TOKEN, MT_SITE_URL
 import app.state as state
 
 
@@ -91,11 +91,9 @@ async def fetch_all_free_torrents() -> Dict[str, Any]:
 
     now = datetime.now(BEIJING_TZ)
 
-    # 检查用户状态是否需要刷新 (1小时)
-    should_refresh_user_status = (
-        state._last_user_status_refresh is None or
-        (now - state._last_user_status_refresh).total_seconds() > USER_STATUS_CACHE_HOURS * 3600
-    )
+    # 检查用户状态是否需要刷新（整点刷新）
+    current_hour = int(time.time()) // 3600
+    should_refresh_user_status = (current_hour != state._last_user_status_refresh_hour)
 
     if should_refresh_user_status:
         # 顺序获取用户状态（避免触发 M-Team API 速率限制）
@@ -108,14 +106,13 @@ async def fetch_all_free_torrents() -> Dict[str, Any]:
         if user_profile_result:
             state.user_profile.update(user_profile_result)
 
-        state._last_user_status_refresh = now
-        logger.info("✓ 用户状态已刷新 (1小时缓存)")
+        state._last_user_status_refresh_hour = current_hour
+        logger.info("✓ 用户状态已刷新（整点触发）")
 
         # 用户状态刷新后，间隔一段时间再开始搜索
         await asyncio.sleep(API_DELAY + random.uniform(1, 3))
     else:
-        elapsed_minutes = int((now - state._last_user_status_refresh).total_seconds() / 60)
-        logger.info(f"→ 用户状态使用缓存 (已过 {elapsed_minutes} 分钟)")
+        logger.info("→ 用户状态使用缓存（本小时已刷新）")
 
     all_torrents = []
     seen_ids = set()
@@ -123,9 +120,10 @@ async def fetch_all_free_torrents() -> Dict[str, Any]:
     # 顺序搜索普通区和成人区（避免触发速率限制）
     search_tasks = [
         ("FREE", "normal"),
-        ("_2X_FREE", "normal"),
         ("FREE", "adult"),
-        ("_2X_FREE", "adult"),
+        # 2X FREE 的暂时没有了，直接注释掉，减少 API 调用
+        # ("_2X_FREE", "normal"),
+        # ("_2X_FREE", "adult"),
     ]
 
     for discount_type, mode in search_tasks:
@@ -182,20 +180,25 @@ async def fetch_all_free_torrents() -> Dict[str, Any]:
     return state.cached_data
 
 
-async def background_refresh():
-    """后台定时刷新任务"""
+async def background_refresh_torrents():
+    """后台定时刷新免费种子（默认10分钟）"""
     while True:
         start_time = asyncio.get_event_loop().time()
         await fetch_all_free_torrents()
 
-        # 采集 PANEL 数据
+        elapsed = asyncio.get_event_loop().time() - start_time
+        sleep_time = max(60, REFRESH_INTERVAL - elapsed)
+        logger.info(f"种子刷新完成，耗时 {elapsed:.1f}秒，下次刷新在 {sleep_time:.0f}秒后")
+        await asyncio.sleep(sleep_time)
+
+
+async def background_collect_panel():
+    """后台定时采集 PANEL 数据（默认1分钟）"""
+    while True:
         try:
             from app.services.panel_collector import collect_panel_data
             await collect_panel_data()
         except Exception as e:
             logger.error(f"PANEL 数据采集异常: {e}")
 
-        elapsed = asyncio.get_event_loop().time() - start_time
-        sleep_time = max(60, REFRESH_INTERVAL - elapsed)  # 至少等待60秒
-        logger.info(f"数据刷新完成，耗时 {elapsed:.1f}秒，下次刷新在 {sleep_time:.0f}秒后")
-        await asyncio.sleep(sleep_time)
+        await asyncio.sleep(PANEL_COLLECT_INTERVAL)
