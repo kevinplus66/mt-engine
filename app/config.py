@@ -5,6 +5,14 @@
 import os
 import logging
 from datetime import timezone, timedelta
+from pathlib import Path
+
+
+# ============ 版本号 ============
+# 从 CHANGELOG.md 第一行读取版本号
+_changelog_path = Path(__file__).parent.parent / "CHANGELOG.md"
+with open(_changelog_path) as f:
+    __version__ = f.readline().split("[")[1].split("]")[0]
 
 
 # ============ 日志配置 ============
@@ -14,6 +22,10 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 logger = logging.getLogger(__name__)
+
+
+# ============ 调试模式 ============
+DEBUG = os.getenv("DEBUG", "").lower() in ("true", "1", "yes")
 
 
 # ============ 辅助函数 ============
@@ -61,10 +73,12 @@ ALERT_COOLDOWN = 1800
 
 
 # ============ 刷新与缓存配置 ============
-REFRESH_INTERVAL = safe_int(os.getenv("REFRESH_INTERVAL", "300"), 300, min_val=60, max_val=86400)
+# 免费种子刷新间隔（默认10分钟）
+REFRESH_INTERVAL = safe_int(os.getenv("REFRESH_INTERVAL", "600"), 600, min_val=60, max_val=86400)
+# PANEL 数据采集间隔（默认1分钟）
+PANEL_COLLECT_INTERVAL = safe_int(os.getenv("PANEL_COLLECT_INTERVAL", "60"), 60, min_val=30, max_val=3600)
 
 # 缓存间隔常量
-USER_STATUS_CACHE_HOURS = 1   # 用户状态缓存1小时
 CATEGORIES_CACHE_HOURS = 24   # 分类列表缓存24小时
 
 

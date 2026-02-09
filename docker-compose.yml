@@ -9,7 +9,8 @@ services:
     user: "${PUID:-1000}:${PGID:-1000}"
     restart: unless-stopped
     ports:
-      - "5001:5001"
+      # 避免和群晖等默认端口冲突，使用 5002 映射到容器的 5001
+      - "5002:5001"
     volumes:
       - ./data:/app/data
       - ${DOWNLOADS_PATH:-/downloads}:/downloads:ro

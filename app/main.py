@@ -3,41 +3,47 @@ MT-Engine - M-Team 工具引擎
 雷达 RADAR / 声呐 SONAR / 领航 PILOT
 """
 
-__version__ = "6.0.0"
-
 import asyncio
-from datetime import datetime
-from typing import Dict, List
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
+from typing import Dict
+from typing import List
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
+from fastapi import Request
 from fastapi.staticfiles import StaticFiles
 
-from app.config import logger, SEARCH_MIN_INTERVAL
+import app.state as state
+from app.config import DEBUG
+from app.config import RATE_LIMIT_REQUESTS
+from app.config import RATE_LIMIT_WINDOW
+from app.config import SEARCH_MIN_INTERVAL
+from app.config import __version__
+from app.config import logger
+from app.core.pilot import pilot_loop
+from app.core.torrent import background_collect_panel
+from app.core.torrent import background_refresh_torrents
+from app.models import DownloadRequest
+from app.models import SearchRequest
+from app.routes.panel import router as panel_router
+from app.routes.pilot import router as pilot_router
+from app.routes.radar import api_filter_options
+from app.routes.radar import api_radar
+from app.routes.radar import radar_download_torrent
+from app.routes.torrents import api_auto_delete_status
+from app.routes.torrents import api_auto_delete_toggle
+from app.routes.torrents import api_categories
+from app.routes.torrents import api_download_torrent
+from app.routes.torrents import api_refresh
+from app.routes.torrents import api_torrents
 from app.services.http_client import http_client
 from app.services.mteam_api import mt_client
-from app.core.torrent import background_refresh
-from app.routes.torrents import (
-    api_torrents, api_refresh, api_download_torrent,
-    api_auto_delete_toggle, api_auto_delete_status, api_categories
-)
-from app.routes.radar import (
-    api_filter_options, api_radar, radar_download_torrent
-)
-from app.routes.pilot import router as pilot_router
-from app.routes.panel import router as panel_router
-from app.core.pilot import pilot_loop
-from app.models import DownloadRequest, SearchRequest
-import app.state as state
-from app.services.panel_db import init_database
 from app.services.panel_collector import cleanup_panel_data
-
+from app.services.panel_db import init_database
 
 # ============ 速率限制 ============
 rate_limit_store: Dict[str, List[float]] = {}
-RATE_LIMIT_REQUESTS = 30  # requests
-RATE_LIMIT_WINDOW = 60    # seconds
 
 # Search throttling (防止频繁搜索触发 M-Team API 限制)
 radar_last_request: Dict[str, float] = {}
@@ -111,7 +117,11 @@ async def daily_cleanup():
 # ============ 生命周期管理 ============
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """应用生命周期管理"""
+    """
+    应用生命周期管理
+    """
+    logger.info(f'Current app version:<{__version__}>')
+
     # 加载国家列表
     country_labels = await mt_client.fetch_country_list()
     state.COUNTRY_LABELS = country_labels
@@ -122,11 +132,14 @@ async def lifespan(app: FastAPI):
     logger.info("PANEL 数据库已初始化")
 
     # 检查数据目录权限
-    # 跳过检查
-    check_data_directory_permissions()
+    if not DEBUG:
+        check_data_directory_permissions()
 
-    # 启动后台刷新任务（会立即执行第一次刷新，并调用 collect_panel_data）
-    refresh_task = asyncio.create_task(background_refresh())
+    # 启动后台刷新任务（免费种子，10分钟）
+    refresh_task = asyncio.create_task(background_refresh_torrents())
+
+    # 启动 PANEL 数据采集任务（1分钟）
+    panel_task = asyncio.create_task(background_collect_panel())
 
     # 启动领航后台任务
     pilot_task = asyncio.create_task(pilot_loop())
@@ -138,20 +151,14 @@ async def lifespan(app: FastAPI):
 
     # 关闭时清理
     refresh_task.cancel()
+    panel_task.cancel()
     pilot_task.cancel()
     cleanup_task.cancel()
-    try:
-        await refresh_task
-    except asyncio.CancelledError:
-        pass
-    try:
-        await pilot_task
-    except asyncio.CancelledError:
-        pass
-    try:
-        await cleanup_task
-    except asyncio.CancelledError:
-        pass
+    for task in [refresh_task, panel_task, pilot_task, cleanup_task]:
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
 
     if http_client:
         await http_client.aclose()
@@ -161,7 +168,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MT-Engine",
     description="M-Team 免费种子猎手",
-    version="6.0.0",
+    version=__version__,
     lifespan=lifespan,
     docs_url=None,  # Disable Swagger UI in production
     redoc_url=None  # Disable ReDoc in production

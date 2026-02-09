@@ -31,7 +31,7 @@ user_profile: Dict[str, Any] = {
 
 
 # ============ 缓存时间戳 ============
-_last_user_status_refresh: Optional[datetime] = None  # 用户状态 (1小时)
+_last_user_status_refresh_hour: int = 0  # 用户状态刷新的 Unix 小时数（整点刷新）
 _last_categories_refresh: Optional[datetime] = None   # 分类列表 (24小时)
 
 
