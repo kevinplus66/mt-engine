@@ -185,7 +185,7 @@ docker-compose up -d
 
 ### 5. 访问页面
 
-打开浏览器访问: `http://localhost:5001`
+打开浏览器访问: `http://localhost:5050`
 
 ---
 
@@ -317,7 +317,7 @@ services:
     container_name: mt-engine
     restart: unless-stopped
     ports:
-      - "5001:5001"
+      - "5050:5050"
     environment:
       - MT_TOKEN=${MT_TOKEN}
       - MT_USER_ID=${MT_USER_ID}
@@ -328,7 +328,7 @@ services:
     env_file:
       - .env
     healthcheck:
-      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:5001/health')"]
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:5050/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -403,7 +403,7 @@ npm install
 npm run dev
 
 # 访问 http://localhost:3000
-# API 请求会自动代理到后端（默认 http://localhost:5001）
+# API 请求会自动代理到后端（默认 http://localhost:5050）
 
 # 构建生产版本
 npm run build
@@ -422,7 +422,7 @@ pip install -r requirements.txt
 cd app
 python main.py
 
-# 访问 http://localhost:5001
+# 访问 http://localhost:5050
 ```
 
 ---
@@ -459,8 +459,8 @@ python main.py
 
 A: 请检查：
 1. 容器是否正常运行：`docker compose ps`
-2. 端口 5001 是否被占用
-3. 防火墙是否允许 5001 端口
+2. 端口 5050 是否被占用
+3. 防火墙是否允许 5050 端口
 
 ### Q: 页面显示 "未配置 MT_TOKEN"？
 

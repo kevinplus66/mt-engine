@@ -103,8 +103,8 @@
 
 **Docker Deployment Configuration**:
 - Fixed API URL fallback for better portability across different networks
-- Changed production fallback from `http://localhost:5001` to empty string (enables relative paths)
-- Changed development proxy default from NAS IP to `http://localhost:5001`
+- Changed production fallback from `http://localhost:5050` to empty string (enables relative paths)
+- Changed development proxy default from NAS IP to `http://localhost:5050`
 - Maintains `.env.local` override capability for custom configurations
 - Users can now access frontend from different machines without connection issues
 

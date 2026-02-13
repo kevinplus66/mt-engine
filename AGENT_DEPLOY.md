@@ -105,14 +105,14 @@ docker compose up -d --build
 
 # 5. 验证
 docker compose ps
-curl http://localhost:5001/health
+curl http://localhost:5050/health
 ```
 
 ---
 
 ## 第四步：告知用户访问地址
 
-部署成功后，告诉用户访问：`http://[NAS的IP]:5001`
+部署成功后，告诉用户访问：`http://[NAS的IP]:5050`
 
 ---
 
@@ -123,7 +123,7 @@ curl http://localhost:5001/health
 | clone 失败 (authentication) | 确认 GitHub Token 正确，或 NAS 已配置 SSH key |
 | 镜像拉取失败 | 检查 Docker 镜像加速源是否配置正确 |
 | 权限错误 | 确认 PUID/PGID 与当前用户一致（运行 `id` 检查） |
-| 端口被占用 | 运行 `netstat -tlnp \| grep 5001` 检查 |
+| 端口被占用 | 运行 `netstat -tlnp \| grep 5050` 检查 |
 | 容器启动失败 | 运行 `docker compose logs -f` 查看日志 |
 | MT_TOKEN 无效 | 确认从 M-Team 控制面板正确复制 |
 | Page not found | 运行 `docker compose up -d --build` 重新构建镜像 |
