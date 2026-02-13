@@ -159,7 +159,7 @@ class MTClient:
         headers = self._headers(content_type=None)
         member_data = await self._request(
             MT_PROFILE_URL,
-            data={"uid": str(uid)},
+            data={"id": str(uid)},
             headers=headers,
             label=f"获取用户资料 (uid={uid})",
         )
@@ -167,6 +167,10 @@ class MTClient:
             return None
         if not isinstance(member_data, dict):
             return None
+
+        # 调试：记录 API 返回的数据结构
+        logger.debug(f"[DEBUG] API 返回的数据字段: {list(member_data.keys())}")
+        logger.debug(f"[DEBUG] memberCount 字段: {member_data.get('memberCount', {})}")
 
         # 尝试多种数据结构路径
         member_count = member_data.get("memberCount", {})

@@ -28,7 +28,7 @@ interface BackendPanelStats {
 async function panelStatsFetcher(url: string): Promise<PanelStats> {
   const data = await fetcher<BackendPanelStats>(url);
   return {
-    total_upload: data.user.seeding_count > 0 ? data.mteam.uploaded : 0,
+    total_upload: data.mteam.uploaded,
     total_download: data.mteam.downloaded,
     share_ratio: data.user.share_ratio,
     active_torrents: data.user.seeding_count + data.user.leeching_count,

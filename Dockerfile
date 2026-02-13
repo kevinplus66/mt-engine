@@ -26,6 +26,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy backend application code
 COPY app/ ./app/
 
+# Copy CHANGELOG.md for version reading
+COPY CHANGELOG.md ./CHANGELOG.md
+
 # Copy frontend static files from builder stage
 COPY --from=frontend-builder /frontend/out ./frontend/
 

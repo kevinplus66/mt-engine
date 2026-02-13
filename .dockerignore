@@ -28,7 +28,8 @@ venv/
 # Documentation
 *.md
 README.md
-CHANGELOG.md
+# CHANGELOG.md is needed for version reading, do not ignore
+!CHANGELOG.md
 
 # Logs
 *.log
