@@ -5,7 +5,7 @@
 from typing import Optional
 from fastapi import Request, Query, HTTPException
 
-from app.models import DownloadRequest
+from app.models import DownloadRequest, AutoDeleteToggleRequest
 from app.core.torrent import fetch_all_free_torrents
 from app.services.qbittorrent import (
     download_torrent_file, qb_login, qb_add_torrent_file, qb_find_torrent_by_mteam_id
@@ -90,17 +90,20 @@ async def api_download_torrent(request: Request, data: DownloadRequest, check_ra
         return {"success": False, "error": "add_torrent_failed", "message": "添加种子失败"}
 
 
-async def api_auto_delete_toggle(request: Request, check_rate_limit_func):
-    """切换自动删除功能"""
+async def api_auto_delete_toggle(request: Request, data: AutoDeleteToggleRequest, check_rate_limit_func):
+    """设置自动删除功能状态（幂等）"""
     # Rate limiting
     client_ip = request.client.host if request.client else "unknown"
     if not check_rate_limit_func(client_ip):
         raise HTTPException(status_code=429, detail="Too many requests. Please wait.")
 
-    # Toggle the state
-    state.auto_delete_enabled = not state.auto_delete_enabled
+    previous = state.auto_delete_enabled
+    state.auto_delete_enabled = data.enabled
 
-    logger.info(f"自动删除功能已{'启用' if state.auto_delete_enabled else '禁用'}")
+    if previous != state.auto_delete_enabled:
+        logger.info(f"自动删除功能已{'启用' if state.auto_delete_enabled else '禁用'}")
+    else:
+        logger.info(f"自动删除功能保持{'启用' if state.auto_delete_enabled else '禁用'}（幂等请求）")
 
     return {
         "success": True,

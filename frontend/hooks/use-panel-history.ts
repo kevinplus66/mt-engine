@@ -26,9 +26,62 @@ interface BackendHistoryResponse {
 }
 
 interface ChartDataPoint {
+  timestamp: number;
   time: string;
   上传: number;
   下载: number;
+}
+
+interface NormalizedDataPoint {
+  timestamp: number;
+  uploaded: number;
+  downloaded: number;
+}
+
+type HistoryRange = "6h" | "24h" | "7d" | "30d";
+type TrafficSource = "qbittorrent" | "mteam";
+
+function getRangeFromUrl(url: string): HistoryRange {
+  const rangeMatch = url.match(/range=([^&]+)/);
+  const range = rangeMatch ? rangeMatch[1] : "24h";
+
+  if (range === "6h" || range === "7d" || range === "30d") {
+    return range;
+  }
+  return "24h";
+}
+
+function getExpectedIntervalSeconds(range: HistoryRange): number {
+  switch (range) {
+    case "7d":
+      return 3600; // 1 hour
+    case "30d":
+      return 86400; // 1 day
+    case "6h":
+    case "24h":
+    default:
+      return 60; // 1 minute
+  }
+}
+
+function getRateWindowSeconds(range: HistoryRange): number {
+  switch (range) {
+    case "6h":
+      return 600; // 10 minutes
+    case "24h":
+      return 1200; // 20 minutes
+    case "7d":
+      return 14400; // 4 hours
+    case "30d":
+      return 172800; // 2 days
+    default:
+      return 1200;
+  }
+}
+
+function pickPrimarySource(): TrafficSource {
+  // PANEL 流量趋势固定使用 M-Team 口径，保持与站点统计一致。
+  return "mteam";
 }
 
 /**
@@ -63,50 +116,128 @@ function smoothData(data: ChartDataPoint[], windowSize: number = 5): ChartDataPo
   });
 }
 
-async function historyFetcher(url: string): Promise<ChartDataPoint[]> {
-  const data = await fetcher<BackendHistoryResponse>(url);
+function normalizeCumulativeData(
+  dataPoints: BackendDataPoint[],
+  source: TrafficSource
+): NormalizedDataPoint[] {
+  const normalized: NormalizedDataPoint[] = [];
 
-  // 转换后端数据为图表格式，计算增量变化
-  const chartData: ChartDataPoint[] = [];
+  let lastUploaded: number | undefined;
+  let lastDownloaded: number | undefined;
 
-  for (let i = 0; i < data.data_points.length; i++) {
-    const point = data.data_points[i];
-    const date = new Date(point.timestamp * 1000);
+  for (let i = 0; i < dataPoints.length; i++) {
+    const point = dataPoints[i];
+    const timestamp = point.timestamp * 1000;
+    const sourcePoint = point[source];
 
-    // 计算与上一个时间点的差值（增量）
+    const rawUploaded = Math.max(0, sourcePoint?.uploaded ?? 0);
+    const rawDownloaded = Math.max(0, sourcePoint?.downloaded ?? 0);
+
+    let uploaded = rawUploaded;
+    let downloaded = rawDownloaded;
+
+    // 处理异常值：
+    // 1) API 偶发返回 0（沿用上一点）
+    // 2) 计数器倒退（视为脏数据，沿用上一点）
+    if (lastUploaded !== undefined) {
+      if (rawUploaded === 0 || rawUploaded < lastUploaded) {
+        uploaded = lastUploaded;
+      }
+    }
+
+    if (lastDownloaded !== undefined) {
+      if (rawDownloaded === 0 || rawDownloaded < lastDownloaded) {
+        downloaded = lastDownloaded;
+      }
+    }
+
+    normalized.push({
+      timestamp,
+      uploaded,
+      downloaded,
+    });
+
+    lastUploaded = uploaded;
+    lastDownloaded = downloaded;
+  }
+
+  return normalized;
+}
+
+function buildRateSeries(
+  normalizedData: NormalizedDataPoint[],
+  expectedIntervalSeconds: number,
+  range: HistoryRange
+): ChartDataPoint[] {
+  const windowMs = getRateWindowSeconds(range) * 1000;
+  const result: ChartDataPoint[] = [];
+
+  for (let i = 0; i < normalizedData.length; i++) {
+    const current = normalizedData[i];
+    const currentDate = new Date(current.timestamp);
+
     let uploadDelta = 0;
     let downloadDelta = 0;
 
     if (i > 0) {
-      const prevPoint = data.data_points[i - 1];
-      uploadDelta = Math.max(0, point.mteam.uploaded - prevPoint.mteam.uploaded);
-      downloadDelta = Math.max(0, point.mteam.downloaded - prevPoint.mteam.downloaded);
+      let startIndex = i - 1;
+      while (
+        startIndex > 0 &&
+        current.timestamp - normalizedData[startIndex].timestamp < windowMs
+      ) {
+        startIndex -= 1;
+      }
+
+      const start = normalizedData[startIndex];
+      const elapsedSeconds = Math.max(
+        1,
+        Math.round((current.timestamp - start.timestamp) / 1000)
+      );
+
+      const uploadTotal = Math.max(0, current.uploaded - start.uploaded);
+      const downloadTotal = Math.max(0, current.downloaded - start.downloaded);
+
+      // 统一换算为“每 expectedInterval 的增量”，保证不同时间窗口可比较
+      const normalizeRatio = expectedIntervalSeconds / elapsedSeconds;
+      uploadDelta = Math.round(uploadTotal * normalizeRatio);
+      downloadDelta = Math.round(downloadTotal * normalizeRatio);
     }
 
-    chartData.push({
-      time: date.toLocaleTimeString("zh-CN", {
-        month: "short",
-        day: "numeric",
+    result.push({
+      timestamp: current.timestamp,
+      time: currentDate.toLocaleString("zh-CN", {
+        month: "2-digit",
+        day: "2-digit",
         hour: "2-digit",
         minute: "2-digit",
+        hour12: false,
       }),
       上传: uploadDelta,
       下载: downloadDelta,
     });
   }
 
+  return result;
+}
+
+async function historyFetcher(url: string): Promise<ChartDataPoint[]> {
+  const data = await fetcher<BackendHistoryResponse>(url);
+  const range = getRangeFromUrl(url);
+  const expectedIntervalSeconds = getExpectedIntervalSeconds(range);
+  const primarySource = pickPrimarySource();
+  const normalizedData = normalizeCumulativeData(data.data_points, primarySource);
+  const chartData = buildRateSeries(normalizedData, expectedIntervalSeconds, range);
+
   // 根据时间范围选择平滑窗口大小
-  // 提取 URL 参数中的 range 值
-  const rangeMatch = url.match(/range=([^&]+)/);
-  const range = rangeMatch ? rangeMatch[1] : "24h";
-
-  let windowSize = 5; // 默认 5 点平滑（适用于 5分钟间隔数据）
-
-  // 对于长时间范围，使用较小的窗口以避免过度平滑
-  if (range === "7d") {
-    windowSize = 3; // 3 点平滑（1小时聚合数据）
+  let windowSize = 3;
+  if (range === "6h") {
+    windowSize = 3;
+  } else if (range === "24h") {
+    windowSize = 5;
+  } else if (range === "7d") {
+    windowSize = 5;
   } else if (range === "30d") {
-    windowSize = 3; // 3 点平滑（1天聚合数据）
+    windowSize = 3;
   }
 
   // 应用移动平均平滑

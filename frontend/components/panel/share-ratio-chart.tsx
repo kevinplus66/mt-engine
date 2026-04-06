@@ -20,6 +20,60 @@ interface ShareRatioChartProps {
   timeRange: TimeRange;
 }
 
+function formatXAxisTick(timestamp: number, range: TimeRange) {
+  const date = new Date(timestamp);
+
+  switch (range) {
+    case "6h":
+      return date.toLocaleTimeString("zh-CN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+    case "24h":
+      return date.toLocaleString("zh-CN", {
+        month: "numeric",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+    case "7d":
+      return date.toLocaleString("zh-CN", {
+        month: "numeric",
+        day: "numeric",
+        hour: "2-digit",
+        hour12: false,
+      });
+    case "30d":
+      return date.toLocaleDateString("zh-CN", {
+        month: "numeric",
+        day: "numeric",
+      });
+    default:
+      return date.toLocaleTimeString("zh-CN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+  }
+}
+
+function getTickCount(range: TimeRange) {
+  switch (range) {
+    case "6h":
+      return 7;
+    case "24h":
+      return 8;
+    case "7d":
+      return 8;
+    case "30d":
+      return 10;
+    default:
+      return 8;
+  }
+}
+
 export function ShareRatioChart({ timeRange }: ShareRatioChartProps) {
   const { data, isLoading, error } = usePanelShareRatio(timeRange);
 
@@ -97,19 +151,16 @@ function ChartContent({ data, timeRange }: { data: any[]; timeRange: TimeRange }
                 stroke="#e5e5e5"
               />
               <XAxis
-                dataKey="time"
+                dataKey="timestamp"
+                type="number"
+                scale="time"
+                domain={["dataMin", "dataMax"]}
+                tickCount={getTickCount(timeRange)}
+                minTickGap={24}
                 tick={{ fontSize: 10, fontFamily: "monospace" }}
                 axisLine={false}
                 tickLine={false}
-                interval={Math.max(0, Math.floor(data.length / 6) - 1)}
-                tickFormatter={(value: string) => {
-                  // 简化显示：只保留时间部分，去掉重复的日期
-                  const parts = value.split(' ');
-                  if (parts.length >= 2) {
-                    return parts[parts.length - 1]; // 只显示时间 "21:36"
-                  }
-                  return value;
-                }}
+                tickFormatter={(value: number) => formatXAxisTick(value, timeRange)}
               />
               <YAxis
                 tick={{ fontSize: 10, fontFamily: "monospace" }}
@@ -129,6 +180,16 @@ function ChartContent({ data, timeRange }: { data: any[]; timeRange: TimeRange }
                   fontFamily: "monospace",
                 }}
                 itemStyle={{ fontFamily: "monospace", fontSize: "12px", color: "#000000" }}
+                labelFormatter={(label: number) =>
+                  new Date(label).toLocaleString("zh-CN", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  })
+                }
                 formatter={(value: number) => formatRatio(value)}
               />
               <Area
@@ -195,11 +256,13 @@ function generateMockData(range: TimeRange) {
     const noise = (Math.random() - 0.5) * 0.2;
 
     dataPoints.push({
-      time: time.toLocaleTimeString("zh-CN", {
-        month: "short",
-        day: "numeric",
+      timestamp: time.getTime(),
+      time: time.toLocaleString("zh-CN", {
+        month: "2-digit",
+        day: "2-digit",
         hour: "2-digit",
         minute: "2-digit",
+        hour12: false,
       }),
       分享率: Math.max(0, ratio + noise),
     });

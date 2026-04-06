@@ -69,7 +69,7 @@ async def get_stats():
         "disk_usage_percent": pilot_manager.get_disk_usage_percent(),
         "last_run": pilot_manager.last_run,
         "next_run": pilot_manager.next_run,
-        "is_running": pilot_manager.config.download.enabled or pilot_manager.config.cleanup.enabled,
+        "is_running": pilot_manager.is_running_healthy(),
     }
 
 

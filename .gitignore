@@ -61,5 +61,10 @@ tests/
 data/panel.db
 data/panel.db-journal
 
+# Runtime data files (auto-generated)
+data/mt_engine.db
+data/pilot.json
+data/pilot_stats.json
+
 # Local design documents
 docs/

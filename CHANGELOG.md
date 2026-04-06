@@ -1,5 +1,62 @@
 ## [6.1.0] - 2026-02-06 - Background Tasks Optimization
 
+### Post-release Fixes (2026-04-06, Unreleased)
+
+### Backend Stability & Safety
+
+**Auto-delete Idempotency**:
+- Changed `/api/auto-delete/toggle` from state flip to explicit state set (`enabled: bool`)
+- Repeated same-value requests now remain stable and log as idempotent requests
+
+**PILOT Runtime Health**:
+- `is_running` now reflects loop heartbeat health instead of config flags only
+- Added loop start/heartbeat/error tracking to reduce "running but stalled" false positives
+
+**Download Decision Guardrails**:
+- Added free-list cache freshness guard before download cycle candidate selection
+- Fail-closed behavior: skip cycle when cache refresh fails or remains stale
+- Added expired-free candidate skip (`remaining.hours <= 0`)
+
+**Cycle Concurrency Control**:
+- Added cycle-level async locks for download and cleanup loops
+- Prevents concurrent overlap between background loop and manual trigger paths
+
+**Emergency Check Blind-window Reduction**:
+- Emergency auto-delete checks now combine:
+  - hourly M-Team leeching cache (fallback)
+  - live qBittorrent downloading tasks (managed tags + tracker ID extraction)
+- Reduces delay for detecting free->paid transitions without increasing M-Team API frequency
+
+**qBittorrent Add Success Validation**:
+- Hardened add-torrent success criteria from "HTTP 200 only" to "HTTP 200 + body is `Ok`/`Ok.`"
+- Prevents false positive adds and improves retry/churn behavior
+
+**Time Baseline Consistency**:
+- Unified rule-engine time baseline with UI remaining-time baseline (Beijing local naive time)
+- Avoids free-window over/under-estimation from mixed UTC/local comparisons
+
+### Frontend PANEL Improvements
+
+**Chart Time Axis Upgrade**:
+- Switched traffic/share-ratio charts to timestamp-based X-axis (`type=number`, `scale=time`)
+- Improved tick density and tooltip datetime formatting across `6h/24h/7d/30d`
+
+**History Data Normalization**:
+- Added cumulative-data normalization to handle occasional zero/reset/backward points
+- Added range-aware rate window normalization for more stable trend lines
+
+**API Base Resilience**:
+- Improved API base resolution in production:
+  - if configured `NEXT_PUBLIC_API_URL` is cross-origin, fallback to same-origin
+- Reduces browser-side `Failed to fetch` caused by CORS/Mixed Content from stale NAS URLs
+
+### Ops / Repository Hygiene
+
+- `.gitignore` now ignores runtime-generated data files:
+  - `data/mt_engine.db`
+  - `data/pilot.json`
+  - `data/pilot_stats.json`
+
 ### Improvements
 
 **Background Task Scheduling**:

@@ -39,6 +39,16 @@ def qb_clear_session():
     logger.debug("已清除 qBittorrent 缓存会话")
 
 
+def _is_qb_add_success(response: httpx.Response) -> bool:
+    """
+    Validate qBittorrent add-torrent response.
+
+    qBittorrent may return HTTP 200 with non-success body (e.g. duplicate/rejected).
+    """
+    body = (response.text or "").strip().lower()
+    return response.status_code == 200 and body in ("ok.", "ok")
+
+
 def qb_is_session_valid() -> bool:
     """检查缓存的会话是否仍然有效"""
     global qb_cached_sid, qb_sid_created_at
@@ -757,11 +767,11 @@ async def qb_add_torrent_by_url(torrent_url: str, sid: str, tag: str = "") -> bo
                 return False
 
             # qBittorrent API 返回 "Ok." 表示成功
-            if response.status_code == 200:
+            if _is_qb_add_success(response):
                 logger.info(f"成功添加种子到 qBittorrent (标签: {tag}): {torrent_url[:50]}...")
                 return True
             else:
-                logger.error(f"添加种子失败: {response.text}")
+                logger.error(f"添加种子失败: HTTP={response.status_code}, body={response.text!r}")
                 return False
     except Exception as e:
         logger.error(f"添加种子异常: {e}")
@@ -806,11 +816,11 @@ async def qb_add_torrent_file(torrent_content: bytes, sid: str, tag: str = "", s
                 qb_clear_session()
                 return False
 
-            if response.status_code == 200:
+            if _is_qb_add_success(response):
                 logger.info(f"成功通过文件添加种子到 qBittorrent (标签: {tag})")
                 return True
             else:
-                logger.error(f"添加种子文件失败: {response.text}")
+                logger.error(f"添加种子文件失败: HTTP={response.status_code}, body={response.text!r}")
                 return False
     except Exception as e:
         logger.error(f"添加种子文件异常: {e}")

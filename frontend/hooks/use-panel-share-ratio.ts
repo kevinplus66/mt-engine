@@ -28,6 +28,7 @@ interface BackendShareRatioResponse {
 }
 
 interface ChartDataPoint {
+  timestamp: number;
   time: string;
   分享率: number;
 }
@@ -38,14 +39,17 @@ async function shareRatioFetcher(url: string): Promise<ChartDataPoint[]> {
 
     // 转换后端数据为图表格式
     const chartData: ChartDataPoint[] = data.data_points.map((point) => {
-      const date = new Date(point.timestamp * 1000);
+      const timestamp = point.timestamp * 1000;
+      const date = new Date(timestamp);
 
       return {
-        time: date.toLocaleTimeString("zh-CN", {
-          month: "short",
-          day: "numeric",
+        timestamp,
+        time: date.toLocaleString("zh-CN", {
+          month: "2-digit",
+          day: "2-digit",
           hour: "2-digit",
           minute: "2-digit",
+          hour12: false,
         }),
         分享率: (point as any).share_ratio || point.mteam?.share_ratio || 0,
       };

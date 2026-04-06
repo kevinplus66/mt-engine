@@ -3,9 +3,20 @@ Pilot rule engine - scoring and evaluation logic
 """
 import time
 from typing import Tuple
-from datetime import datetime, timezone
+from datetime import datetime
 from app.models import AutomationConfig, RuleConfig
-from app.config import logger
+from app.config import logger, BEIJING_TZ
+from app.utils import parse_datetime
+
+
+def _now_beijing_naive() -> datetime:
+    """
+    Return current Beijing time as naive datetime.
+
+    Keep this aligned with app.utils.calculate_remaining_time() so scoring and
+    UI share the same time baseline.
+    """
+    return datetime.now(BEIJING_TZ).replace(tzinfo=None)
 
 
 def calculate_free_hours_remaining(free_end: str) -> float:
@@ -22,10 +33,11 @@ def calculate_free_hours_remaining(free_end: str) -> float:
         return 0.0
 
     try:
-        # Parse timestamp - format: "YYYY-MM-DD HH:MM:SS"
-        end_time = datetime.strptime(free_end, '%Y-%m-%d %H:%M:%S')
-        end_time = end_time.replace(tzinfo=timezone.utc)
-        now = datetime.now(timezone.utc)
+        end_time = parse_datetime(free_end)
+        if end_time is None:
+            return 0.0
+
+        now = _now_beijing_naive()
         delta = end_time - now
         hours = delta.total_seconds() / 3600
         return max(0.0, hours)
@@ -48,10 +60,11 @@ def calculate_days_since(created_date: str) -> float:
         return 0.0
 
     try:
-        # Parse timestamp - format: "YYYY-MM-DD HH:MM:SS"
-        created_time = datetime.strptime(created_date, '%Y-%m-%d %H:%M:%S')
-        created_time = created_time.replace(tzinfo=timezone.utc)
-        now = datetime.now(timezone.utc)
+        created_time = parse_datetime(created_date)
+        if created_time is None:
+            return 0.0
+
+        now = _now_beijing_naive()
         delta = now - created_time
         days = delta.total_seconds() / 86400
         return max(0.0, days)

@@ -7,12 +7,37 @@ import type { CategoryOption, FilterOption } from "./types";
 
 // ============ 基础配置 ============
 
+function resolveApiBase(): string {
+  // 开发模式始终走相对路径，依赖 next.config.ts rewrites 代理
+  if (process.env.NODE_ENV === "development") {
+    return "";
+  }
+
+  const envBase = (process.env.NEXT_PUBLIC_API_URL || "").trim();
+  if (!envBase) {
+    return "";
+  }
+
+  // 生产环境若配置了跨源地址（例如旧 NAS IP 或旧端口），自动回退同源，
+  // 避免浏览器触发 CORS / Mixed Content 并报 "Failed to fetch"。
+  if (typeof window !== "undefined") {
+    try {
+      const parsed = new URL(envBase, window.location.origin);
+      if (parsed.origin !== window.location.origin) {
+        return "";
+      }
+    } catch {
+      return "";
+    }
+  }
+
+  return envBase;
+}
+
 export const CONFIG = {
-  // 开发模式：使用空字符串（相对路径），触发 next.config.ts 的 proxy rewrites
-  // 生产模式：使用完整 URL（同源部署）
-  API_BASE: process.env.NODE_ENV === "development"
-    ? ""
-    : (process.env.NEXT_PUBLIC_API_URL || ""),
+  // 开发模式：相对路径 + rewrites
+  // 生产模式：优先使用 NEXT_PUBLIC_API_URL；若检测到跨源则回退同源
+  API_BASE: resolveApiBase(),
   HAPTIC_DURATION: 30,
   TOAST_DURATION: 3000,
   SCROLL_THRESHOLD: 300,

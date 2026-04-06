@@ -25,6 +25,7 @@ from app.core.pilot import pilot_loop
 from app.core.torrent import background_collect_panel
 from app.core.torrent import background_refresh_torrents
 from app.models import DownloadRequest
+from app.models import AutoDeleteToggleRequest
 from app.models import SearchRequest
 from app.routes.panel import router as panel_router
 from app.routes.pilot import router as pilot_router
@@ -254,9 +255,9 @@ async def download_torrent(request: Request, data: DownloadRequest):
 
 
 @app.post("/api/auto-delete/toggle")
-async def auto_delete_toggle(request: Request):
+async def auto_delete_toggle(request: Request, data: AutoDeleteToggleRequest):
     """切换自动删除功能"""
-    return await api_auto_delete_toggle(request, check_rate_limit)
+    return await api_auto_delete_toggle(request, data, check_rate_limit)
 
 
 @app.get("/api/auto-delete/status")

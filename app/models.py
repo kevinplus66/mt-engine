@@ -20,6 +20,11 @@ class DownloadRequest(BaseModel):
         return v
 
 
+class AutoDeleteToggleRequest(BaseModel):
+    """Request model for auto-delete toggle (idempotent set)"""
+    enabled: bool
+
+
 class SearchRequest(BaseModel):
     """Request model for torrent search"""
     keyword: str = Field("", max_length=100)

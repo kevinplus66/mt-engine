@@ -6,6 +6,7 @@ import os
 import json
 import shutil
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Set, Optional, Dict, List, Tuple
 from app.models import AutomationConfig
@@ -14,7 +15,7 @@ from app.services.qbittorrent import (
     qb_login, qb_add_torrent_file, qb_get_torrents,
     qb_delete_torrent, download_torrent_file, qb_get_existing_mteam_ids
 )
-from app.config import logger, DEBUG
+from app.config import logger, DEBUG, REFRESH_INTERVAL, BEIJING_TZ
 import app.state as state
 
 CONFIG_PATH = Path("/app/data/pilot.json")
@@ -29,6 +30,8 @@ class PilotManager:
         self.rule_engine = RuleEngine(self.config)
         self.pending_downloads: Set[str] = set()  # Prevent duplicate downloads
         self._upload_history: Dict[str, List[Tuple[float, int]]] = {}  # Upload history for sliding window
+        self._download_cycle_lock: Optional[asyncio.Lock] = None
+        self._cleanup_cycle_lock: Optional[asyncio.Lock] = None
 
         # Cache for existing M-Team IDs in qBittorrent
         self._existing_ids_cache: Set[str] = set()
@@ -39,6 +42,9 @@ class PilotManager:
         self.total_cleanups = 0
         self.last_run: Optional[float] = None
         self.next_run: Optional[float] = None
+        self.loop_started_at: Optional[float] = None
+        self.last_loop_heartbeat: Optional[float] = None
+        self.last_cycle_error: Optional[str] = None
 
         if not DEBUG:
             self._check_data_directory()
@@ -122,6 +128,42 @@ class PilotManager:
         # This keeps data accurate and reflects current session only
         pass
 
+    def _get_download_cycle_lock(self) -> asyncio.Lock:
+        """Lazily create download-cycle lock to avoid loop binding at import time."""
+        if self._download_cycle_lock is None:
+            self._download_cycle_lock = asyncio.Lock()
+        return self._download_cycle_lock
+
+    def _get_cleanup_cycle_lock(self) -> asyncio.Lock:
+        """Lazily create cleanup-cycle lock to avoid loop binding at import time."""
+        if self._cleanup_cycle_lock is None:
+            self._cleanup_cycle_lock = asyncio.Lock()
+        return self._cleanup_cycle_lock
+
+    def mark_loop_heartbeat(self, error: Optional[str] = None):
+        """Update loop heartbeat and last error state."""
+        self.last_loop_heartbeat = time.time()
+        self.last_cycle_error = error
+
+    def is_running_healthy(self) -> bool:
+        """
+        Check whether pilot loop appears healthy.
+
+        Healthy means:
+        - At least one policy is enabled.
+        - Loop has started and produced heartbeat recently.
+        """
+        enabled = self.config.download.enabled or self.config.cleanup.enabled
+        if not enabled:
+            return False
+
+        if self.loop_started_at is None or self.last_loop_heartbeat is None:
+            return False
+
+        # Allow 2 intervals + small buffer before considering loop stale.
+        grace_seconds = max(120, self.config.download.interval_seconds * 2 + 30)
+        return (time.time() - self.last_loop_heartbeat) <= grace_seconds
+
     async def _get_existing_mteam_ids(self, sid: str) -> Set[str]:
         """
         Get existing M-Team IDs in qBittorrent (with 60s cache)
@@ -149,6 +191,61 @@ class PilotManager:
     def _invalidate_cache(self):
         """Invalidate the existing IDs cache"""
         self._cache_updated = 0
+
+    def _get_free_cache_age_seconds(self) -> Optional[float]:
+        """Return cached free-list age in seconds, or None if unknown."""
+        last_update = state.cached_data.get("last_update")
+        if not last_update:
+            return None
+
+        try:
+            updated_at = datetime.strptime(last_update, "%Y-%m-%d %H:%M:%S")
+            now = datetime.now(BEIJING_TZ).replace(tzinfo=None)
+            return max(0.0, (now - updated_at).total_seconds())
+        except Exception:
+            return None
+
+    async def _ensure_download_cache_fresh(self) -> bool:
+        """
+        Ensure free-torrent cache is fresh enough for download decisions.
+
+        To avoid additional M-Team load, refresh is attempted only when cache is
+        clearly stale or marked with error. If refresh still fails/stays stale,
+        skip download cycle (fail-closed).
+        """
+        # Keep cache age bounded by the tighter of global refresh interval and
+        # pilot interval, while preserving a sane lower floor.
+        max_cache_age = max(120, min(REFRESH_INTERVAL, self.config.download.interval_seconds))
+        age_seconds = self._get_free_cache_age_seconds()
+        has_error = bool(state.cached_data.get("error"))
+        needs_refresh = has_error or age_seconds is None or age_seconds > max_cache_age
+
+        if not needs_refresh:
+            return True
+
+        logger.warning(
+            "Free list cache stale or invalid before download cycle; "
+            "attempting one guarded refresh"
+        )
+        try:
+            from app.core.torrent import fetch_all_free_torrents
+            await fetch_all_free_torrents()
+        except Exception as e:
+            logger.error(f"Guarded refresh failed before download cycle: {e}", exc_info=True)
+            return False
+
+        refreshed_age = self._get_free_cache_age_seconds()
+        if state.cached_data.get("error"):
+            logger.error("Guarded refresh returned cache error; skipping download cycle")
+            return False
+
+        if refreshed_age is None or refreshed_age > max_cache_age:
+            logger.warning(
+                f"Guarded refresh still stale (age={refreshed_age}); skipping download cycle"
+            )
+            return False
+
+        return True
 
     def get_disk_usage_percent(self) -> Optional[float]:
         """
@@ -206,92 +303,103 @@ class PilotManager:
         Args:
             force: If True, run even if download is disabled (for manual triggers)
         """
-        if not force and not self.config.download.enabled:
-            logger.debug("Download cycle skipped: disabled")
-            return
+        async with self._get_download_cycle_lock():
+            if not force and not self.config.download.enabled:
+                logger.debug("Download cycle skipped: disabled")
+                return
 
-        # Disk space check
-        if not self.check_disk_space():
-            logger.info("Download cycle skipped: disk usage above threshold")
-            return
+            # Disk space check
+            if not self.check_disk_space():
+                logger.info("Download cycle skipped: disk usage above threshold")
+                return
 
-        # Get current free torrents from cache
-        torrents = state.cached_data.get('torrents', [])
-        if not torrents:
-            logger.debug("No torrents in cache, skipping download cycle")
-            return
+            # Guard against stale/error cache to avoid downloading paid torrents.
+            if not await self._ensure_download_cache_fresh():
+                logger.warning("Download cycle skipped: free list cache is stale/unavailable")
+                return
 
-        # Login to qBittorrent first to get existing IDs
-        sid = await qb_login()
-        if not sid:
-            logger.error("Failed to login to qBittorrent")
-            return
+            # Get current free torrents from cache
+            torrents = state.cached_data.get('torrents', [])
+            if not torrents:
+                logger.debug("No torrents in cache, skipping download cycle")
+                return
 
-        # Get existing M-Team IDs to avoid duplicates
-        existing_mteam_ids = await self._get_existing_mteam_ids(sid)
+            # Login to qBittorrent first to get existing IDs
+            sid = await qb_login()
+            if not sid:
+                logger.error("Failed to login to qBittorrent")
+                return
 
-        # Filter and score candidates
-        candidates = []
-        skipped_existing = 0
-        for t in torrents:
-            tid = t.get('id', '')
+            # Get existing M-Team IDs to avoid duplicates
+            existing_mteam_ids = await self._get_existing_mteam_ids(sid)
 
-            # Skip if already pending
-            if tid in self.pending_downloads:
-                continue
+            # Filter and score candidates
+            candidates = []
+            skipped_existing = 0
+            for t in torrents:
+                tid = t.get('id', '')
 
-            # Skip if already exists in qBittorrent
-            if tid in existing_mteam_ids:
-                skipped_existing += 1
-                continue
+                # Skip expired/free-ended items in cache
+                remaining = t.get("remaining", {})
+                if isinstance(remaining, dict) and remaining.get("hours", 0) <= 0:
+                    continue
 
-            should_dl, score, reason = self.rule_engine.evaluate_download(t)
-            if should_dl:
-                candidates.append((score, t))
+                # Skip if already pending
+                if tid in self.pending_downloads:
+                    continue
 
-        if skipped_existing > 0:
-            logger.debug(f"Skipped {skipped_existing} torrents already in qBittorrent")
+                # Skip if already exists in qBittorrent
+                if tid in existing_mteam_ids:
+                    skipped_existing += 1
+                    continue
 
-        if not candidates:
-            logger.debug("No download candidates after filtering")
-            return
+                should_dl, score, reason = self.rule_engine.evaluate_download(t)
+                if should_dl:
+                    candidates.append((score, t))
 
-        # Sort by score (highest first)
-        candidates.sort(key=lambda x: x[0], reverse=True)
+            if skipped_existing > 0:
+                logger.debug(f"Skipped {skipped_existing} torrents already in qBittorrent")
 
-        # Check available slots
-        current_tasks = await qb_get_torrents(sid)
-        auto_tasks = [t for t in current_tasks if 'PILOT' in t.get('tags', '')]
-        max_tasks = self.config.download.max_active_tasks
-        available_slots = max_tasks - len(auto_tasks)
+            if not candidates:
+                logger.debug("No download candidates after filtering")
+                return
 
-        if available_slots <= 0:
-            logger.info(f"Download cycle skipped: {len(auto_tasks)}/{max_tasks} slots used")
-            return
+            # Sort by score (highest first)
+            candidates.sort(key=lambda x: x[0], reverse=True)
 
-        logger.info(
-            f"Download cycle: {len(candidates)} candidates, "
-            f"{available_slots}/{max_tasks} slots available"
-        )
+            # Check available slots
+            current_tasks = await qb_get_torrents(sid)
+            auto_tasks = [t for t in current_tasks if 'PILOT' in t.get('tags', '')]
+            max_tasks = self.config.download.max_active_tasks
+            available_slots = max_tasks - len(auto_tasks)
 
-        # Download top candidates
-        downloaded_count = 0
-        for score, torrent in candidates[:available_slots]:
-            tid = torrent['id']
-            self.pending_downloads.add(tid)
-            try:
-                success = await self._download_torrent(torrent, sid, score)
-                if success:
-                    downloaded_count += 1
-                    self._invalidate_cache()  # Invalidate cache after successful download
-            finally:
-                self.pending_downloads.discard(tid)
+            if available_slots <= 0:
+                logger.info(f"Download cycle skipped: {len(auto_tasks)}/{max_tasks} slots used")
+                return
 
-        if downloaded_count > 0:
-            self.total_downloads += downloaded_count
-            self.last_run = time.time()
-            self._save_stats()
-            logger.info(f"Downloaded {downloaded_count} torrents in this cycle (total: {self.total_downloads})")
+            logger.info(
+                f"Download cycle: {len(candidates)} candidates, "
+                f"{available_slots}/{max_tasks} slots available"
+            )
+
+            # Download top candidates
+            downloaded_count = 0
+            for score, torrent in candidates[:available_slots]:
+                tid = torrent['id']
+                self.pending_downloads.add(tid)
+                try:
+                    success = await self._download_torrent(torrent, sid, score)
+                    if success:
+                        downloaded_count += 1
+                        self._invalidate_cache()  # Invalidate cache after successful download
+                finally:
+                    self.pending_downloads.discard(tid)
+
+            if downloaded_count > 0:
+                self.total_downloads += downloaded_count
+                self.last_run = time.time()
+                self._save_stats()
+                logger.info(f"Downloaded {downloaded_count} torrents in this cycle (total: {self.total_downloads})")
 
     async def _download_torrent(self, torrent: dict, sid: str, score: float) -> bool:
         """
@@ -336,112 +444,113 @@ class PilotManager:
         Args:
             force: If True, run even if cleanup is disabled (for manual triggers)
         """
-        if not force and not self.config.cleanup.enabled:
-            logger.debug("Cleanup cycle skipped: disabled")
-            return
+        async with self._get_cleanup_cycle_lock():
+            if not force and not self.config.cleanup.enabled:
+                logger.debug("Cleanup cycle skipped: disabled")
+                return
 
-        sid = await qb_login()
-        if not sid:
-            logger.error("Failed to login to qBittorrent for cleanup")
-            return
+            sid = await qb_login()
+            if not sid:
+                logger.error("Failed to login to qBittorrent for cleanup")
+                return
 
-        tasks = await qb_get_torrents(sid)
-        auto_tasks = [t for t in tasks if 'PILOT' in t.get('tags', '')]
+            tasks = await qb_get_torrents(sid)
+            auto_tasks = [t for t in tasks if 'PILOT' in t.get('tags', '')]
 
-        if not auto_tasks:
-            logger.debug("No PILOT tasks to clean up")
-            return
+            if not auto_tasks:
+                logger.debug("No PILOT tasks to clean up")
+                return
 
-        logger.info(f"Cleanup: checking {len(auto_tasks)} PILOT tasks")
-        cleanup = self.config.cleanup
-        deleted_count = 0
+            logger.info(f"Cleanup: checking {len(auto_tasks)} PILOT tasks")
+            cleanup = self.config.cleanup
+            deleted_count = 0
 
-        # Phase 1: Individual cleanup
-        remaining_tasks = []
-        for task in auto_tasks:
-            # Get metadata from cache if available
-            meta = self._get_torrent_meta(task)
+            # Phase 1: Individual cleanup
+            remaining_tasks = []
+            for task in auto_tasks:
+                # Get metadata from cache if available
+                meta = self._get_torrent_meta(task)
 
-            should_delete, reason = self.rule_engine.evaluate_cleanup(task, meta)
-            if should_delete:
-                if await self._delete_task(task, sid, reason):
-                    deleted_count += 1
-            else:
-                remaining_tasks.append(task)
-                logger.debug(f"Keep: {task.get('name', '')[:50]} - {reason}")
-
-        # Phase 2: Bottom performers elimination (only for mature seeds)
-        if remaining_tasks:
-            # Filter mature seeds: completed + seeding_time > min_seed_time_hours
-            mature_tasks = []
-            for task in remaining_tasks:
-                progress = task.get('progress', 0)
-                seeding_time_hours = task.get('seeding_time', 0) / 3600
-
-                # Skip downloading tasks
-                if progress < 1.0:
-                    logger.debug(f"Phase2 skip (downloading): {task.get('name', '')[:50]}")
-                    continue
-
-                # Skip tasks with insufficient seeding time
-                if seeding_time_hours < cleanup.min_seed_time_hours:
-                    logger.debug(f"Phase2 skip (seeding {seeding_time_hours:.2f}h): {task.get('name', '')[:50]}")
-                    continue
-
-                mature_tasks.append(task)
-
-            # Get active hashes for history cleanup
-            active_hashes = {t.get('hash', '') for t in mature_tasks}
-            self._cleanup_upload_history(active_hashes)
-
-            # Calculate sliding window speed for each task
-            tasks_with_speed = []
-            for task in mature_tasks:
-                avg_speed = self._get_sliding_window_speed(task, window_minutes=30)
-                if avg_speed >= 0:  # Has enough data
-                    task['_avg_speed_kbps'] = avg_speed
-                    tasks_with_speed.append(task)
-                else:
-                    # Not enough history, skip this task for now
-                    logger.debug(f"Skip speed check (not enough history): {task.get('name', '')[:50]}")
-
-            # Calculate cleanup score for each task
-            for task in tasks_with_speed:
-                task['_cleanup_score'] = self._calculate_cleanup_score(task, task['_avg_speed_kbps'])
-
-            # Sort by cleanup score (lowest first - lowest score = delete first)
-            tasks_with_speed.sort(key=lambda t: t['_cleanup_score'])
-
-            # Condition A: Delete tasks below speed threshold
-            for task in tasks_with_speed:
-                avg_speed = task['_avg_speed_kbps']
-                if avg_speed < cleanup.min_upload_speed_kbps:
-                    if await self._delete_task(task, sid, f"Low speed: {avg_speed:.1f} KB/s (30min avg)"):
+                should_delete, reason = self.rule_engine.evaluate_cleanup(task, meta)
+                if should_delete:
+                    if await self._delete_task(task, sid, reason):
                         deleted_count += 1
+                else:
+                    remaining_tasks.append(task)
+                    logger.debug(f"Keep: {task.get('name', '')[:50]} - {reason}")
 
-            # Condition B: Elimination ratio (delete lowest scored X%)
-            if cleanup.elimination_ratio > 0 and tasks_with_speed:
-                # Recalculate remaining after Condition A
-                remaining_after_a = len(auto_tasks) - deleted_count
-                if remaining_after_a > 1:  # Keep at least 1 task
-                    to_eliminate = max(1, int(remaining_after_a * cleanup.elimination_ratio / 100))
-                    # Filter tasks not yet deleted by Condition A
-                    still_remaining = [t for t in tasks_with_speed
-                                      if t['_avg_speed_kbps'] >= cleanup.min_upload_speed_kbps]
-                    # Delete from lowest score
-                    for task in still_remaining[:to_eliminate]:
-                        if len(auto_tasks) - deleted_count <= 1:
-                            break  # Keep at least 1
-                        avg_speed = task['_avg_speed_kbps']
-                        cleanup_score = task['_cleanup_score']
-                        if await self._delete_task(task, sid, f"Bottom {cleanup.elimination_ratio}%: score={cleanup_score:.4f} ({avg_speed:.1f} KB/s)"):
+            # Phase 2: Bottom performers elimination (only for mature seeds)
+            if remaining_tasks:
+                # Filter mature seeds: completed + seeding_time > min_seed_time_hours
+                mature_tasks = []
+                for task in remaining_tasks:
+                    progress = task.get('progress', 0)
+                    seeding_time_hours = task.get('seeding_time', 0) / 3600
+
+                    # Skip downloading tasks
+                    if progress < 1.0:
+                        logger.debug(f"Phase2 skip (downloading): {task.get('name', '')[:50]}")
+                        continue
+
+                    # Skip tasks with insufficient seeding time
+                    if seeding_time_hours < cleanup.min_seed_time_hours:
+                        logger.debug(f"Phase2 skip (seeding {seeding_time_hours:.2f}h): {task.get('name', '')[:50]}")
+                        continue
+
+                    mature_tasks.append(task)
+
+                # Get active hashes for history cleanup
+                active_hashes = {t.get('hash', '') for t in mature_tasks}
+                self._cleanup_upload_history(active_hashes)
+
+                # Calculate sliding window speed for each task
+                tasks_with_speed = []
+                for task in mature_tasks:
+                    avg_speed = self._get_sliding_window_speed(task, window_minutes=30)
+                    if avg_speed >= 0:  # Has enough data
+                        task['_avg_speed_kbps'] = avg_speed
+                        tasks_with_speed.append(task)
+                    else:
+                        # Not enough history, skip this task for now
+                        logger.debug(f"Skip speed check (not enough history): {task.get('name', '')[:50]}")
+
+                # Calculate cleanup score for each task
+                for task in tasks_with_speed:
+                    task['_cleanup_score'] = self._calculate_cleanup_score(task, task['_avg_speed_kbps'])
+
+                # Sort by cleanup score (lowest first - lowest score = delete first)
+                tasks_with_speed.sort(key=lambda t: t['_cleanup_score'])
+
+                # Condition A: Delete tasks below speed threshold
+                for task in tasks_with_speed:
+                    avg_speed = task['_avg_speed_kbps']
+                    if avg_speed < cleanup.min_upload_speed_kbps:
+                        if await self._delete_task(task, sid, f"Low speed: {avg_speed:.1f} KB/s (30min avg)"):
                             deleted_count += 1
 
-        if deleted_count > 0:
-            self.total_cleanups += deleted_count
-            self.last_run = time.time()
-            self._save_stats()
-            logger.info(f"Cleaned {deleted_count} tasks in this cycle (total: {self.total_cleanups})")
+                # Condition B: Elimination ratio (delete lowest scored X%)
+                if cleanup.elimination_ratio > 0 and tasks_with_speed:
+                    # Recalculate remaining after Condition A
+                    remaining_after_a = len(auto_tasks) - deleted_count
+                    if remaining_after_a > 1:  # Keep at least 1 task
+                        to_eliminate = max(1, int(remaining_after_a * cleanup.elimination_ratio / 100))
+                        # Filter tasks not yet deleted by Condition A
+                        still_remaining = [t for t in tasks_with_speed
+                                          if t['_avg_speed_kbps'] >= cleanup.min_upload_speed_kbps]
+                        # Delete from lowest score
+                        for task in still_remaining[:to_eliminate]:
+                            if len(auto_tasks) - deleted_count <= 1:
+                                break  # Keep at least 1
+                            avg_speed = task['_avg_speed_kbps']
+                            cleanup_score = task['_cleanup_score']
+                            if await self._delete_task(task, sid, f"Bottom {cleanup.elimination_ratio}%: score={cleanup_score:.4f} ({avg_speed:.1f} KB/s)"):
+                                deleted_count += 1
+
+            if deleted_count > 0:
+                self.total_cleanups += deleted_count
+                self.last_run = time.time()
+                self._save_stats()
+                logger.info(f"Cleaned {deleted_count} tasks in this cycle (total: {self.total_cleanups})")
 
     async def _delete_task(self, task: dict, sid: str, reason: str) -> bool:
         """
@@ -589,13 +698,19 @@ pilot_manager = PilotManager()
 async def pilot_loop():
     """Independent background loop task"""
     logger.info("Pilot loop started")
+    pilot_manager.loop_started_at = time.time()
+    pilot_manager.mark_loop_heartbeat()
 
     while True:
+        cycle_error: Optional[str] = None
         try:
             await pilot_manager.run_download_cycle()
             await pilot_manager.run_cleanup_cycle()
         except Exception as e:
+            cycle_error = str(e)
             logger.error(f"Pilot cycle error: {e}", exc_info=True)
+        finally:
+            pilot_manager.mark_loop_heartbeat(error=cycle_error)
 
         interval = pilot_manager.config.download.interval_seconds
         pilot_manager.next_run = time.time() + interval
