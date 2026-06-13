@@ -18,6 +18,21 @@ from app.services.media_wall import (
 router = APIRouter()
 
 POSTER_PROXY_TIMEOUT_SECONDS = 10.0
+
+_BLOCKED_IP_NETWORKS = tuple(
+    ipaddress.ip_network(network)
+    for network in (
+        "10.0.0.0/8",  # RFC1918
+        "172.16.0.0/12",  # RFC1918
+        "192.168.0.0/16",  # RFC1918
+        "127.0.0.0/8",  # IPv4 loopback
+        "169.254.0.0/16",  # IPv4 link-local, including cloud metadata
+        "100.64.0.0/10",  # CGNAT
+        "::1/128",  # IPv6 loopback
+        "fe80::/10",  # IPv6 link-local
+        "fc00::/7",  # IPv6 unique-local
+    )
+)
 POSTER_CACHE_CONTROL = "public, max-age=86400"
 
 
@@ -31,7 +46,15 @@ async def get_home_poster(u: str):
     hostname = parsed.hostname
     if parsed.scheme not in {"http", "https"} or not _is_allowlisted_poster_host(hostname):
         raise HTTPException(status_code=400, detail="Invalid poster URL")
-    if hostname is None or not _host_resolves_to_public_ips(hostname):
+    if hostname is None:
+        raise HTTPException(status_code=400, detail="Invalid poster URL")
+    try:
+        resolved_ips = _resolve_host_ips(hostname)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="Bad Gateway") from exc
+    if not resolved_ips:
+        raise HTTPException(status_code=502, detail="Bad Gateway")
+    if any(_is_blocked_ip(address) for address in resolved_ips):
         raise HTTPException(status_code=400, detail="Invalid poster URL")
 
     headers = {"User-Agent": USER_AGENT}
@@ -64,27 +87,16 @@ def _resolve_host_ips(hostname: str) -> list[str]:
     return [address[4][0] for address in socket.getaddrinfo(hostname, None)]
 
 
-def _host_resolves_to_public_ips(hostname: str) -> bool:
-    try:
-        addresses = _resolve_host_ips(hostname)
-    except Exception:
-        return False
-    return bool(addresses) and all(_is_public_ip_address(address) for address in addresses)
-
-
-def _is_public_ip_address(address: str) -> bool:
+def _is_blocked_ip(address: str) -> bool:
     try:
         ip = ipaddress.ip_address(address)
     except ValueError:
-        return False
-    return not (
-        ip.is_private
-        or ip.is_loopback
-        or ip.is_link_local
-        or ip.is_reserved
-        or ip.is_multicast
-        or ip.is_unspecified
-    )
+        return True
+    if ip.version == 6 and ip.ipv4_mapped is not None:
+        ip = ip.ipv4_mapped
+    if ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_unspecified:
+        return True
+    return any(ip in network for network in _BLOCKED_IP_NETWORKS)
 
 
 def _is_allowlisted_poster_host_for_suffix(hostname: str, suffix: str) -> bool:
