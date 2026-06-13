@@ -1,5 +1,7 @@
 """Read-only Home media wall API."""
 
+import ipaddress
+import socket
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, HTTPException, Response
@@ -26,11 +28,14 @@ async def get_home_poster(u: str):
         parsed = urlparse(u)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail="Invalid poster URL") from exc
-    if parsed.scheme not in {"http", "https"} or not _is_allowlisted_poster_host(parsed.hostname):
+    hostname = parsed.hostname
+    if parsed.scheme not in {"http", "https"} or not _is_allowlisted_poster_host(hostname):
+        raise HTTPException(status_code=400, detail="Invalid poster URL")
+    if hostname is None or not _host_resolves_to_public_ips(hostname):
         raise HTTPException(status_code=400, detail="Invalid poster URL")
 
     headers = {"User-Agent": USER_AGENT}
-    if parsed.hostname and _is_allowlisted_poster_host_for_suffix(parsed.hostname, "doubanio.com"):
+    if _is_allowlisted_poster_host_for_suffix(hostname, "doubanio.com"):
         headers["Referer"] = "https://movie.douban.com/"
 
     try:
@@ -38,11 +43,13 @@ async def get_home_poster(u: str):
         response = await client.get(
             u,
             headers=headers,
-            follow_redirects=True,
+            follow_redirects=False,
             timeout=POSTER_PROXY_TIMEOUT_SECONDS,
         )
     except Exception as exc:
         raise HTTPException(status_code=502, detail="Bad Gateway") from exc
+    if 300 <= response.status_code < 400:
+        raise HTTPException(status_code=502, detail="Bad Gateway")
     if not 200 <= response.status_code < 300:
         raise HTTPException(status_code=502, detail="Bad Gateway")
 
@@ -50,6 +57,33 @@ async def get_home_poster(u: str):
         content=response.content,
         media_type=response.headers.get("content-type") or "image/jpeg",
         headers={"Cache-Control": POSTER_CACHE_CONTROL},
+    )
+
+
+def _resolve_host_ips(hostname: str) -> list[str]:
+    return [address[4][0] for address in socket.getaddrinfo(hostname, None)]
+
+
+def _host_resolves_to_public_ips(hostname: str) -> bool:
+    try:
+        addresses = _resolve_host_ips(hostname)
+    except Exception:
+        return False
+    return bool(addresses) and all(_is_public_ip_address(address) for address in addresses)
+
+
+def _is_public_ip_address(address: str) -> bool:
+    try:
+        ip = ipaddress.ip_address(address)
+    except ValueError:
+        return False
+    return not (
+        ip.is_private
+        or ip.is_loopback
+        or ip.is_link_local
+        or ip.is_reserved
+        or ip.is_multicast
+        or ip.is_unspecified
     )
 
 
