@@ -1,0 +1,93 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Node / Next.js
+node_modules/
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/test-results/
+frontend/playwright-report/
+playwright-report/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+/lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Docker
+docker-compose.override.yml
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Misc
+*.bak
+*.tmp
+*.backup
+
+# PANEL Database
+data/panel.db
+data/panel.db-journal
+
+# Runtime data files (auto-generated)
+data/mt_engine.db
+data/pilot.json
+data/pilot_stats.json
+data/media_wall_snapshot.json
+data/media_metadata_cache.json
+
+# Internal working docs (not published)
+docs/
+
+# Agent-local plans and scratch notes
+docs/superpowers/
+.codex/
+.claude/
+.agents/
+
+# local supervise/run artifacts
+.local-artifacts/

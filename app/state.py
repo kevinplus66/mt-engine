@@ -1,0 +1,65 @@
+"""
+全局状态管理
+"""
+
+from typing import Dict, Any, Optional
+from datetime import datetime
+
+
+# ============ 缓存数据 ============
+cached_data: Dict[str, Any] = {
+    "torrents": [],
+    "categories": [],
+    "last_update": None,
+    "error": None
+}
+
+
+# ============ 用户状态 ============
+user_torrent_status: Dict[str, Dict] = {
+    "seeding": {},
+    "leeching": {},
+}
+
+user_profile: Dict[str, Any] = {
+    "share_ratio": 0,
+    "uploaded": 0,
+    "downloaded": 0,
+    "uploaded_display": "0 B",
+    "downloaded_display": "0 B"
+}
+
+
+def has_real_user_profile(profile: Dict[str, Any]) -> bool:
+    """Return True only after M-Team profile data has replaced startup defaults."""
+    if not profile:
+        return False
+
+    uploaded = profile.get("uploaded")
+    downloaded = profile.get("downloaded")
+    share_ratio = profile.get("share_ratio")
+    if uploaded is None or downloaded is None or share_ratio is None:
+        return False
+
+    return uploaded != 0 or downloaded != 0 or share_ratio != 0
+
+
+# ============ 缓存时间戳 ============
+_last_user_status_refresh_hour: int = 0  # 用户状态刷新的 Unix 小时数（整点刷新）
+_last_categories_refresh: Optional[datetime] = None   # 分类列表 (24小时)
+
+
+# ============ 报警与自动删除 ============
+# 历史免费种子ID追踪（用于检测"变节"- 免费变收费）
+known_free_torrent_ids: set = set()
+
+# 已发送报警记录（防止重复报警）
+sent_alerts: Dict[str, float] = {}  # {torrent_id_alerttype: timestamp}
+
+# 自动删除功能状态
+auto_delete_enabled: bool = True
+
+
+# ============ 国家映射 ============
+# 国家映射（ID到名称），将在启动时加载
+COUNTRY_LABELS: Dict[int, str] = {}

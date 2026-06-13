@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - infra/**
+      - refactor/**
+  pull_request:
+
+jobs:
+  backend-pytest:
+    name: Backend pytest
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Check OpenAPI schema drift
+        run: python scripts/export-openapi.py --check
+
+      - name: Run pytest
+        run: python -m pytest -q
+
+  frontend-quality:
+    name: Frontend lint/test/build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend --legacy-peer-deps
+
+      - name: Check generated API types drift
+        run: npm run check:api-types --prefix frontend
+
+      - name: Audit frontend dependencies
+        run: npm audit --prefix frontend --audit-level=moderate
+
+      - name: Run frontend lint
+        run: npm run lint --prefix frontend
+
+      - name: Run frontend tests
+        run: npm run test --prefix frontend
+
+      - name: Run frontend build
+        run: npm run build --prefix frontend

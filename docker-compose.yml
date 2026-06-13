@@ -1,0 +1,46 @@
+# 生产模式 - 适合分享部署
+# 使用方法: docker compose up -d
+
+services:
+  mt-engine:
+    build:
+      context: .
+      args:
+        MT_ENGINE_COMMIT: ${MT_ENGINE_COMMIT:-local}
+    container_name: mt-engine
+    # 使用 .env 中的 PUID/PGID，解决 NAS 权限问题
+    user: "${PUID:-1000}:${PGID:-1000}"
+    restart: unless-stopped
+    # NAS 默认需要局域网直连；公网访问请先配置认证和反向代理
+    ports:
+      - "${MT_ENGINE_BIND_HOST:-0.0.0.0}:5050:5050"
+    volumes:
+      - ./data:/app/data
+      - ${DOWNLOADS_PATH:-/downloads}:/downloads:ro
+    environment:
+      - MT_TOKEN=${MT_TOKEN}
+      - MT_ENGINE_API_KEY=${MT_ENGINE_API_KEY:-}
+      - MT_USER_ID=${MT_USER_ID}
+      - MT_SITE_URL=${MT_SITE_URL:-https://kp.m-team.cc}
+      - REFRESH_INTERVAL=${REFRESH_INTERVAL:-300}
+      - PANEL_COLLECT_INTERVAL=${PANEL_COLLECT_INTERVAL:-60}
+      - MEDIA_WALL_REFRESH_INTERVAL=${MEDIA_WALL_REFRESH_INTERVAL:-21600}
+      - MEDIA_WALL_STARTUP_DELAY=${MEDIA_WALL_STARTUP_DELAY:-420}
+      - MEDIA_WALL_METADATA_TTL=${MEDIA_WALL_METADATA_TTL:-604800}
+      - MEDIA_WALL_MAX_METADATA_FETCHES=${MEDIA_WALL_MAX_METADATA_FETCHES:-40}
+      - MEDIA_WALL_DOUBAN_POSTER_FETCHES=${MEDIA_WALL_DOUBAN_POSTER_FETCHES:-3}
+      - API_DELAY=${API_DELAY:-3}
+      - DEBUG=${DEBUG:-}
+      - RIVAL_USER_ID=${RIVAL_USER_ID:-}
+      - PUSHPLUS_TOKEN=${PUSHPLUS_TOKEN:-}
+      - QBITTORRENT_URL=${QBITTORRENT_URL:-}
+      - QBITTORRENT_USER=${QBITTORRENT_USER:-}
+      - QBITTORRENT_PASSWORD=${QBITTORRENT_PASSWORD:-}
+      - PILOT_SAVE_PATH=${PILOT_SAVE_PATH:-}
+      - MT_ENGINE_COMMIT=${MT_ENGINE_COMMIT:-local}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://127.0.0.1:5050/health').raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
