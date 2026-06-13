@@ -7,6 +7,7 @@ classification and card shaping can be tested without touching M-Team.
 """
 
 import asyncio
+from copy import deepcopy
 from html import unescape
 import json
 import re
@@ -14,6 +15,7 @@ from math import ceil
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from urllib.parse import parse_qs, quote, urlparse
 
 from app.config import (
     BEIJING_TZ,
@@ -37,6 +39,81 @@ MOVIE_CATEGORIES: Set[int] = set(RADAR_MOVIE_CATEGORY_IDS)
 SERIES_CATEGORIES: Set[int] = set(RADAR_TVSHOW_CATEGORY_IDS)
 ANIME_CATEGORIES: Set[int] = {449, 405}
 METADATA_MISS_TTL_SECONDS = 6 * 60 * 60
+
+ALLOWED_POSTER_HOST_SUFFIXES: Tuple[str, ...] = (
+    "doubanio.com",
+    "image.tmdb.org",
+    "m-team.co",
+    "m-team.cc",
+    "ptdream.net",
+    "imgtg.com",
+)
+POSTER_PROXY_PATH = "/api/home/poster"
+
+
+def _unwrap_gateway996_url(url: str) -> str:
+    """Return the stable inner image URL from M-Team's expiring gateway proxy."""
+    try:
+        parsed = urlparse(url)
+    except (TypeError, ValueError):
+        return url
+    hostname = (parsed.hostname or "").lower()
+    if hostname != "api.gateway996.com":
+        return url
+    try:
+        values = parse_qs(parsed.query).get("uri")
+    except ValueError:
+        return url
+    if not values:
+        return url
+    return values[0] or url
+
+
+def _is_allowlisted_poster_host(hostname: Optional[str]) -> bool:
+    if not hostname:
+        return False
+    normalized = hostname.rstrip(".").lower()
+    return any(
+        normalized == suffix or normalized.endswith(f".{suffix}")
+        for suffix in ALLOWED_POSTER_HOST_SUFFIXES
+    )
+
+
+def to_proxy_poster_url(url: Optional[str]) -> Optional[str]:
+    """Rewrite allowlisted poster URLs to the same-origin backend image proxy."""
+    if not url:
+        return None
+    if url.startswith("/"):
+        return url
+    unwrapped = _unwrap_gateway996_url(url)
+    if unwrapped.startswith("/"):
+        return unwrapped
+    try:
+        parsed = urlparse(unwrapped)
+    except (TypeError, ValueError):
+        return unwrapped
+    if parsed.scheme in {"http", "https"} and _is_allowlisted_poster_host(parsed.hostname):
+        return f"{POSTER_PROXY_PATH}?u={quote(unwrapped, safe='')}"
+    return unwrapped
+
+
+def proxy_media_wall_posters(snapshot: Dict[str, Any]) -> Dict[str, Any]:
+    """Deep-copy a media-wall snapshot and proxy every rail card poster URL."""
+    payload = deepcopy(snapshot)
+    rails = payload.get("rails")
+    if not isinstance(rails, list):
+        return payload
+    for rail in rails:
+        if not isinstance(rail, dict):
+            continue
+        for cards_key in ("items", "cards"):
+            cards = rail.get(cards_key)
+            if not isinstance(cards, list):
+                continue
+            for card in cards:
+                if isinstance(card, dict) and "poster_url" in card:
+                    card["poster_url"] = to_proxy_poster_url(card.get("poster_url"))
+    return payload
 
 
 NON_SCRIPTED_SERIES_PATTERNS = [

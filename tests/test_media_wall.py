@@ -1,4 +1,6 @@
+from copy import deepcopy
 from datetime import datetime, timedelta
+from urllib.parse import quote
 
 import pytest
 
@@ -7,12 +9,15 @@ from app.services import mteam_api
 from app.services.media_wall import (
     MediaWallService,
     _search_payloads,
+    _unwrap_gateway996_url,
     build_media_wall_rails,
     classify_media_type,
     extract_episode_token,
     extract_quality_tags,
     is_media_wall_movie_candidate,
     is_media_wall_series_candidate,
+    proxy_media_wall_posters,
+    to_proxy_poster_url,
 )
 from app.services.mteam_api import MTClient
 
@@ -88,6 +93,76 @@ def all_rail_item_ids(response):
         for rail in response["rails"]
         for item in rail.get("items", [])
     }
+
+
+GATEWAY_DOUBAN_URL = (
+    "https://api.gateway996.com/api/media/redirect"
+    "?seconds=171819&zone=doubanimg2"
+    "&uri=https%3A%2F%2Fimg9.doubanio.com%2Fview%2Fphoto%2Fl%2Fpublic%2Fp123456.webp"
+    "&sign=abc123"
+)
+INNER_DOUBAN_URL = "https://img9.doubanio.com/view/photo/l/public/p123456.webp"
+
+
+def test_unwrap_gateway996_url_returns_inner_uri_when_present():
+    assert _unwrap_gateway996_url(GATEWAY_DOUBAN_URL) == INNER_DOUBAN_URL
+    assert _unwrap_gateway996_url(INNER_DOUBAN_URL) == INNER_DOUBAN_URL
+    assert _unwrap_gateway996_url("https://image.tmdb.org/t/p/w500/poster.jpg") == (
+        "https://image.tmdb.org/t/p/w500/poster.jpg"
+    )
+    assert _unwrap_gateway996_url("not a url") == "not a url"
+
+
+def test_to_proxy_poster_url_rewrites_allowlisted_images_only():
+    assert to_proxy_poster_url(GATEWAY_DOUBAN_URL) == (
+        "/api/home/poster?u=" + quote(INNER_DOUBAN_URL, safe="")
+    )
+    tmdb_url = "https://image.tmdb.org/t/p/w500/poster.jpg"
+    assert to_proxy_poster_url(tmdb_url) == "/api/home/poster?u=" + quote(tmdb_url, safe="")
+    assert to_proxy_poster_url("https://example.com/x.jpg") == "https://example.com/x.jpg"
+    assert to_proxy_poster_url(None) is None
+    proxied = "/api/home/poster?u=https%3A%2F%2Fimage.tmdb.org%2Fx.jpg"
+    assert to_proxy_poster_url(proxied) == proxied
+
+
+def test_proxy_media_wall_posters_rewrites_cards_without_mutating_snapshot():
+    snapshot = {
+        "refresh_status": "ok",
+        "rails": [
+            {
+                "id": "featured",
+                "title": "Featured",
+                "items": [
+                    {"id": "douban", "title": "Douban", "poster_url": GATEWAY_DOUBAN_URL},
+                    {
+                        "id": "tmdb",
+                        "title": "TMDB",
+                        "poster_url": "https://image.tmdb.org/t/p/w500/poster.jpg",
+                    },
+                    {
+                        "id": "unknown",
+                        "title": "Unknown",
+                        "poster_url": "https://example.com/x.jpg",
+                    },
+                ],
+            }
+        ],
+    }
+    original = deepcopy(snapshot)
+
+    proxied = proxy_media_wall_posters(snapshot)
+
+    assert proxied is not snapshot
+    assert proxied["rails"] is not snapshot["rails"]
+    assert snapshot == original
+    items = proxied["rails"][0]["items"]
+    assert items[0]["poster_url"] == "/api/home/poster?u=" + quote(INNER_DOUBAN_URL, safe="")
+    assert items[1]["poster_url"] == (
+        "/api/home/poster?u="
+        + quote("https://image.tmdb.org/t/p/w500/poster.jpg", safe="")
+    )
+    assert items[2]["poster_url"] == "https://example.com/x.jpg"
+    assert items[0]["title"] == "Douban"
 
 
 @pytest.mark.parametrize(
