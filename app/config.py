@@ -3,16 +3,28 @@
 """
 
 import os
+import re
 import logging
 from datetime import timezone, timedelta
 from pathlib import Path
 
 
 # ============ 版本号 ============
-# 从 CHANGELOG.md 第一行读取版本号
+# 从 CHANGELOG.md 第一个发布版本标题读取版本号（跳过 [Unreleased] 等非版本段）
 _changelog_path = Path(__file__).parent.parent / "CHANGELOG.md"
-with open(_changelog_path) as f:
-    __version__ = f.readline().split("[")[1].split("]")[0]
+_VERSION_PATTERN = re.compile(r"^##\s*\[(\d+\.\d+\.\d+)\]")
+
+
+def _read_version() -> str:
+    with open(_changelog_path) as f:
+        for line in f:
+            match = _VERSION_PATTERN.match(line)
+            if match:
+                return match.group(1)
+    return "unknown"
+
+
+__version__ = _read_version()
 
 
 # ============ 日志配置 ============
