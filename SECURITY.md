@@ -1,20 +1,20 @@
 # Security Policy
 
-## 支持的版本
+## Supported Versions
 
-| 版本线 | 支持状态 |
+| Version line | Support status |
 | --- | --- |
-| 当前 main 分支和最新发布版本 | 支持安全修复 |
-| 旧版本或历史提交 | 不承诺支持 |
+| Current `main` branch and the latest release | Receives security fixes |
+| Older versions or historical commits | Not guaranteed |
 
-## 漏洞上报
+## Reporting a Vulnerability
 
-如发现安全漏洞，请使用 GitHub 私密漏洞上报：进入仓库的 **Security** 标签页，选择 **Report a vulnerability**。请不要在公开 Issue、讨论区或提交信息中披露漏洞细节，也不要向仓库提交任何真实凭证。
+If you find a security vulnerability, please use GitHub's private vulnerability reporting: go to the repository's **Security** tab and choose **Report a vulnerability**. Please do not disclose vulnerability details in public issues, discussions, or commit messages, and do not submit any real credentials to the repository.
 
-## 凭证安全
+## Credential Security
 
-M-Team API Token、qBittorrent 账号密码、PushPlus Token 等敏感信息应通过 `.env` 或环境变量提供，切勿提交到仓库。如发生泄露，请立即在对应服务处轮换或撤销相关凭证。
+Sensitive information such as the M-Team API Token, qBittorrent username/password, and PushPlus Token should be provided via `.env` or environment variables, and must never be committed to the repository. If a leak occurs, rotate or revoke the affected credentials immediately at the corresponding service.
 
-## 响应预期
+## Response Expectations
 
-这是个人项目，维护者会在能力范围内尽力确认、修复并发布安全更新；响应时间不作商业 SLA 承诺。
+This is a personal project. The maintainer will make a best effort to confirm, fix, and release security updates within their capacity; response times are not a commercial SLA.

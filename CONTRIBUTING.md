@@ -1,70 +1,70 @@
 # Contributing
 
-感谢你考虑为 MT-Engine 贡献改进。请在提交 PR 前确保本地检查与 CI 保持一致。
+Thanks for considering a contribution to MT-Engine. Before opening a PR, please make sure your local checks match CI.
 
-## 先决条件
+## Prerequisites
 
 - Python 3.12+
 - Node 22
 
-## 准备环境
+## Set up your environment
 
-复制 `.env.example` 为 `.env` 并填写本地配置；切勿提交 `.env` 或任何真实凭证。
+Copy `.env.example` to `.env` and fill in your local config; never commit `.env` or any real credentials.
 
-## 后端
+## Backend
 
-安装依赖：
+Install dependencies:
 
 ```bash
 pip install -r requirements-dev.txt
 ```
 
-OpenAPI 漂移检查：
+OpenAPI drift check:
 
 ```bash
 python scripts/export-openapi.py --check
 ```
 
-测试：
+Tests:
 
 ```bash
 python -m pytest -q
 ```
 
-## 前端
+## Frontend
 
-以下命令可在仓库根目录运行；也可以进入 `frontend/` 目录后使用等价命令。
+The following commands can be run from the repository root; you can also `cd frontend/` and use the equivalent commands.
 
-安装依赖：
+Install dependencies:
 
 ```bash
 npm ci --prefix frontend --legacy-peer-deps
 ```
 
-API 类型漂移检查：
+API type drift check:
 
 ```bash
 npm run check:api-types --prefix frontend
 ```
 
-Lint：
+Lint:
 
 ```bash
 npm run lint --prefix frontend
 ```
 
-测试：
+Tests:
 
 ```bash
 npm run test --prefix frontend
 ```
 
-构建：
+Build:
 
 ```bash
 npm run build --prefix frontend
 ```
 
-## 提交规范
+## Commit conventions
 
-提交信息沿用仓库现有前缀风格：`feat: / fix: / refactor: / docs: / chore:`。提交 PR 前请确认 CI 全绿。
+Commit messages follow the repository's existing prefix style: `feat: / fix: / refactor: / docs: / chore:`. Make sure CI is green before opening a PR.
