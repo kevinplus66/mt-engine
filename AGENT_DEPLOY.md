@@ -1,38 +1,38 @@
-# MT-Engine 部署指南（AI Agent 版）
+# MT-Engine Deployment Guide (AI Agent Edition)
 
-本文档供 AI agent 协助用户在 NAS 或 Linux 主机上部署 MT-Engine。它是给 agent 执行的手动 skill：先确认环境和风险，再部署，最后用只读接口验收。
+This document is for an AI agent assisting a user in deploying MT-Engine on a NAS or Linux host. It is a manual skill for the agent to execute: confirm the environment and risks first, then deploy, then verify with read-only endpoints.
 
-## Agent 执行原则
+## Agent Execution Principles
 
-- 先确认目标主机、安装路径、仓库来源和用户是否已有旧部署。
-- 不要默认删除 `.env`、`data/`、下载目录或 qBittorrent 数据。
-- 不要在验收时点击或调用会产生副作用的动作：下载、保存配置、暂停、恢复、删除、清理、手动触发下载、手动触发清理、切换开关。
-- 部署后必须用只读接口检查 `/health`、`/api/status`、`/api/home/media-wall`、`/api/auto-delete/status` 和 `/api/pilot/stats`。
-- 如果用户使用 PILOT 自动下载，必须确认自动删除开启、qBittorrent 可达、PILOT loop 健康。
-- 如果部署脚本、`docker compose` 或健康检查失败，停止并报告错误，不要尝试重置仓库或清理用户数据。
-- 默认 Compose 绑定 `0.0.0.0:5050`，适合 NAS 局域网直连；非 DEBUG 部署必须设置 `MT_ENGINE_API_KEY`，公网访问必须先准备认证或反向代理。
+- First confirm the target host, install path, repository source, and whether the user already has a previous deployment.
+- Do not delete `.env`, `data/`, the download directory, or qBittorrent data by default.
+- Do not click or call any side-effecting action during verification: download, save config, pause, resume, delete, cleanup, manually trigger download, manually trigger cleanup, or toggle switches.
+- After deployment, you must check `/health`, `/api/status`, `/api/home/media-wall`, `/api/auto-delete/status`, and `/api/pilot/stats` with read-only endpoints.
+- If the user uses PILOT auto-download, you must confirm that auto-delete is enabled, qBittorrent is reachable, and the PILOT loop is healthy.
+- If the deploy script, `docker compose`, or a health check fails, stop and report the error — do not attempt to reset the repository or clean up user data.
+- Compose binds to `0.0.0.0:5050` by default, suitable for direct LAN access on a NAS; non-DEBUG deployments must set `MT_ENGINE_API_KEY`, and public access must have authentication or a reverse proxy in place first.
 
-## 部署前确认
+## Pre-Deployment Confirmation
 
-向用户确认：
+Confirm with the user:
 
 ```text
-NAS / 主机 IP：
-SSH 用户名：
-SSH 密码或 key 是否可用：
-仓库 URL（默认 https://github.com/kevinplus66/mt-engine.git，可替换为用户 fork）：
-安装路径（例如 ~/mt-engine 或 /volume1/docker/mt-engine）：
-是否已有旧版本部署：
-是否启用 PILOT 自动下载/自动清理：
-是否希望保留已有 .env、data 和下载目录：
-是否需要局域网或公网访问；如果需要，认证或反向代理方案是什么：
+NAS / host IP:
+SSH username:
+SSH password or key available:
+Repository URL (default https://github.com/kevinplus66/mt-engine.git, replaceable with the user's fork):
+Install path (e.g. ~/mt-engine or /volume1/docker/mt-engine):
+Whether a previous version is already deployed:
+Whether to enable PILOT auto-download / auto-cleanup:
+Whether to keep the existing .env, data, and download directory:
+Whether LAN or public access is needed; if so, what is the auth or reverse-proxy plan:
 ```
 
-如果仓库访问需要认证，再向用户确认 GitHub Token 或 SSH key。不要在聊天记录中长期保存 Token。
+If repository access requires authentication, also confirm a GitHub Token or SSH key with the user. Do not retain the Token in the chat log long-term.
 
-## 收集应用配置
+## Collecting Application Config
 
-请用户填写以下 `.env` 模板：
+Have the user fill in the following `.env` template:
 
 ```env
 PUID=1000
@@ -64,55 +64,55 @@ DOWNLOADS_PATH=/volume1/downloads
 PILOT_SAVE_PATH=/downloads/mt_free_farm
 ```
 
-说明：
+Notes:
 
-- `MT_TOKEN` 必填，从 M-Team 控制面板 / 实验室 / 存取令牌获取。
-- `MT_ENGINE_BIND_HOST` 默认 `0.0.0.0`，适合 NAS 局域网直连；如果用户明确只允许主机本机访问，可设为 `127.0.0.1`。
-- `MT_ENGINE_API_KEY` 非 DEBUG 部署必填，用长随机值；所有会改变状态 **或会额外消耗 M-Team / qB API 资源** 的接口（包括保存配置、手动触发下载/清理、暂停/恢复/删除、RADAR 搜索）都要求客户端或反向代理发送 `Authorization: Bearer <key>` 或 `X-MT-ENGINE-Key`。
-- `MT_USER_ID` 可选，用于显示用户做种/下载状态。
-- `REFRESH_INTERVAL=300` 是当前生产稳态值；不要设置低于 `300`，如果用户已有更长间隔，不要主动调短。
-- `API_DELAY` 必须保持 `3` 或更高，低于 `3` 容易触发 M-Team 动态限流。
-- `PANEL_COLLECT_INTERVAL` 默认 `60` 秒，控制 PANEL 历史数据采集频率。
-- `FREE_REFRESH_FAILURE_BACKOFF_SECONDS` 默认 `1800` 秒；FREE 刷新失败时保留旧缓存并冷却后再试。
-- `MEDIA_WALL_REFRESH_INTERVAL` 默认 `21600` 秒（6 小时），不要设置低于 `21600`；这是每个媒体墙 source 的刷新间隔，`latest / movies / series / hot` 会自动错峰轮转，默认约每 90 分钟刷新一个 source。
-- `MEDIA_WALL_STARTUP_DELAY` 默认 `420` 秒，用于错开容器启动后的 SONAR 首轮刷新。
-- `MEDIA_WALL_REFRESH_FAILURE_BACKOFF_SECONDS` 默认 `1800` 秒；媒体墙 source 刷新失败时保留旧缓存并冷却后再试。
-- `MEDIA_WALL_DOUBAN_POSTER_FETCHES` 默认 `3`，只在 M-Team 元数据缺海报时低频读取豆瓣 subject 页面补图；不要为了追求满海报而调高到大值。
-- `DEBUG` 生产部署保持 `false`。
-- Docker 环境中 `QBITTORRENT_URL` 必须使用 NAS 或主机局域网 IP，不能使用 `localhost`。
-- 如果配置 qBittorrent，必须使用用户自己的 Web UI 用户名和密码；不要沿用空密码、默认密码或临时初始化密码。
-- `DOWNLOADS_PATH` 是主机路径，会以只读方式挂载到容器内 `/downloads`。
-- `PILOT_SAVE_PATH` 通常是 `/downloads` 下的子目录。
-- `MT_ENGINE_COMMIT` 建议设置为当前代码提交短哈希，用于部署元数据追踪（例如 `git rev-parse --short HEAD`）。
-- 部署后同时检查 `/health`、`/api/status` 和 `/api/home/media-wall`；`/api/status` 会返回版本、commit、缓存、依赖和非敏感配置摘要。
+- `MT_TOKEN` is required; get it from the M-Team control panel / Lab / Access Token.
+- `MT_ENGINE_BIND_HOST` defaults to `0.0.0.0`, suitable for direct LAN access on a NAS; if the user explicitly wants host-only access, set it to `127.0.0.1`.
+- `MT_ENGINE_API_KEY` is required for non-DEBUG deployments — use a long random value. Every endpoint that changes state **or incurs extra M-Team / qB API cost** (including saving config, manually triggering download/cleanup, pause/resume/delete, RADAR search) requires the client or reverse proxy to send `Authorization: Bearer <key>` or `X-MT-ENGINE-Key`.
+- `MT_USER_ID` is optional, used to show user seeding/download status.
+- `REFRESH_INTERVAL=300` is the current production steady-state value; do not set it below `300`, and if the user already has a longer interval, do not shorten it.
+- `API_DELAY` must stay at `3` or higher; below `3` tends to trigger M-Team's dynamic rate limiting.
+- `PANEL_COLLECT_INTERVAL` defaults to `60` seconds, controlling PANEL history collection frequency.
+- `FREE_REFRESH_FAILURE_BACKOFF_SECONDS` defaults to `1800` seconds; on a FREE refresh failure it keeps the old cache and retries after cooldown.
+- `MEDIA_WALL_REFRESH_INTERVAL` defaults to `21600` seconds (6 hours), do not set it below `21600`; this is the per-source refresh interval, and `latest / movies / series / hot` rotate on a stagger, refreshing roughly one source every 90 minutes by default.
+- `MEDIA_WALL_STARTUP_DELAY` defaults to `420` seconds, used to stagger away from SONAR's first refresh after container start.
+- `MEDIA_WALL_REFRESH_FAILURE_BACKOFF_SECONDS` defaults to `1800` seconds; on a media-wall source refresh failure it keeps the old cache and retries after cooldown.
+- `MEDIA_WALL_DOUBAN_POSTER_FETCHES` defaults to `3`, reading Douban subject pages at low frequency only when M-Team metadata lacks a poster; do not raise it to a large value just to chase full poster coverage.
+- `DEBUG` stays `false` for production deployments.
+- In a Docker environment, `QBITTORRENT_URL` must use the NAS or host's LAN IP, not `localhost`.
+- If configuring qBittorrent, you must use the user's own Web UI username and password; do not reuse an empty password, a default password, or a temporary setup password.
+- `DOWNLOADS_PATH` is a host path, mounted read-only into the container at `/downloads`.
+- `PILOT_SAVE_PATH` is usually a subdirectory under `/downloads`.
+- `MT_ENGINE_COMMIT` should be set to the current code's short commit hash for deployment metadata tracing (e.g. `git rev-parse --short HEAD`).
+- After deployment, also check `/health`, `/api/status`, and `/api/home/media-wall`; `/api/status` returns a summary of version, commit, cache, dependencies, and non-sensitive config.
 
-## Docker 镜像源提醒
+## Docker Mirror Reminder
 
-如果用户在中国大陆网络环境中构建失败，提醒其在 NAS Docker / Container Manager 中配置可用镜像源。镜像源地址以用户当前 NAS 环境可用为准。
+If the user's build fails on a network in mainland China, remind them to configure a working mirror in the NAS Docker / Container Manager. The mirror address depends on what is currently available in the user's NAS environment.
 
-## 首次部署
+## First Deployment
 
-SSH 到 NAS 或主机后执行：
+After SSH-ing into the NAS or host, run:
 
 ```bash
-# 1. 获取当前用户 UID/GID
+# 1. Get the current user's UID/GID
 id -u
 id -g
 
-# 2. 克隆仓库
+# 2. Clone the repository
 REPO_URL="https://github.com/kevinplus66/mt-engine.git"
 INSTALL_PATH="$HOME/mt-engine"
 git clone "$REPO_URL" "$INSTALL_PATH"
 cd "$INSTALL_PATH"
 
-# 3. 创建 .env
+# 3. Create .env
 cat > .env << 'EOF'
-PUID=[id -u 的结果]
-PGID=[id -g 的结果]
-MT_TOKEN=[用户提供]
-MT_ENGINE_API_KEY=[用户提供的长随机值]
+PUID=[result of id -u]
+PGID=[result of id -g]
+MT_TOKEN=[provided by user]
+MT_ENGINE_API_KEY=[long random value provided by user]
 MT_ENGINE_BIND_HOST=0.0.0.0
-MT_USER_ID=[用户提供或留空]
+MT_USER_ID=[provided by user or leave empty]
 MT_SITE_URL=https://kp.m-team.cc
 MT_ENGINE_COMMIT=
 REFRESH_INTERVAL=300
@@ -124,19 +124,19 @@ MEDIA_WALL_MAX_METADATA_FETCHES=40
 MEDIA_WALL_DOUBAN_POSTER_FETCHES=3
 API_DELAY=3
 DEBUG=false
-PUSHPLUS_TOKEN=[用户提供或留空]
-QBITTORRENT_URL=[用户提供或留空]
-QBITTORRENT_USER=[用户提供或留空]
-QBITTORRENT_PASSWORD=[用户提供或留空]
-DOWNLOADS_PATH=[用户提供或 /downloads]
-PILOT_SAVE_PATH=[用户提供或留空]
+PUSHPLUS_TOKEN=[provided by user or leave empty]
+QBITTORRENT_URL=[provided by user or leave empty]
+QBITTORRENT_USER=[provided by user or leave empty]
+QBITTORRENT_PASSWORD=[provided by user or leave empty]
+DOWNLOADS_PATH=[provided by user or /downloads]
+PILOT_SAVE_PATH=[provided by user or leave empty]
 EOF
 
-# 4. 构建并启动
+# 4. Build and start
 export MT_ENGINE_COMMIT="$(git rev-parse --short HEAD)"
 docker compose up -d --build
 
-# 5. 验证
+# 5. Verify
 docker compose ps
 curl http://localhost:5050/health
 curl http://localhost:5050/api/status
@@ -145,34 +145,34 @@ curl http://localhost:5050/api/auto-delete/status
 curl http://localhost:5050/api/pilot/stats
 ```
 
-部署成功后，告诉用户默认 Compose 允许从局域网访问：
+After a successful deployment, tell the user that Compose allows LAN access by default:
 
 ```text
 http://[NAS-IP]:5050
 ```
 
-如果用户需要公网访问，先确认已设置 `MT_ENGINE_API_KEY`，并已加认证或放到已有反向代理后面；客户端或反向代理调用会改变状态的接口时必须发送 `Authorization: Bearer <key>` 或 `X-MT-ENGINE-Key`。
+If the user needs public access, first confirm that `MT_ENGINE_API_KEY` is set and that authentication has been added or the service sits behind an existing reverse proxy; when the client or reverse proxy calls state-changing endpoints, it must send `Authorization: Bearer <key>` or `X-MT-ENGINE-Key`.
 
-## 更新应用
+## Updating the Application
 
-如果 NAS 不能无交互访问 GitHub，优先在本地仓库使用标准脚本通过 git bundle 部署：
+If the NAS cannot access GitHub non-interactively, prefer deploying via git bundle from the local repository using the standard script:
 
 ```bash
 NAS_HOST="<NAS_IP>" NAS_USER="<SSH_USER>" NAS_PATH="<INSTALL_PATH>" ./scripts/deploy-nas.sh
 ```
 
-脚本会上传当前 `HEAD` 的 bundle，在 NAS 上执行 fast-forward merge、`docker compose up -d --build`，并检查 `/health` 与 `/api/status`。如果目标仓库不能 fast-forward，脚本会失败，不会重写 `.env`、`data/` 或下载目录。
+The script uploads a bundle of the current `HEAD`, performs a fast-forward merge on the NAS, runs `docker compose up -d --build`, and checks `/health` and `/api/status`. If the target repository cannot fast-forward, the script fails and does not rewrite `.env`, `data/`, or the download directory.
 
-如果需要部署指定分支或提交，可设置 `DEPLOY_REF`：
+To deploy a specific branch or commit, set `DEPLOY_REF`:
 
 ```bash
 NAS_HOST="<NAS_IP>" NAS_USER="<SSH_USER>" NAS_PATH="<INSTALL_PATH>" DEPLOY_REF=main ./scripts/deploy-nas.sh
 ```
 
-如果 NAS 已经可以直接访问 GitHub，也可以在 NAS 上执行：
+If the NAS can already access GitHub directly, you can also run on the NAS:
 
 ```bash
-cd [安装路径]
+cd [install path]
 git pull --ff-only
 export MT_ENGINE_COMMIT="$(git rev-parse --short HEAD)"
 docker compose up -d --build
@@ -184,7 +184,7 @@ curl http://localhost:5050/api/auto-delete/status
 curl http://localhost:5050/api/pilot/stats
 ```
 
-更新后检查：
+After updating, check:
 
 ```bash
 grep REFRESH_INTERVAL .env || echo "REFRESH_INTERVAL=300" >> .env
@@ -201,11 +201,11 @@ docker compose restart
 docker exec mt-engine env | grep -E "^(REFRESH_INTERVAL|FREE_REFRESH_FAILURE_BACKOFF_SECONDS|API_DELAY|PANEL_COLLECT_INTERVAL|MEDIA_WALL_REFRESH_INTERVAL|MEDIA_WALL_REFRESH_FAILURE_BACKOFF_SECONDS|MEDIA_WALL_STARTUP_DELAY|MEDIA_WALL_METADATA_TTL|MEDIA_WALL_MAX_METADATA_FETCHES|MEDIA_WALL_DOUBAN_POSTER_FETCHES|MT_ENGINE_COMMIT)="
 ```
 
-如果 `REFRESH_INTERVAL` 低于 `300`，调回 `300` 或更高；如果 `API_DELAY` 低于 `3`，调回 `3` 或更高；如果 `MEDIA_WALL_REFRESH_INTERVAL` 低于 `21600`，调回 `21600` 或更高。
+If `REFRESH_INTERVAL` is below `300`, raise it back to `300` or higher; if `API_DELAY` is below `3`, raise it back to `3` or higher; if `MEDIA_WALL_REFRESH_INTERVAL` is below `21600`, raise it back to `21600` or higher.
 
-## 部署后只读验收
+## Post-Deployment Read-Only Acceptance
 
-部署后先看健康和配置摘要：
+After deployment, first look at health and the config summary:
 
 ```bash
 curl -sf http://localhost:5050/health
@@ -215,50 +215,50 @@ curl -sf http://localhost:5050/api/auto-delete/status
 curl -sf http://localhost:5050/api/pilot/stats
 ```
 
-验收重点：
+Acceptance focus:
 
-- `/api/status` 中 `dependencies.qbittorrent.ok` 和 `dependencies.mteam.ok` 应为 `true`。
-- `/api/status` 中 `warnings` 通常应为空；如果有 `free_cache_stale`、`qbittorrent_unhealthy`、`mteam_unhealthy`、`free_refresh_backoff` 或 `panel_collector_stale`，先解释原因再决定是否宣布部署成功。
-- `/api/status` 中 `config.refresh_interval_seconds` 应大于等于 `300`，`config.api_delay_seconds` 应大于等于 `3`，`config.media_wall_refresh_interval_seconds` 应大于等于 `21600`，`config.media_wall_douban_poster_fetches` 应保持小值。`FREE_REFRESH_FAILURE_BACKOFF_SECONDS` 和 `MEDIA_WALL_REFRESH_FAILURE_BACKOFF_SECONDS` 需要从 `.env` 本身核对。
-- `/api/home/media-wall` 应返回 `rails`，当前 rail id 顺序应为 `western_series`, `foreign_movies`, `asian_series`, `chinese_series`, `classic_restorations`；首次部署后如果为空，说明后台错峰首刷还没完成；先等待 `MEDIA_WALL_STARTUP_DELAY`，后续各 source 会按 `MEDIA_WALL_REFRESH_INTERVAL / 4` 的节奏逐步补齐。
-- `/api/auto-delete/status` 中 `enabled` 应符合用户预期；如果用户依赖 PILOT 自动下载，建议保持 `true`。
-- `/api/pilot/stats` 中 `is_running` 应为 `true`；若刚启动、loop heartbeat 还没建立、或 heartbeat 已 stale，也会暂时返回 `false`，不要只凭一次瞬时值判定失败。
+- In `/api/status`, `dependencies.qbittorrent.ok` and `dependencies.mteam.ok` should be `true`.
+- In `/api/status`, `warnings` should normally be empty; if you see `free_cache_stale`, `qbittorrent_unhealthy`, `mteam_unhealthy`, `free_refresh_backoff`, or `panel_collector_stale`, explain the cause before deciding whether to declare the deployment successful.
+- In `/api/status`, `config.refresh_interval_seconds` should be ≥ `300`, `config.api_delay_seconds` should be ≥ `3`, `config.media_wall_refresh_interval_seconds` should be ≥ `21600`, and `config.media_wall_douban_poster_fetches` should stay small. `FREE_REFRESH_FAILURE_BACKOFF_SECONDS` and `MEDIA_WALL_REFRESH_FAILURE_BACKOFF_SECONDS` need to be checked against `.env` itself.
+- `/api/home/media-wall` should return `rails`; the current rail id order should be `western_series`, `foreign_movies`, `asian_series`, `chinese_series`, `classic_restorations`. If it is empty right after the first deploy, the background staggered first refresh has not finished yet; wait for `MEDIA_WALL_STARTUP_DELAY`, after which each source fills in gradually at a pace of `MEDIA_WALL_REFRESH_INTERVAL / 4`.
+- In `/api/auto-delete/status`, `enabled` should match the user's expectation; if the user relies on PILOT auto-download, keeping it `true` is recommended.
+- In `/api/pilot/stats`, `is_running` should be `true`; it may also temporarily return `false` right after startup, before the loop heartbeat is established, or once the heartbeat is stale — do not declare failure based on a single instantaneous value.
 
-如果用户担心 PILOT 免费期过后仍在下载，可额外只读检查 qB 任务映射：
+If the user is worried that PILOT keeps downloading after the FREE window ends, you can additionally do a read-only check of the qB task mapping:
 
 ```bash
 curl -sf 'http://localhost:5050/api/panel/torrents?tag=PILOT'
 ```
 
-确认返回的 PILOT 任务能解析出 `mteam_id`。不要调用 `/api/pilot/run-download`、`/api/pilot/run-cleanup`、`/api/panel/torrents/delete`、`/api/panel/torrents/pause`、`/api/panel/torrents/resume` 或 `/api/auto-delete/toggle`，除非用户当场明确授权。
+Confirm that the returned PILOT tasks resolve an `mteam_id`. Do not call `/api/pilot/run-download`, `/api/pilot/run-cleanup`, `/api/panel/torrents/delete`, `/api/panel/torrents/pause`, `/api/panel/torrents/resume`, or `/api/auto-delete/toggle` unless the user explicitly authorizes it on the spot.
 
-如需只读查看当前 PILOT 候选和空间预算，可额外检查：
+For a read-only view of the current PILOT candidates and disk budget, you can additionally check:
 
 ```bash
 curl -sf http://localhost:5050/api/pilot/dry-run
 ```
 
-## 旧版本升级或重装
+## Upgrading or Reinstalling an Older Version
 
-如果用户已有旧版本，先确认是否需要保留 `data/` 和 `.env`。
+If the user already has a previous version, first confirm whether `data/` and `.env` need to be kept.
 
-常规升级优先使用：
+For a routine upgrade, prefer:
 
 ```bash
-cd [安装路径]
+cd [install path]
 git pull --ff-only
 export MT_ENGINE_COMMIT="$(git rev-parse --short HEAD)"
 docker compose up -d --build
 ```
 
-## 标准回滚流程
+## Standard Rollback Procedure
 
-在保留 `.env` 与 `data/` 的前提下，按“代码回退 + 重新构建”回滚：
+While keeping `.env` and `data/`, roll back via "revert code + rebuild":
 
 ```bash
-cd [安装路径]
+cd [install path]
 git log --oneline -n 10
-git checkout [最近一次确认可用的 commit]
+git checkout [last known-good commit]
 export MT_ENGINE_COMMIT="$(git rev-parse --short HEAD)"
 docker compose up -d --build
 docker compose ps
@@ -266,43 +266,43 @@ curl http://localhost:5050/health
 curl http://localhost:5050/api/status
 ```
 
-回滚后记录：
+After rollback, record:
 
-- 使用的 commit 哈希
-- 回滚时间
-- `/health` 检查结果
+- The commit hash used
+- The rollback time
+- The `/health` check result
 
-只有在明确需要重装时才清理：
+Only clean up when a reinstall is explicitly required:
 
 ```bash
-cd [旧安装路径]
+cd [old install path]
 docker compose down
 cd ..
-mv [旧安装路径]/.env ./mt-engine.env.backup 2>/dev/null || true
-mv [旧安装路径]/data ./mt-engine-data.backup 2>/dev/null || true
+mv [old install path]/.env ./mt-engine.env.backup 2>/dev/null || true
+mv [old install path]/data ./mt-engine-data.backup 2>/dev/null || true
 ```
 
-不要默认删除用户数据。
+Do not delete user data by default.
 
-## 故障排除
+## Troubleshooting
 
-| 问题 | 处理 |
+| Problem | Action |
 | --- | --- |
-| clone 失败 | 检查仓库 URL、GitHub Token 或 SSH key |
-| 镜像拉取失败 | 检查 NAS 网络和 Docker 镜像源 |
-| 端口被占用 | `lsof -nP -iTCP:5050 -sTCP:LISTEN` 或 `netstat -tlnp \| grep 5050` |
-| 容器启动失败 | `docker compose logs -f` |
-| `.env` 未生效 | 确认在仓库根目录运行 `docker compose` |
-| `MT_TOKEN` 无效 | 重新生成 M-Team Token 后重启容器 |
-| M-Team 请求过于频繁 | 确认 `API_DELAY=3` 或更高；程序会将低于 `3` 的值提升到 `3` |
-| qBittorrent 连不上 | 确认 `QBITTORRENT_URL` 使用局域网 IP 而不是 `localhost` |
-| PILOT 自动删除状态不确定 | 只读检查 `/api/auto-delete/status`、`/api/pilot/stats` 和 `/api/panel/torrents?tag=PILOT` |
-| 权限错误 | 检查 `PUID`/`PGID` 与 `data/` 所有权 |
-| 前端页面 404 | 重新执行 `docker compose up -d --build` |
+| clone fails | Check the repository URL, GitHub Token, or SSH key |
+| image pull fails | Check the NAS network and Docker mirror |
+| port in use | `lsof -nP -iTCP:5050 -sTCP:LISTEN` or `netstat -tlnp \| grep 5050` |
+| container fails to start | `docker compose logs -f` |
+| `.env` not taking effect | Confirm `docker compose` is run from the repository root |
+| `MT_TOKEN` invalid | Regenerate the M-Team Token, then restart the container |
+| M-Team requests too frequent | Confirm `API_DELAY=3` or higher; the program raises values below `3` up to `3` |
+| qBittorrent unreachable | Confirm `QBITTORRENT_URL` uses a LAN IP, not `localhost` |
+| PILOT auto-delete status uncertain | Read-only check `/api/auto-delete/status`, `/api/pilot/stats`, and `/api/panel/torrents?tag=PILOT` |
+| permission error | Check `PUID`/`PGID` against `data/` ownership |
+| frontend page 404 | Re-run `docker compose up -d --build` |
 
-## Agent 注意事项
+## Agent Notes
 
-- 部署命令都在仓库根目录执行，没有 `release/` 子目录。
-- 不要主动删除 `.env`、`data/`、下载目录或 qBittorrent 数据。
-- 不要把 GitHub Token 写入 README、CHANGELOG 或提交记录。
-- 生产容器端口默认绑定 `0.0.0.0:5050` 以支持 NAS 局域网直连；公网访问必须先设置 `MT_ENGINE_API_KEY` 并加认证或反向代理。
+- All deployment commands run from the repository root; there is no `release/` subdirectory.
+- Do not delete `.env`, `data/`, the download directory, or qBittorrent data on your own.
+- Do not write the GitHub Token into the README, CHANGELOG, or commit history.
+- The production container port binds to `0.0.0.0:5050` by default to support direct LAN access on a NAS; public access must set `MT_ENGINE_API_KEY` first and add authentication or a reverse proxy.
