@@ -3,7 +3,7 @@
   "info": {
     "title": "MT-Engine",
     "description": "M-Team \u514d\u8d39\u79cd\u5b50\u730e\u624b",
-    "version": "Unreleased"
+    "version": "6.6.2"
   },
   "paths": {
     "/api/pilot/config": {
