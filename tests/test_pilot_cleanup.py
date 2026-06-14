@@ -258,6 +258,9 @@ async def test_download_cycle_relaxes_seeders_only_for_large_demand_gap(monkeypa
     manager.config.download.rules.min_leechers = 70
     manager.config.download.rules.max_seeders = 10
     manager.rule_engine = pilot_rules.RuleEngine(manager.config)
+    monkeypatch.setattr(
+        manager, "_get_download_capacity_budget_bytes", lambda _tasks: 1024**4
+    )
     torrent = {
         "id": "high-seeder-demand-gap",
         "name": "High Seeder Demand Gap",
@@ -303,6 +306,9 @@ async def test_download_cycle_relaxes_leecher_floor_but_keeps_low_seeders(monkey
     manager.config.download.rules.min_leechers = 70
     manager.config.download.rules.max_seeders = 10
     manager.rule_engine = pilot_rules.RuleEngine(manager.config)
+    monkeypatch.setattr(
+        manager, "_get_download_capacity_budget_bytes", lambda _tasks: 1024**4
+    )
     torrent = {
         "id": "medium-demand-low-seeder",
         "name": "Medium Demand Low Seeder",
@@ -348,6 +354,9 @@ async def test_download_cycle_rejects_saturated_high_seeder_fallback(monkeypatch
     manager.config.download.rules.min_leechers = 70
     manager.config.download.rules.max_seeders = 10
     manager.rule_engine = pilot_rules.RuleEngine(manager.config)
+    monkeypatch.setattr(
+        manager, "_get_download_capacity_budget_bytes", lambda _tasks: 1024**4
+    )
     torrent = {
         "id": "saturated-popular",
         "name": "Saturated Popular",
