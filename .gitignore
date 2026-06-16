@@ -85,6 +85,7 @@ docs/
 
 # Agent-local plans and scratch notes
 docs/superpowers/
+AGENTS.md
 .codex/
 .claude/
 .agents/
