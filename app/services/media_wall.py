@@ -2232,7 +2232,3 @@ def _write_json(path: Path, data: Dict[str, Any]) -> None:
 
 
 media_wall_service = MediaWallService()
-
-
-async def background_refresh_media_wall() -> None:
-    await media_wall_service.run_background_loop()

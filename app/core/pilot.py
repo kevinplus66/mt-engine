@@ -11,7 +11,6 @@ from app.core.pilot_cache import ensure_download_cache_fresh
 from app.core.pilot_config_store import (
     ensure_pilot_data_directory,
     load_pilot_config,
-    save_pilot_config,
 )
 from app.core.pilot_cleanup import PilotCleanupTracker
 from app.core.pilot_disk import check_disk_space, get_disk_usage_percent
@@ -89,23 +88,6 @@ class PilotManager:
 
         if not DEBUG:
             ensure_pilot_data_directory()
-        self._load_stats()
-
-    def save_config(self):
-        """Persist config to JSON (no credentials)"""
-        save_pilot_config(self.config)
-
-    def _load_stats(self):
-        """Load statistics - disabled for per-session tracking"""
-        # Stats are now tracked per container session (reset on restart)
-        # No persistence to avoid stale data across restarts
-        logger.info("Stats tracking initialized (per-session mode)")
-
-    def _save_stats(self):
-        """Persist statistics - disabled for per-session tracking"""
-        # Stats are not persisted, they reset on container restart
-        # This keeps data accurate and reflects current session only
-        return None
 
     def _get_download_cycle_lock(self) -> asyncio.Lock:
         """Lazily create download-cycle lock to avoid loop binding at import time."""
@@ -404,7 +386,6 @@ class PilotManager:
             if downloaded_count > 0:
                 self.total_downloads += downloaded_count
                 self.last_run = time.time()
-                self._save_stats()
                 logger.info(f"Downloaded {downloaded_count} torrents in this cycle (total: {self.total_downloads})")
     async def _download_torrent(self, torrent: dict, sid: str, score: float) -> bool:
         """
@@ -473,10 +454,7 @@ class PilotManager:
             # Phase 1: Individual cleanup
             remaining_tasks = []
             for task in auto_tasks:
-                # Get metadata from cache if available
-                meta = self.cleanup_tracker.get_torrent_meta(task)
-
-                should_delete, reason = self.rule_engine.evaluate_cleanup(task, meta)
+                should_delete, reason = self.rule_engine.evaluate_cleanup(task)
                 if should_delete:
                     if await self._delete_task(task, sid, reason):
                         deleted_count += 1
@@ -565,7 +543,6 @@ class PilotManager:
             if deleted_count > 0:
                 self.total_cleanups += deleted_count
                 self.last_run = time.time()
-                self._save_stats()
                 logger.info(f"Cleaned {deleted_count} tasks in this cycle (total: {self.total_cleanups})")
 
     async def _delete_task(self, task: dict, sid: str, reason: str) -> bool:
@@ -624,5 +601,4 @@ async def pilot_loop():
 
         interval = pilot_manager.config.download.interval_seconds
         pilot_manager.next_run = time.time() + interval
-        pilot_manager._save_stats()
         await asyncio.sleep(interval)

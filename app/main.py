@@ -60,10 +60,9 @@ from app.services.http_client import http_client
 from app.security import require_api_key
 from app.services.mteam_api import mt_client
 from app.services.media_wall import SOURCE_REFRESH_ORDER
-from app.services.media_wall import background_refresh_media_wall
-from app.services.panel_collector import cleanup_panel_data
+from app.services.media_wall import media_wall_service
 from app.services.panel_collector import get_panel_collector_status
-from app.services.panel_db import init_database
+from app.services.panel_db import cleanup_old_data, init_database
 from app.services.runtime_status import runtime_status
 
 # ============ 速率限制 ============
@@ -189,7 +188,6 @@ def check_rate_limit(client_ip: str) -> bool:
 
 def radar_throttle(client_ip: str) -> bool:
     """Check search throttling. Returns True if allowed."""
-    global radar_last_request
     last_search = radar_last_request.get(client_ip, 0)
     now = datetime.now().timestamp()
     if now - last_search < SEARCH_MIN_INTERVAL:
@@ -222,7 +220,7 @@ async def daily_cleanup():
     while True:
         try:
             await asyncio.sleep(86400)  # 24小时
-            await cleanup_panel_data()
+            await cleanup_old_data(days=30)
             logger.info("PANEL 数据清理完成")
         except Exception as e:
             logger.error(f"PANEL 数据清理异常: {e}")
@@ -259,7 +257,7 @@ async def lifespan(app: FastAPI):
     pilot_task = asyncio.create_task(pilot_loop())
 
     # 启动 HOME 媒体墙后台任务（按 source 错峰轮转，避免 M-Team 限流）
-    media_wall_task = asyncio.create_task(background_refresh_media_wall())
+    media_wall_task = asyncio.create_task(media_wall_service.run_background_loop())
 
     # 启动每日清理任务
     cleanup_task = asyncio.create_task(daily_cleanup())

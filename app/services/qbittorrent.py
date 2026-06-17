@@ -332,7 +332,7 @@ async def qb_get_mteam_torrents(sid: str, tag_filter: Optional[str] = None,
 
     Args:
         sid: qBittorrent 会话 ID
-        tag_filter: 标签筛选 ("声呐做种" | "雷达下载" | "PILOT")
+        tag_filter: 标签筛选（需匹配 MANAGED_TORRENT_TAGS）
         status_filter: 状态筛选 ("downloading" | "seeding" | "paused" | "completed")
 
     Returns:
@@ -345,16 +345,13 @@ async def qb_get_mteam_torrents(sid: str, tag_filter: Optional[str] = None,
         # 获取所有种子
         all_torrents = await qb_get_torrents(sid)
 
-        # MT-Engine 标签
-        mt_tags = {"声呐做种", "雷达下载", "PILOT"}
-
         result = []
         for torrent in all_torrents:
             # 筛选 MT-Engine 标签
-            torrent_tags = set(torrent.get('tags', '').split(','))
-            torrent_tags = {t.strip() for t in torrent_tags if t.strip()}
+            torrent_tags = _split_qb_tags(torrent.get('tags', ''))
+            managed_tags = torrent_tags.intersection(MANAGED_TORRENT_TAGS)
 
-            if not torrent_tags.intersection(mt_tags):
+            if not managed_tags:
                 continue
 
             # 标签筛选
@@ -388,7 +385,7 @@ async def qb_get_mteam_torrents(sid: str, tag_filter: Optional[str] = None,
                 "size_display": format_size(torrent.get('size', 0)),
                 "progress": torrent.get('progress', 0),
                 "status": state,
-                "tags": list(torrent_tags.intersection(mt_tags)),
+                "tags": list(managed_tags),
                 "ratio": round(torrent.get('ratio', 0), 2),
                 "uploaded": torrent.get('uploaded', 0),
                 "downloaded": torrent.get('downloaded', 0),
@@ -680,7 +677,6 @@ async def qb_get_mteam_stats(sid: str) -> Dict:
     """
     torrents = await qb_get_torrents(sid)
 
-    mteam_tags = ['声呐做种', '雷达下载', 'PILOT']
     total_uploaded = 0
     total_downloaded = 0
     upload_speed = 0
@@ -693,9 +689,7 @@ async def qb_get_mteam_stats(sid: str) -> Dict:
     leeching_states = ('downloading', 'stalledDL', 'metaDL', 'pausedDL', 'queuedDL', 'forcedDL', 'checkingDL')
 
     for torrent in torrents:
-        tags = torrent.get('tags', '').split(',')
-        # 检查是否有 M-Team 标签
-        if any(tag.strip() in mteam_tags for tag in tags):
+        if _is_managed_torrent(torrent):
             total_uploaded += torrent.get('uploaded', 0)
             total_downloaded += torrent.get('downloaded', 0)
             upload_speed += torrent.get('upspeed', 0)

@@ -111,19 +111,6 @@ def calculate_days_since(created_date: str) -> float:
         return 0.0
 
 
-def is_discount_expired(discount_end: str) -> bool:
-    """
-    Check if discount has expired
-
-    Args:
-        discount_end: ISO timestamp string
-
-    Returns:
-        bool: True if expired
-    """
-    return calculate_free_hours_remaining(discount_end) <= 0
-
-
 def calculate_score(torrent: dict, config: RuleConfig) -> float:
     """
     Score upload farming value: high demand, scarce supply, enough FREE runway.
@@ -261,13 +248,12 @@ class RuleEngine:
         score = calculate_score(torrent, rules)
         return (True, score, f"Score: {score}")
 
-    def evaluate_cleanup(self, task: dict, torrent_meta: dict) -> Tuple[bool, str]:
+    def evaluate_cleanup(self, task: dict) -> Tuple[bool, str]:
         """
         Simplified cleanup evaluation
 
         Args:
             task: qBittorrent task dict
-            torrent_meta: M-Team torrent metadata (if available)
 
         Returns:
             Tuple[bool, str]: (should_delete, reason)

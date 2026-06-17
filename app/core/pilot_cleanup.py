@@ -5,8 +5,6 @@ Pilot cleanup scoring and upload-speed tracking.
 import time
 from typing import Dict, List, Tuple
 
-import app.state as state
-
 
 class PilotCleanupTracker:
     """Tracks upload history and computes cleanup scores."""
@@ -14,16 +12,6 @@ class PilotCleanupTracker:
     def __init__(self):
         self.upload_history: Dict[str, List[Tuple[float, int]]] = {}
 
-    def get_torrent_meta(self, task: dict) -> dict:
-        """Get M-Team metadata for a qBittorrent task from the free cache."""
-        task_name = task.get("name", "")
-        torrents = state.cached_data.get("torrents", [])
-
-        for torrent in torrents:
-            if torrent.get("name", "") == task_name:
-                return torrent
-
-        return {}
 
     def get_sliding_window_speed(
         self,

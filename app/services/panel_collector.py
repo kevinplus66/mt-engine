@@ -5,7 +5,7 @@ PANEL 数据采集服务
 from datetime import datetime, timedelta
 from typing import Dict, Optional
 from app.config import BEIJING_TZ, logger, PANEL_COLLECT_INTERVAL
-from app.services.panel_db import save_panel_stats_batch, cleanup_old_data
+from app.services.panel_db import save_panel_stats_batch
 from app.services.qbittorrent import qb_login, qb_get_mteam_stats
 import app.state as state
 
@@ -142,7 +142,3 @@ async def collect_panel_data():
             collector_status["last_success"] = _iso_now()
             collector_status["last_error"] = None
 
-
-async def cleanup_panel_data():
-    """清理30天前的数据"""
-    await cleanup_old_data(days=30)

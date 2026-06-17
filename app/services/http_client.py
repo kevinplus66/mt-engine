@@ -2,9 +2,8 @@
 HTTP 客户端管理
 """
 
-from typing import Optional, Dict
+from typing import Optional
 import httpx
-from app.config import USER_AGENT, MT_TOKEN
 
 
 # 全局 HTTP 客户端（复用连接池）
@@ -18,12 +17,3 @@ async def get_http_client() -> httpx.AsyncClient:
         http_client = httpx.AsyncClient(timeout=30.0)
     return http_client
 
-
-def get_headers() -> Dict[str, str]:
-    """获取 API 请求头"""
-    return {
-        "User-Agent": USER_AGENT,
-        "x-api-key": MT_TOKEN.strip(),
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }

@@ -45,7 +45,6 @@ def _manager() -> pilot_core.PilotManager:
     manager = pilot_core.PilotManager()
     manager.config = AutomationConfig()
     manager.rule_engine = pilot_rules.RuleEngine(manager.config)
-    manager.cleanup_tracker.get_torrent_meta = lambda _task: {}
     manager.cleanup_tracker.cleanup_upload_history = lambda _active_hashes: None
     manager.cleanup_tracker.get_sliding_window_speed = (
         lambda task, window_minutes=30: task["speed"]
@@ -151,7 +150,6 @@ def test_low_user_below_ratio_target_is_protected():
 
     should_delete, reason = engine.evaluate_cleanup(
         _task("low-ratio-low-users", ratio=1.0, seeders=0, leechers=0),
-        {},
     )
 
     assert should_delete is False
@@ -170,7 +168,7 @@ def test_active_download_past_max_time_is_not_zombie_deleted():
     )
     task["dlspeed"] = 1024
 
-    should_delete, reason = engine.evaluate_cleanup(task, {})
+    should_delete, reason = engine.evaluate_cleanup(task)
 
     assert should_delete is False
     assert reason.startswith("Downloading active")
@@ -186,7 +184,7 @@ def test_stalled_download_past_max_time_is_zombie_deleted():
         added_on=time.time() - 13 * 3600,
     )
 
-    should_delete, reason = engine.evaluate_cleanup(task, {})
+    should_delete, reason = engine.evaluate_cleanup(task)
 
     assert should_delete is True
     assert reason.startswith("Zombie download")
@@ -206,7 +204,7 @@ def test_dead_seed_download_uses_dead_seed_minutes_before_zombie_timeout():
         ratio=0.0,
     )
 
-    should_delete, reason = engine.evaluate_cleanup(task, {})
+    should_delete, reason = engine.evaluate_cleanup(task)
 
     assert should_delete is True
     assert reason.startswith("Dead download")
@@ -219,7 +217,7 @@ def test_negative_swarm_counts_are_unknown_not_low_users():
     engine = pilot_rules.RuleEngine(config)
     task = _task("unknown-swarm", progress=1.0, seeders=-1, leechers=-1)
 
-    should_delete, reason = engine.evaluate_cleanup(task, {})
+    should_delete, reason = engine.evaluate_cleanup(task)
 
     assert should_delete is False
     assert reason == "Eligible for Phase 2"

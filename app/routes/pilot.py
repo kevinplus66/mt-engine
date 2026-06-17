@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.models import AutomationConfig
 from app.core.pilot import has_pilot_tag, pilot_manager
+from app.core.pilot_config_store import save_pilot_config
 from app.core.rules import RuleEngine
 from app.services.qbittorrent import qb_login, qb_get_torrents, qb_get_existing_mteam_ids
 from app.config import logger
@@ -42,7 +43,7 @@ async def update_config(config: AutomationConfig):
     """
     pilot_manager.config = config
     pilot_manager.rule_engine = RuleEngine(config)
-    pilot_manager.save_config()
+    save_pilot_config(pilot_manager.config)
     logger.info("Pilot config updated via API")
     return {"status": "ok", "message": "Configuration updated successfully"}
 
@@ -205,8 +206,7 @@ async def dry_run():
     remaining_cleanup_tasks = []
 
     for task in auto_tasks:
-        meta = pilot_manager.cleanup_tracker.get_torrent_meta(task)
-        should_delete, reason = pilot_manager.rule_engine.evaluate_cleanup(task, meta)
+        should_delete, reason = pilot_manager.rule_engine.evaluate_cleanup(task)
         if should_delete:
             cleanup_candidates.append({
                 "name": task.get('name', ''),
