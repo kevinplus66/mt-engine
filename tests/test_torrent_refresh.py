@@ -1,9 +1,6 @@
-import os
 from datetime import datetime, timedelta
 
 import pytest
-
-os.environ["DEBUG"] = "true"
 
 import app.state as state
 from app.config import BEIJING_TZ

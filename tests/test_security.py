@@ -1,8 +1,4 @@
-import os
 import re
-
-os.environ["DEBUG"] = "true"
-
 
 from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient

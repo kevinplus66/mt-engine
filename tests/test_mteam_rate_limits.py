@@ -1,9 +1,6 @@
-import os
 from types import SimpleNamespace
 
 import pytest
-
-os.environ["DEBUG"] = "true"
 
 from app.models import SearchRequest
 from app.routes import radar

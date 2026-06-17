@@ -23,60 +23,7 @@ MT-Engine is a torrent search, freeleech monitor, automated download, and qBitto
 
 Current version: **6.6.2**
 
-6.6.2 continues to refine the family-oriented 4K media radar:
-
-- `/` is a read-only Home media wall; visiting the page does not trigger any M-Team request.
-- The media wall shows five horizontal rails — `English TV Updates`, `Recent Foreign Films`, `JP/KR Drama Updates`, `Chinese Series`, and `Classic Re-ups / High-Quality Collection` — reusing RADAR's movie/TV category definitions.
-- Home only includes 4K / 2160p / UHD resources and prioritizes high-quality signals such as Dolby Vision/DoVi, Remux, H.265/HEVC, HDR, Atmos, TrueHD, and DTS-HD.
-- The current version number is shown below the navbar logo. Each media-wall source still issues only one M-Team search per refresh, but the read window is widened to 200 entries to reduce gaps after strict 4K filtering.
-- Recent foreign films continue to exclude Chinese-region resources and fall back to M-Team country IDs; the year window is loosened slightly for recently uploaded foreign films, but new editions of old films are not placed into the recent-films rail.
-- Series updates are routed into English, JP/KR, and Chinese rails, filtering out variety shows, music, news, sports, and anime; recently uploaded full-season packs that finished within the last few years can enter the matching series rail.
-- Clicking a poster opens a read-only detail Sheet offering only "open on M-Team", "search on RADAR", and "close" — no download, save, delete, or automation actions.
-- Adds `/api/home/media-wall`, which serves the read-only cache on page visits without triggering M-Team requests.
-- The media wall refreshes one source at a time on a staggered rotation: each source refreshes every 6 hours by default, the four sources cycle roughly every 90 minutes, and they reuse the global `API_DELAY >= 3` request lock to avoid overlapping with SONAR/PANEL requests.
-- When M-Team metadata lacks a poster, the torrent's own `imageList` is used first, then a small low-frequency budget reads Douban subject pages to backfill posters, caching the result locally.
-- Adds media-wall metadata caching, OpenAPI types, front-end/back-end regression tests, and deployment acceptance docs.
-
-6.6.1 continues to refine the family-oriented 4K media radar:
-
-- Shows the current version number below the navbar logo.
-- Widens each media-wall source's search window from 40 to 120 entries without increasing the number of M-Team search requests.
-- Recognizes explicit English audio-track tags such as `[英语]` as evidence for English TV, while avoiding misrouting caused by English-subtitle tags.
-- Loads Home poster images directly to avoid valid M-Team gateway poster URLs being blocked by the front-end optimization layer.
-
-6.5.0 focused on the Home media wall and M-Team API throttling:
-
-- `/` changed from a redirect page to a read-only M-Team media wall.
-- Added Home media-wall caching, poster fallback, a read-only detail Sheet, and `/api/home/media-wall`.
-- The media wall refreshes sources on a staggered rotation and reuses the global `API_DELAY >= 3` request lock to avoid overlapping with SONAR/PANEL requests.
-
-6.4.0 focused on component foundations, runtime observability, and tightening the deployment path:
-
-- `/` goes straight to `/panel`, removing the extra landing-page workflow.
-- Unified visual filter, range, and density controls into a shared segmented control to avoid Tabs/ToggleGroup dark-mode drift.
-- Split SONAR, PANEL, and PILOT into separate page state, filtering logic, validation logic, and action hooks.
-- `/api/status` adds cache freshness, next refresh, stale warnings, PANEL collector heartbeat, last error, and next collector refresh.
-- Added `scripts/deploy-nas.sh` for git-bundle deployment when the NAS cannot pull from GitHub directly.
-- Added PILOT emergency auto-delete regression tests covering free-expiring-soon, free-turned-paid, and not-deleting when auto-delete is off.
-- README and `AGENT_DEPLOY.md` were filled out with post-deploy read-only acceptance, PILOT auto-delete safety checks, and generalized deployment placeholders.
-- Next.js upgraded to `16.2.6`; CI added a front-end dependency audit, and `npm audit --audit-level=moderate` is currently 0 vulnerabilities.
-
-6.3.0 focused on infrastructure gating, deployment traceability, and console visual convergence:
-
-- Added `/api/status` exposing runtime version, deploy commit, cache state, dependency status, and non-sensitive config.
-- Docker/Compose supports the `MT_ENGINE_COMMIT` build metadata so NAS deployments are traceable to a specific commit.
-- Added OpenAPI export, generated front-end API types, back-end pytest, front-end lint/test/build, and a side-effect-free smoke test.
-- PANEL chart improvements: traffic trends are display-smoothed on the front end; the share-ratio trend filters out restart-time zeros and tightens the Y axis.
-- The visual system converged from Tailwind's default blue/green/purple to a Graphite + Signal palette: deep teal, ink green, copper amber, quiet gray, and brick red.
-- Deployment docs were synced to the current NAS steady state: `REFRESH_INTERVAL=300`, `API_DELAY=3`, `PANEL_COLLECT_INTERVAL=60`.
-
-6.2.0 focused on a full front-end Coss UI rebuild:
-
-- Replaced the old Neo-Brutalism / Radix look with the Coss UI style and Base UI primitives.
-- Unified the app shell, page titles, section cards, state cards, filter controls, pagination, table name columns, and download actions.
-- Restored horizontal scrolling for long name columns so the table is not crushed by long torrent names.
-- Improved the mobile Sheet, SONAR cards, PILOT forms, and PANEL chart states.
-- Improved dev-proxy error messages to avoid exposing a bare `Internal Server Error`.
+6.6.2 continues to refine the family-oriented 4K media radar with wider candidate windows, tighter regional rails, read-only Home behavior, and improved poster fallback coverage.
 
 See [CHANGELOG.md](CHANGELOG.md) for the full history.
 
@@ -487,23 +434,7 @@ MEDIA_WALL_DOUBAN_POSTER_FETCHES=3
 
 ## Documentation and Version Maintenance
 
-- The backend runtime version is read from the first release heading in `CHANGELOG.md` (skipping `[Unreleased]`).
-- The Python package version is in `app/__init__.py`.
-- The front-end package version is in `frontend/package.json` and `frontend/package-lock.json`.
-- The OpenAPI version is in `openapi.json`, and the front-end types are in `frontend/lib/api/generated.ts`.
-- Keep the README badge consistent with the versions above.
-- When the deployment flow or acceptance criteria change, update the README and `AGENT_DEPLOY.md` together.
-- Before a release, run at least:
-
-```bash
-pip install -r requirements-dev.txt
-pytest -q
-cd frontend
-npm run lint
-npm run test
-npm run build
-MT_ENGINE_BASE_URL=http://localhost:3001 npm run smoke
-```
+For local checks and contribution workflow, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

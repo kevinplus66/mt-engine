@@ -1,9 +1,6 @@
-import os
 from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
-
-os.environ["DEBUG"] = "true"
 
 import app.config as config
 import app.state as state

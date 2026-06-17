@@ -1,10 +1,7 @@
-import os
 import time
 from typing import Optional
 
 import pytest
-
-os.environ["DEBUG"] = "true"
 
 from app.core import pilot as pilot_core
 from app.core import rules as pilot_rules

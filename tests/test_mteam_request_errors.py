@@ -1,9 +1,6 @@
-import os
 from typing import Any, Optional
 
 import pytest
-
-os.environ["DEBUG"] = "true"
 
 from app.services import mteam_api
 from app.services.mteam_api import MTClient

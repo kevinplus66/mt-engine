@@ -1,8 +1,4 @@
-import os
-
 import pytest
-
-os.environ["DEBUG"] = "true"
 
 from app.core import pilot_config_store
 from app.models import DownloadPolicy

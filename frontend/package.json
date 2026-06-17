@@ -16,8 +16,7 @@
     "test:watch": "vitest",
     "smoke": "playwright test",
     "generate:api": "openapi-typescript ../openapi.json -o lib/api/generated.ts",
-    "check:api-types": "node ../scripts/check-openapi-types.mjs",
-    "check:api": "npm run check:api-types && tsc --noEmit"
+    "check:api-types": "node ../scripts/check-openapi-types.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

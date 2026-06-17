@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { mockAnimationFrame, mockMatchMedia, resetMatchMedia } from "./browser-shims";
 import { HomeMediaWall } from "@/components/home/media-wall";
 import type { MediaWallResponse } from "@/lib/types";
 
@@ -140,50 +141,6 @@ const fallbackFixture: MediaWallResponse = {
   ],
 };
 
-function mockMatchMedia(matches: boolean) {
-  Object.defineProperty(window, "matchMedia", {
-    configurable: true,
-    writable: true,
-    value: (query: string) =>
-      ({
-        matches,
-        media: query,
-        onchange: null,
-        addEventListener: () => undefined,
-        removeEventListener: () => undefined,
-        addListener: () => undefined,
-        removeListener: () => undefined,
-        dispatchEvent: () => false,
-      }) as MediaQueryList,
-  });
-}
-
-function mockAnimationFrame() {
-  const requestFrame = (callback: FrameRequestCallback) =>
-    window.setTimeout(() => callback(performance.now()), 16);
-  const cancelFrame = (handle: number) => window.clearTimeout(handle);
-  Object.defineProperty(window, "requestAnimationFrame", {
-    configurable: true,
-    writable: true,
-    value: requestFrame,
-  });
-  Object.defineProperty(window, "cancelAnimationFrame", {
-    configurable: true,
-    writable: true,
-    value: cancelFrame,
-  });
-  Object.defineProperty(globalThis, "requestAnimationFrame", {
-    configurable: true,
-    writable: true,
-    value: requestFrame,
-  });
-  Object.defineProperty(globalThis, "cancelAnimationFrame", {
-    configurable: true,
-    writable: true,
-    value: cancelFrame,
-  });
-}
-
 describe("HomeMediaWall", () => {
   beforeEach(() => {
     mockAnimationFrame();
@@ -192,11 +149,7 @@ describe("HomeMediaWall", () => {
   afterEach(() => {
     cleanup();
     vi.useRealTimers();
-    Object.defineProperty(window, "matchMedia", {
-      configurable: true,
-      writable: true,
-      value: undefined,
-    });
+    resetMatchMedia();
   });
 
   it("renders media rails and opens a read-only detail sheet from a poster", async () => {

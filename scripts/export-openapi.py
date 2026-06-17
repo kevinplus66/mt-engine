@@ -5,11 +5,9 @@ Export or check the committed FastAPI OpenAPI schema.
 
 import argparse
 import difflib
-import filecmp
 import json
 import os
 import sys
-import tempfile
 from pathlib import Path
 
 
@@ -37,18 +35,15 @@ def print_diff(expected: str, actual: str) -> None:
 
 def check_schema(output_path: Path) -> None:
     current_schema = render_schema()
-    with tempfile.TemporaryDirectory(prefix="mt-engine-openapi-") as tmp_dir:
-        current_path = Path(tmp_dir) / "openapi.json"
-        current_path.write_text(current_schema, encoding="utf-8")
-        if output_path.exists() and filecmp.cmp(output_path, current_path, shallow=False):
-            print(f"{output_path.relative_to(ROOT)} is up to date")
-            return
-
     if not output_path.exists():
         print(f"{output_path.relative_to(ROOT)} does not exist", file=sys.stderr)
         raise SystemExit(1)
 
     expected_schema = output_path.read_text(encoding="utf-8")
+    if expected_schema == current_schema:
+        print(f"{output_path.relative_to(ROOT)} is up to date")
+        return
+
     print(
         f"{output_path.relative_to(ROOT)} is stale; run scripts/export-openapi.py to regenerate it.",
         file=sys.stderr,

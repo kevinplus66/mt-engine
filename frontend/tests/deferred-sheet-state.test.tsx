@@ -1,5 +1,6 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { mockAnimationFrame, mockMatchMedia, resetMatchMedia } from "./browser-shims";
 import { TorrentTable } from "@/components/radar/torrent-table";
 import { TorrentList } from "@/components/sonar/torrent-list";
 import type { Torrent } from "@/lib/types";
@@ -27,64 +28,16 @@ const replacementTorrent: Torrent = {
   detail_url: "https://kp.m-team.cc/detail/torrent-2",
 };
 
-function mockDesktopMedia() {
-  Object.defineProperty(window, "matchMedia", {
-    configurable: true,
-    writable: true,
-    value: (query: string) =>
-      ({
-        matches: false,
-        media: query,
-        onchange: null,
-        addEventListener: () => undefined,
-        removeEventListener: () => undefined,
-        addListener: () => undefined,
-        removeListener: () => undefined,
-        dispatchEvent: () => false,
-      }) as MediaQueryList,
-  });
-}
-
-function mockAnimationFrame() {
-  const requestFrame = (callback: FrameRequestCallback) =>
-    window.setTimeout(() => callback(performance.now()), 16);
-  const cancelFrame = (handle: number) => window.clearTimeout(handle);
-  Object.defineProperty(window, "requestAnimationFrame", {
-    configurable: true,
-    writable: true,
-    value: requestFrame,
-  });
-  Object.defineProperty(window, "cancelAnimationFrame", {
-    configurable: true,
-    writable: true,
-    value: cancelFrame,
-  });
-  Object.defineProperty(globalThis, "requestAnimationFrame", {
-    configurable: true,
-    writable: true,
-    value: requestFrame,
-  });
-  Object.defineProperty(globalThis, "cancelAnimationFrame", {
-    configurable: true,
-    writable: true,
-    value: cancelFrame,
-  });
-}
-
 describe("deferred sheet state", () => {
   afterEach(() => {
     cleanup();
     vi.useRealTimers();
-    Object.defineProperty(window, "matchMedia", {
-      configurable: true,
-      writable: true,
-      value: undefined,
-    });
+    resetMatchMedia();
   });
 
   it("cancels a pending RADAR detail open when results become empty", () => {
     vi.useFakeTimers();
-    mockDesktopMedia();
+    mockMatchMedia(false);
     mockAnimationFrame();
 
     const { rerender } = render(<TorrentTable torrents={[torrent]} total={1} />);
@@ -106,7 +59,7 @@ describe("deferred sheet state", () => {
 
   it("cancels a pending RADAR detail open when results are replaced", () => {
     vi.useFakeTimers();
-    mockDesktopMedia();
+    mockMatchMedia(false);
     mockAnimationFrame();
 
     const { rerender } = render(<TorrentTable torrents={[torrent]} total={1} />);
@@ -128,7 +81,7 @@ describe("deferred sheet state", () => {
 
   it("resets SONAR detail state when selected torrent moves outside rendered window", () => {
     vi.useFakeTimers();
-    mockDesktopMedia();
+    mockMatchMedia(false);
     mockAnimationFrame();
     const sonarTorrents = Array.from({ length: 51 }, (_, index) => ({
       ...torrent,
