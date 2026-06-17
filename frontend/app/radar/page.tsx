@@ -5,17 +5,28 @@ import { Suspense, useEffect, useRef } from "react";
 import { AlertCircle, Radar, Search } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PageScaffold } from "@/components/common/page-scaffold";
+import { SearchResetBar } from "@/components/common/search-reset-bar";
 import { SectionCard } from "@/components/common/section-card";
+import {
+  SegmentedControl,
+  type SegmentedControlOption,
+} from "@/components/common/segmented-control";
 import { StateCard } from "@/components/common/state-card";
 import { CategoryPills } from "@/components/radar/category-pills";
 import { FilterSelects } from "@/components/radar/filter-selects";
-import { ModeTabs } from "@/components/radar/mode-tabs";
-import { SearchBar } from "@/components/radar/search-bar";
 import { useRadarQueryState } from "@/hooks/use-radar-query-state";
 import { useRadarSearch } from "@/hooks/use-radar-search";
 import { buildRadarSearchRequest, type RadarSortField } from "@/lib/radar-view";
 import type { SortDirection } from "@/hooks/use-sortable";
-import type { Torrent } from "@/lib/types";
+import type { SearchMode, Torrent } from "@/lib/types";
+
+const RADAR_MODE_OPTIONS: readonly SegmentedControlOption<SearchMode>[] = [
+  { value: "normal", label: "综合" },
+  { value: "movie", label: "电影" },
+  { value: "tvshow", label: "电视剧" },
+  { value: "other", label: "其他" },
+  { value: "adult", label: "成人", className: "text-destructive" },
+];
 
 type RadarTorrentTableProps = {
   torrents: Torrent[];
@@ -123,14 +134,25 @@ function RadarPageContent() {
       icon={Radar}
     >
       <SectionCard title="搜索条件" contentClassName="space-y-5 p-4 sm:p-5">
-        <SearchBar
-          keyword={keyword}
-          onKeywordChange={handleKeywordChange}
+        <SearchResetBar
+          value={keyword}
+          onValueChange={handleKeywordChange}
           onSearch={() => handleSearch()}
           onReset={handleReset}
           isLoading={isMutating}
+          placeholder="输入关键词，如 2160p H.265…"
+          searchLabel={isMutating ? "搜索中…" : "搜索"}
+          showSearchButton
         />
-        <ModeTabs mode={mode} onModeChange={handleModeChange} />
+        <SegmentedControl
+          ariaLabel="搜索模式"
+          className="w-full"
+          itemClassName="min-w-0 flex-1"
+          fullWidth
+          value={mode}
+          options={RADAR_MODE_OPTIONS}
+          onValueChange={handleModeChange}
+        />
         <CategoryPills
           mode={mode}
           selectedCategories={selectedCategories}

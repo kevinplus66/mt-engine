@@ -5,7 +5,7 @@
 
 "use client";
 
-import { FilterToggleGroup } from "@/components/common/filter-toggle-group";
+import { SegmentedControl } from "@/components/common/segmented-control";
 
 type SizeFilter = "all" | "small" | "medium" | "large" | "xlarge";
 type SeederFilter = "all" | "hot" | "normal" | "rare" | "dead";
@@ -41,7 +41,7 @@ export function FilterPills({
 
   return (
     <div className="grid gap-3 md:grid-cols-2">
-      <FilterToggleGroup
+      <SegmentedControl
         ariaLabel="按体积筛选"
         value={sizeFilter}
         options={sizeOptions.map((option) => ({
@@ -51,7 +51,7 @@ export function FilterPills({
         onValueChange={onSizeChange}
       />
 
-      <FilterToggleGroup
+      <SegmentedControl
         ariaLabel="按做种数筛选"
         value={seederFilter}
         options={seederOptions.map((option) => ({

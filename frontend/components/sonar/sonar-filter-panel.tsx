@@ -20,13 +20,19 @@ import {
   type SeederFilter,
   type SizeFilter,
 } from "@/components/sonar/filter-pills";
-import { StatusTabs } from "@/components/sonar/status-tabs";
 import {
   sonarDensityOptions,
   sonarPageSizeOptions,
   type Density,
   type UserStatus,
 } from "@/lib/sonar-view";
+
+const sonarStatusOptions = [
+  { value: "all" as const, label: "全部" },
+  { value: "seeding" as const, label: "做种中" },
+  { value: "leeching" as const, label: "下载中" },
+  { value: "none" as const, label: "未下载" },
+] satisfies readonly { value: UserStatus; label: string }[];
 
 interface SonarFilterPanelProps {
   searchValue: string;
@@ -77,7 +83,12 @@ export function SonarFilterPanel({
         searchLabel="搜索种子"
       />
 
-      <StatusTabs status={statusFilter} onStatusChange={onStatusChange} />
+      <SegmentedControl
+        ariaLabel="按下载状态筛选"
+        value={statusFilter}
+        options={sonarStatusOptions}
+        onValueChange={onStatusChange}
+      />
 
       <FilterPills
         sizeFilter={sizeFilter}

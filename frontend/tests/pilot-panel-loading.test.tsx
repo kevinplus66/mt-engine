@@ -211,8 +211,13 @@ vi.mock("@/components/ui/sortable-table-head", () => ({
   ),
 }));
 
-vi.mock("@/components/common/filter-toggle-group", () => ({
-  FilterToggleGroup: () => <div aria-label="torrent filters" />,
+vi.mock("@/components/common/segmented-control", () => ({
+  SegmentedControl: ({ ariaLabel }: { ariaLabel: string }) => (
+    <div aria-label={ariaLabel} />
+  ),
+  MultiSegmentedControl: ({ ariaLabel }: { ariaLabel: string }) => (
+    <div aria-label={ariaLabel} />
+  ),
 }));
 
 vi.mock("@/components/common/simple-pagination", () => ({
@@ -269,10 +274,6 @@ vi.mock("@/components/pilot/dry-run-results", () => ({
 
 vi.mock("@/components/pilot/stats-bar", () => ({
   StatsBar: () => <section aria-label="pilot-stats-bar" />,
-}));
-
-vi.mock("@/components/panel/panel-range-control", () => ({
-  PanelRangeControl: () => <button>range control</button>,
 }));
 
 vi.mock("@/components/panel/share-ratio-chart", () => ({

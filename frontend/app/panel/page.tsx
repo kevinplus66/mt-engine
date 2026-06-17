@@ -6,14 +6,15 @@ import { AlertCircle, BarChart3 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { PageScaffold } from "@/components/common/page-scaffold";
+import { SegmentedControl } from "@/components/common/segmented-control";
 import { SectionCard } from "@/components/common/section-card";
 import { StateCard } from "@/components/common/state-card";
-import { PanelRangeControl } from "@/components/panel/panel-range-control";
 import { StatsGrid } from "@/components/panel/stats-grid";
 import { TorrentMonitor } from "@/components/panel/torrent-monitor";
 import { usePanelTimeRangeQuery } from "@/hooks/use-panel-time-range-query";
 import { usePanelStats } from "@/hooks/use-panel-stats";
 
+import { PANEL_TIME_RANGE_OPTIONS } from "@/lib/panel-view";
 import type { TimeRange } from "@/lib/types";
 
 const panelRatioFormatter = new Intl.NumberFormat("zh-CN", {
@@ -107,9 +108,10 @@ function PanelPageContent() {
           title={<span id="panel-trends-heading">趋势窗口</span>}
           description="选择下方流量与分享率图表的统计时间范围。"
           action={
-            <PanelRangeControl
+            <SegmentedControl
               ariaLabel="趋势窗口图表时间范围"
               value={timeRange}
+              options={PANEL_TIME_RANGE_OPTIONS}
               onValueChange={setPanelTimeRange}
             />
           }

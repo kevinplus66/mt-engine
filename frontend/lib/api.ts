@@ -6,12 +6,8 @@
 import { CONFIG } from "./constants";
 import type {
   BackendPanelDeleteTorrentsResponse,
-  BackendPanelHistoryResponse,
   BackendPanelPauseTorrentsResponse,
   BackendPanelResumeTorrentsResponse,
-  BackendPanelShareRatioResponse,
-  BackendPanelStatsResponse,
-  BackendPanelTorrentsResponse,
 } from "./api-models";
 import type { ApiResponse } from "./types";
 
@@ -205,11 +201,8 @@ import type {
   DownloadRequest,
   DownloadResponse,
   AutomationConfig,
-  PilotStats,
   AutoDeleteStatus,
   AutoDeleteToggleRequest,
-  Torrent,
-  FilterOptions,
   HealthStatus,
   RuntimeStatus,
   DryRunResult,
@@ -321,20 +314,6 @@ export async function downloadTorrent(
 }
 
 /**
- * RADAR - 获取筛选选项
- */
-export async function getFilterOptions(): Promise<FilterOptions> {
-  return api.get<FilterOptions>("/api/filter-options");
-}
-
-/**
- * SONAR - 获取免费种子列表
- */
-export async function getFreeTorrents(): Promise<Torrent[]> {
-  return api.get<Torrent[]>("/api/torrents");
-}
-
-/**
  * SONAR - 触发手动刷新
  */
 export async function refreshTorrents(): Promise<ApiResponse> {
@@ -363,13 +342,6 @@ export async function toggleAutoDelete(
 }
 
 /**
- * SONAR - 获取自动删除状态
- */
-export async function getAutoDeleteStatus(): Promise<AutoDeleteStatus> {
-  return api.get<AutoDeleteStatus>("/api/auto-delete/status");
-}
-
-/**
  * PILOT - 获取配置
  */
 export async function getPilotConfig(): Promise<AutomationConfig> {
@@ -383,13 +355,6 @@ export async function savePilotConfig(
   config: AutomationConfig
 ): Promise<ApiResponse> {
   return api.post<ApiResponse>("/api/pilot/config", config);
-}
-
-/**
- * PILOT - 获取统计数据
- */
-export async function getPilotStats(): Promise<PilotStats> {
-  return api.get<PilotStats>("/api/pilot/stats");
 }
 
 /**
@@ -411,40 +376,6 @@ export async function triggerDownload(): Promise<ApiResponse> {
  */
 export async function triggerCleanup(): Promise<ApiResponse> {
   return api.post<ApiResponse>("/api/pilot/run-cleanup");
-}
-
-/**
- * PANEL - 获取统计数据
- */
-export async function getPanelStats(): Promise<BackendPanelStatsResponse> {
-  return api.get<BackendPanelStatsResponse>("/api/panel/stats");
-}
-
-/**
- * PANEL - 获取历史数据
- */
-export async function getPanelHistory(
-  range: string
-): Promise<BackendPanelHistoryResponse> {
-  return api.get<BackendPanelHistoryResponse>(`/api/panel/history?range=${range}`);
-}
-
-/**
- * PANEL - 获取分享率历史数据
- */
-export async function getPanelShareRatio(
-  range: string
-): Promise<BackendPanelShareRatioResponse> {
-  return api.get<BackendPanelShareRatioResponse>(
-    `/api/panel/share-ratio?range=${range}`
-  );
-}
-
-/**
- * PANEL - 获取种子列表
- */
-export async function getPanelTorrents(): Promise<BackendPanelTorrentsResponse> {
-  return api.get<BackendPanelTorrentsResponse>("/api/panel/torrents");
 }
 
 /**

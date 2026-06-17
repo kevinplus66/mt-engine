@@ -26,7 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { SortableTableHead } from "@/components/ui/sortable-table-head";
-import { FilterToggleGroup } from "@/components/common/filter-toggle-group";
+import { SegmentedControl } from "@/components/common/segmented-control";
 import { SimplePagination } from "@/components/common/simple-pagination";
 import { StateCard } from "@/components/common/state-card";
 import { SectionCard } from "@/components/common/section-card";
@@ -208,7 +208,7 @@ export function TorrentMonitor() {
         <SectionCard
           title="种子监控"
           action={
-            <FilterToggleGroup
+            <SegmentedControl
               ariaLabel="种子状态筛选"
               value={statusFilter}
               options={panelStatusOptions}
@@ -301,7 +301,7 @@ export function TorrentMonitor() {
       <SectionCard
         title="种子监控"
         action={
-          <FilterToggleGroup
+          <SegmentedControl
             ariaLabel="种子状态筛选"
             value={statusFilter}
             options={panelStatusOptions}

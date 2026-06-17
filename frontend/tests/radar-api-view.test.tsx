@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import RadarPage from "@/app/radar/page";
@@ -106,14 +106,6 @@ vi.mock("@/components/ui/alert", () => ({
   ),
 }));
 
-vi.mock("@/components/radar/search-bar", () => ({
-  SearchBar: ({ onReset }: { onReset: () => void }) => (
-    <button type="button" onClick={onReset}>
-      reset radar
-    </button>
-  ),
-}));
-
 vi.mock("@/components/radar/torrent-table", () => ({
   TorrentTable: ({ onSort }: { onSort: (field: string) => void }) => (
     <button type="button" onClick={() => onSort("name")}>
@@ -128,10 +120,6 @@ vi.mock("@/components/radar/category-pills", () => ({
 
 vi.mock("@/components/radar/filter-selects", () => ({
   FilterSelects: () => null,
-}));
-
-vi.mock("@/components/radar/mode-tabs", () => ({
-  ModeTabs: () => null,
 }));
 
 const failedDownloadCases: Array<
@@ -273,7 +261,7 @@ describe("RADAR reset", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "sort name" }));
     expect(radarQueryStateMock.setSort).toHaveBeenCalledWith("name", "desc");
-    fireEvent.click(screen.getByRole("button", { name: "reset radar" }));
+    fireEvent.click(screen.getByRole("button", { name: "重置" }));
     vi.advanceTimersByTime(300);
 
     expect(radarSearchMock.reset).toHaveBeenCalledTimes(1);
@@ -285,7 +273,7 @@ describe("RADAR reset", () => {
 describe("SearchResetBar IME handling", () => {
   it("does not search on Enter while composition is active", () => {
     const onSearch = vi.fn();
-    render(
+    const { container } = render(
       <SearchResetBar
         value="拼"
         onValueChange={vi.fn()}
@@ -294,7 +282,7 @@ describe("SearchResetBar IME handling", () => {
       />,
     );
 
-    const input = screen.getByRole("textbox", { name: "搜索" });
+    const input = within(container).getByRole("textbox", { name: "搜索" });
     const composingEnter = new KeyboardEvent("keydown", {
       key: "Enter",
       bubbles: true,

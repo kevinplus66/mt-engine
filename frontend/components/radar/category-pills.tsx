@@ -3,7 +3,7 @@
  * 根据搜索模式显示不同的分类选项
  */
 
-import { MultiFilterToggleGroup } from "@/components/common/filter-toggle-group";
+import { MultiSegmentedControl } from "@/components/common/segmented-control";
 import { CATEGORY_MAP } from "@/lib/constants";
 import type { SearchMode } from "@/lib/types";
 
@@ -54,7 +54,7 @@ export function CategoryPills({
   return (
     <div className="space-y-2">
       <div className="text-muted-foreground text-sm font-medium">分类筛选</div>
-      <MultiFilterToggleGroup
+      <MultiSegmentedControl
         ariaLabel="分类筛选"
         value={selectedValues}
         options={categories.map((category) => ({
