@@ -3,7 +3,7 @@ qBittorrent 集成服务
 """
 
 import re
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Set
 
 import httpx
 
@@ -486,7 +486,11 @@ async def qb_get_storage_info(sid: str) -> Optional[Dict]:
 
 
 async def qb_find_torrent_by_mteam_id(
-    mteam_id: str, sid: str, managed_only: bool = False
+    mteam_id: str,
+    sid: str,
+    managed_only: bool = False,
+    allowed_tags: Optional[Set[str]] = None,
+    excluded_tags: Optional[Set[str]] = None,
 ) -> Optional[str]:
     """
     通过 M-Team ID 查找 qBittorrent 中的种子
@@ -495,10 +499,14 @@ async def qb_find_torrent_by_mteam_id(
         mteam_id: M-Team 种子 ID
         sid: qBittorrent 会话 ID
         managed_only: 为 True 时仅匹配带有精确托管标签的种子
+        allowed_tags: 限定可匹配的标签集合（仅在 managed_only 时生效）。
+            默认 None 表示沿用全部托管标签 MANAGED_TORRENT_TAGS。
+        excluded_tags: 带有任一排除标签时不匹配（仅在 managed_only 时生效）。
 
     Returns:
         Optional[str]: 找到返回种子哈希值，否则返回 None
     """
+    eligible_tags = allowed_tags if allowed_tags is not None else MANAGED_TORRENT_TAGS
     torrents = await qb_get_torrents(sid)
 
     for torrent in torrents:
@@ -506,8 +514,12 @@ async def qb_find_torrent_by_mteam_id(
         if not torrent_hash:
             continue
 
-        if managed_only and not _is_managed_torrent(torrent):
-            continue
+        if managed_only:
+            tags = _split_qb_tags(torrent.get("tags", ""))
+            if not tags.intersection(eligible_tags):
+                continue
+            if excluded_tags is not None and tags.intersection(excluded_tags):
+                continue
 
         # 获取该种子的 trackers
         trackers = await qb_get_torrent_trackers(torrent_hash, sid)

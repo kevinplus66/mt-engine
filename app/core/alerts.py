@@ -24,7 +24,9 @@ LEECHING_STATES = (
     "downloading", "stalledDL", "metaDL", "pausedDL",
     "queuedDL", "forcedDL", "checkingDL"
 )
-MANAGED_TAGS = {QB_TAG_SONAR, QB_TAG_RADAR, "PILOT"}
+# 免费下车自动删除仅作用于「自动做种」类种子（声呐做种 / PILOT）。
+# 「雷达下载」是用户主动搜索想看的资源，掉免费也不应自动删除，故排除在外。
+AUTO_DELETE_TAGS = {QB_TAG_SONAR, "PILOT"}
 
 
 def _build_cached_leeching_candidates() -> Dict[str, Dict]:
@@ -89,7 +91,7 @@ async def _build_live_qb_leeching_candidates() -> Tuple[Dict[str, Dict], Optiona
             continue
 
         tags = {t.strip() for t in task.get("tags", "").split(",") if t.strip()}
-        if not tags.intersection(MANAGED_TAGS):
+        if not tags.intersection(AUTO_DELETE_TAGS) or QB_TAG_RADAR in tags:
             continue
 
         torrent_hash = task.get("hash", "")
@@ -154,7 +156,11 @@ async def _try_auto_delete(
 
     if not torrent_hash:
         torrent_hash = await qb_find_torrent_by_mteam_id(
-            torrent_id, sid, managed_only=True
+            torrent_id,
+            sid,
+            managed_only=True,
+            allowed_tags=AUTO_DELETE_TAGS,
+            excluded_tags={QB_TAG_RADAR},
         )
 
     if torrent_hash:

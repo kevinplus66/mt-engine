@@ -9,6 +9,21 @@ export type PanelTorrent = NonNullable<
 export const MONITOR_STATUS_QUERY_PARAM = "monitorStatus";
 export const PANEL_MONITOR_PAGE_SIZE = 50;
 
+/**
+ * RADAR 下载标签。RADAR 是用户主动搜索想看的资源，区别于「声呐做种」/
+ * 「PILOT」这类自动做种任务，删除时格外容易误伤，需要在面板里醒目区分。
+ */
+const QB_TAG_RADAR = "雷达下载";
+
+export function isRadarTag(tag: string): boolean {
+  return tag === QB_TAG_RADAR;
+}
+
+/** Order tags so the RADAR tag always renders first, keeping others stable. */
+export function sortPanelTags(tags: readonly string[]): string[] {
+  return [...tags].sort((a, b) => Number(isRadarTag(b)) - Number(isRadarTag(a)));
+}
+
 export const panelStatusOptions = [
   { value: "all" as const, label: "全部" },
   { value: "downloading" as const, label: "下载中" },

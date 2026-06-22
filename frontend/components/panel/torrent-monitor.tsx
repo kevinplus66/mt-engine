@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useMemo, useRef } from "react";
-import { AlertCircle, Pause, Play, Trash2 } from "lucide-react";
+import { AlertCircle, Pause, Play, Radar, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -47,13 +47,52 @@ import {
   getPanelTorrentKey,
   getStatusFromState,
   isPaused,
+  isRadarTag,
   PANEL_MONITOR_PAGE_SIZE,
   panelStatusOptions,
+  sortPanelTags,
   type PanelSortField,
   type PanelTorrent,
 } from "@/lib/panel-torrents";
 import { panelTorrentSortExtractors, sortData } from "@/lib/sort-utils";
 import { UserStatusBadge } from "@/components/common/torrent-ui";
+
+/**
+ * Render a torrent's qB tags. The RADAR (雷达下载) tag is a user-requested
+ * download, so it gets a Signal-accent badge with a radar icon and renders
+ * first — making it visually obvious which tasks should not be casually
+ * deleted alongside auto-seeding (声呐做种 / PILOT) torrents.
+ */
+function PanelTagBadges({
+  tags,
+  limit,
+  badgeClassName,
+}: {
+  tags: string[] | null | undefined;
+  limit: number;
+  badgeClassName?: string;
+}) {
+  return (
+    <>
+      {sortPanelTags(tags || [])
+        .slice(0, limit)
+        .map((tag) => {
+          const radar = isRadarTag(tag);
+          return (
+            <Badge
+              key={tag}
+              variant={radar ? "info" : "outline"}
+              size="sm"
+              className={badgeClassName}
+            >
+              {radar ? <Radar aria-hidden="true" /> : null}
+              {tag}
+            </Badge>
+          );
+        })}
+    </>
+  );
+}
 
 export function TorrentMonitor() {
   const { data: torrents, isLoading, error, mutate } = usePanelTorrents();
@@ -233,11 +272,11 @@ export function TorrentMonitor() {
                         </h3>
                         <div className="mt-2 flex flex-wrap gap-1">
                           <UserStatusBadge status={torrent.status || ""} />
-                          {(torrent.tags || []).slice(0, 2).map((tag) => (
-                            <Badge key={tag} variant="outline" size="sm" className="max-w-full whitespace-normal break-words text-left">
-                              {tag}
-                            </Badge>
-                          ))}
+                          <PanelTagBadges
+                            tags={torrent.tags}
+                            limit={2}
+                            badgeClassName="max-w-full whitespace-normal break-words text-left"
+                          />
                         </div>
                       </div>
                       <TorrentProgressBlock torrent={torrent} />
@@ -346,13 +385,11 @@ export function TorrentMonitor() {
                       <TorrentNameCell
                         name={torrent.name}
                         badges={
-                          <>
-                          {(torrent.tags || []).slice(0, 4).map((tag) => (
-                            <Badge key={tag} variant="outline" size="sm" className="max-w-48 truncate">
-                              {tag}
-                            </Badge>
-                          ))}
-                          </>
+                          <PanelTagBadges
+                            tags={torrent.tags}
+                            limit={4}
+                            badgeClassName="max-w-48 truncate"
+                          />
                         }
                       />
                     </TableCell>

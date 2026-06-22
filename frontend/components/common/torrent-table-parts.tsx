@@ -126,9 +126,10 @@ export function TorrentDownloadActions({
   );
 }
 
-// 左侧渐变制造“内容滑入下方”的层次感；hover 背景跟随行高亮，避免悬停行出现死角
+// 冻结在右侧的操作列：静止态底色 bg-card 匹配所在 Card 表面；hover 用 --background
+// 系，与默认变体 TableRow 的行 hover 逐字一致。两态都对齐，避免深色模式下断裂。
 const stickyEdgeClassName =
-  "sticky right-0 bg-card transition-colors before:pointer-events-none before:absolute before:inset-y-0 before:-left-3 before:w-3 before:bg-gradient-to-l before:from-black/6 before:to-transparent dark:before:from-black/24 group-hover/row:bg-[color-mix(in_srgb,var(--card),var(--color-black)_2%)] dark:group-hover/row:bg-[color-mix(in_srgb,var(--card),var(--color-white)_2%)]";
+  "sticky right-0 bg-card transition-colors group-hover/row:bg-[color-mix(in_srgb,var(--background),var(--color-black)_2%)] dark:group-hover/row:bg-[color-mix(in_srgb,var(--background),var(--color-white)_2%)]";
 
 export function StickyActionHead({
   children = "操作",

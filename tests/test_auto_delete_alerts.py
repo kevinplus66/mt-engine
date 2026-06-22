@@ -6,6 +6,7 @@ import app.state as state
 from app.config import BEIJING_TZ
 from app.core import alerts
 import app.services.qbittorrent as qb_service
+from app.constants import QB_TAG_RADAR
 
 
 @pytest.fixture(autouse=True)
@@ -124,7 +125,7 @@ async def test_auto_delete_does_not_delete_untagged_tracker_match(monkeypatch):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("managed_tag", ["声呐做种", "雷达下载", "PILOT"])
+@pytest.mark.parametrize("managed_tag", ["声呐做种", "PILOT"])
 async def test_auto_delete_deletes_exact_managed_tracker_match(monkeypatch, managed_tag):
     deleted = []
     torrents = [
@@ -159,6 +160,112 @@ async def test_auto_delete_deletes_exact_managed_tracker_match(monkeypatch, mana
     )
     assert deleted == [("hash-managed", "sid", True)]
 
+
+@pytest.mark.asyncio
+async def test_auto_delete_skips_radar_download(monkeypatch):
+    """RADAR (雷达下载) downloads are user-requested content, not free-farming
+    seeds. Free expiry must never auto-delete them, even when the M-Team tracker
+    id matches a downloading RADAR torrent."""
+    deleted = []
+    torrents = [
+        {"hash": "hash-radar", "name": "RADAR download", "tags": "雷达下载"},
+    ]
+    _install_mteam_tracker_lookup(monkeypatch, torrents, {"hash-radar": "123"})
+
+    async def fake_delete(torrent_hash, sid, delete_files=False):
+        deleted.append((torrent_hash, sid, delete_files))
+        return True
+
+    monkeypatch.setattr(alerts, "qb_delete_torrent", fake_delete)
+
+    deleted_successfully, torrent_found, login_success, sid = (
+        await alerts._try_auto_delete(
+            "123",
+            "免费即将到期",
+            "sid",
+        )
+    )
+
+    assert (deleted_successfully, torrent_found, login_success, sid) == (
+        False,
+        False,
+        True,
+        "sid",
+    )
+    assert deleted == []
+
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "tags",
+    [
+        "雷达下载, PILOT",
+        "PILOT, 雷达下载",
+        "声呐做种, 雷达下载",
+    ],
+)
+async def test_auto_delete_skips_mixed_radar_tags_cached_lookup(monkeypatch, tags):
+    deleted = []
+    torrents = [
+        {"hash": "hash-mixed", "name": "Mixed RADAR download", "tags": tags},
+    ]
+    _install_mteam_tracker_lookup(monkeypatch, torrents, {"hash-mixed": "123"})
+
+    async def fake_delete(torrent_hash, sid, delete_files=False):
+        deleted.append((torrent_hash, sid, delete_files))
+        return True
+
+    monkeypatch.setattr(alerts, "qb_delete_torrent", fake_delete)
+
+    deleted_successfully, torrent_found, login_success, sid = (
+        await alerts._try_auto_delete(
+            "123",
+            "免费即将到期",
+            "sid",
+        )
+    )
+
+    assert (deleted_successfully, torrent_found, login_success, sid) == (
+        False,
+        False,
+        True,
+        "sid",
+    )
+    assert deleted == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "tags",
+    [
+        "雷达下载, PILOT",
+        "PILOT, 雷达下载",
+        "声呐做种, 雷达下载",
+    ],
+)
+async def test_auto_delete_skips_mixed_radar_tags_live_candidates(monkeypatch, tags):
+    deleted = []
+
+    async def fake_get_torrents(_sid):
+        task = _downloading_task("hash-mixed")
+        task["name"] = "Mixed RADAR download"
+        task["tags"] = tags
+        return [task]
+
+    async def fake_delete(torrent_hash, sid, delete_files=False):
+        deleted.append((torrent_hash, sid, delete_files))
+        return True
+
+    monkeypatch.setattr(alerts, "qb_login", _sid)
+    monkeypatch.setattr(alerts, "qb_get_torrents", fake_get_torrents)
+    monkeypatch.setattr(alerts, "qb_get_torrent_trackers", _trackers)
+    monkeypatch.setattr(alerts, "extract_mteam_id_from_trackers", lambda _trackers: "123")
+    monkeypatch.setattr(alerts, "qb_delete_torrent", fake_delete)
+
+    await alerts.check_emergency_alerts([_free_torrent("123", minutes_remaining=5)])
+
+    assert deleted == []
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
@@ -250,8 +357,12 @@ async def test_expiry_only_deletes_absent_cached_free_torrent(monkeypatch):
     async def fake_get_torrents(_sid):
         return []
 
-    async def fake_find(torrent_id, sid, managed_only=False):
+    async def fake_find(
+        torrent_id, sid, managed_only=False, allowed_tags=None, excluded_tags=None
+    ):
         assert (torrent_id, sid, managed_only) == ("123", "sid", True)
+        assert allowed_tags == alerts.AUTO_DELETE_TAGS
+        assert excluded_tags == {QB_TAG_RADAR}
         return "hash-cached"
 
     async def fake_delete(torrent_hash, sid, delete_files=False):
@@ -276,8 +387,12 @@ async def test_partial_membership_deletes_absent_cached_expiring_free_torrent(mo
     async def fake_get_torrents(_sid):
         return []
 
-    async def fake_find(torrent_id, sid, managed_only=False):
+    async def fake_find(
+        torrent_id, sid, managed_only=False, allowed_tags=None, excluded_tags=None
+    ):
         assert (torrent_id, sid, managed_only) == ("123", "sid", True)
+        assert allowed_tags == alerts.AUTO_DELETE_TAGS
+        assert excluded_tags == {QB_TAG_RADAR}
         return "hash-cached"
 
     async def fake_delete(torrent_hash, sid, delete_files=False):
