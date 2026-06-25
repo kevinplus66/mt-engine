@@ -38,7 +38,7 @@ let exitCode = 0;
 
 
 try {
-  execFileSync(openApiTypescriptBin, [schemaPath, "-o", actualPath], {
+  execFileSync(openApiTypescriptBin, [schemaPath, "--default-non-nullable=false", "-o", actualPath], {
     cwd: frontendRoot,
     stdio: "inherit",
   });

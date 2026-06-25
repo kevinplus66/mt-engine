@@ -55,6 +55,7 @@ function SonarPageContent() {
           ? `${error.message}，请稍后重试。`
           : "刷新失败，请稍后重试。"
       );
+      void mutate().catch(() => undefined);
     } finally {
       setIsRefreshing(false);
     }

@@ -167,7 +167,7 @@ async def get_panel_stats() -> Dict:
                 "upload_display": format_speed_int(avg_speeds["upload"]) + "/s",
                 "download_display": format_speed_int(avg_speeds["download"]) + "/s"
             },
-            "last_update": int(datetime.utcnow().timestamp())
+            "last_update": db_stats["last_update"]
         }
 
         return result

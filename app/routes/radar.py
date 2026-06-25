@@ -140,7 +140,7 @@ async def api_radar(request: Request, data: SearchRequest, check_rate_limit_func
                 video_codec_id = _safe_int(torrent_info.get("videoCodec"))
                 audio_codec_id = _safe_int(torrent_info.get("audioCodec"))
                 source_id = _safe_int(torrent_info.get("source"))
-                times_completed = int(status_info.get("timesCompleted", 0))
+                times_completed = _safe_int(status_info.get("timesCompleted"))
                 tags = torrent_info.get("tags", "")
 
                 # 新字段

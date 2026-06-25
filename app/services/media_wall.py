@@ -1198,6 +1198,16 @@ def _rail(rail_id: str, items: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
+def _is_valid_cached_media_wall_item(item: Dict[str, Any]) -> bool:
+    return (
+        all(
+            isinstance(item.get(key), str)
+            for key in ("id", "media_key", "title", "torrent_name")
+        )
+        and item.get("media_type") in {"movie", "series", "other"}
+    )
+
+
 def _sanitize_snapshot(snapshot: Dict[str, Any], now: datetime) -> Dict[str, Any]:
     """Keep cached Home content visible while normalizing older rail shapes."""
     current_rail_ids = {rail_id for rail_id, _, _ in RAIL_DEFINITIONS}
@@ -1206,11 +1216,22 @@ def _sanitize_snapshot(snapshot: Dict[str, Any], now: datetime) -> Dict[str, Any
         rail_id: [] for rail_id, _, _ in RAIL_DEFINITIONS
     }
 
-    for rail in payload.get("rails", []):
+    rails = payload.get("rails")
+    if not isinstance(rails, list):
+        rails = []
+
+    for rail in rails:
         if not isinstance(rail, dict):
             continue
         rail_id = str(rail.get("id") or "")
-        items = [item for item in rail.get("items", []) if isinstance(item, dict)]
+        rail_items = rail.get("items")
+        if not isinstance(rail_items, list):
+            rail_items = []
+        items = [
+            item
+            for item in rail_items
+            if isinstance(item, dict) and _is_valid_cached_media_wall_item(item)
+        ]
         if rail_id in current_rail_ids:
             items_by_rail[rail_id].extend(
                 item for item in items if _is_cached_family_item_allowed(rail_id, item, now)
@@ -1243,7 +1264,18 @@ def _diagnostics_for_sanitized_snapshot(
     payload: Dict[str, Any],
     rails: List[Dict[str, Any]],
 ) -> Dict[str, Any]:
-    sources = payload.get("sources") if isinstance(payload.get("sources"), dict) else {}
+    sources: Dict[str, Any] = {}
+    raw_sources = payload.get("sources")
+    if isinstance(raw_sources, dict):
+        sources = raw_sources
+    source_diagnostics: Dict[str, int] = {}
+    for source in SOURCE_REFRESH_ORDER:
+        source_data = sources.get(source)
+        if not isinstance(source_data, dict):
+            source_diagnostics[source] = 0
+            continue
+        source_diagnostics[source] = len(_dict_items(source_data.get("items", [])))
+
     rail_diagnostics = {}
     for rail in rails:
         rail_id = str(rail.get("id"))
@@ -1263,10 +1295,7 @@ def _diagnostics_for_sanitized_snapshot(
         }
 
     return {
-        "sources": {
-            source: len(_dict_items((sources.get(source) or {}).get("items", [])))
-            for source in SOURCE_REFRESH_ORDER
-        },
+        "sources": source_diagnostics,
         "rails": rail_diagnostics,
     }
 

@@ -38,17 +38,21 @@ export function usePanelTorrentActions(
 
     setIsDeleting(true);
     try {
-      await deletePanelTorrents({
+      const result = await deletePanelTorrents({
         hashes: [deleteTarget.hash],
         delete_files: true,
       });
-      toast.success("种子已删除");
-      await mutate();
+      if (result.success) {
+        toast.success("种子已删除");
+        setDeleteTarget(null);
+        await mutate();
+      } else {
+        toast.error(result.error || "删除失败");
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "删除失败");
     } finally {
       setIsDeleting(false);
-      setDeleteTarget(null);
     }
   };
 

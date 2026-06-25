@@ -119,10 +119,12 @@ async def _post_qb_mutation_with_retry(
         )
 
 
-async def _get_qb_with_retry(sid: str, endpoint: str) -> httpx.Response:
+async def _get_qb_with_retry(sid: str, endpoint: str, params: Optional[Dict] = None) -> httpx.Response:
+    url = f"{QBITTORRENT_URL.rstrip('/')}/{endpoint}"
     async with httpx.AsyncClient(timeout=10.0) as client:
         response = await client.get(
-            f"{QBITTORRENT_URL.rstrip('/')}/{endpoint}",
+            url,
+            params=params,
             cookies={"SID": sid},
         )
 
@@ -138,7 +140,8 @@ async def _get_qb_with_retry(sid: str, endpoint: str) -> httpx.Response:
             return response
 
         return await client.get(
-            f"{QBITTORRENT_URL.rstrip('/')}/{endpoint}",
+            url,
+            params=params,
             cookies={"SID": fresh_sid},
         )
 
@@ -222,24 +225,19 @@ async def qb_get_torrent_trackers(torrent_hash: str, sid: str) -> List[Dict]:
         return []
 
     try:
-        # 使用独立的客户端，避免 cookie 干扰
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(
-                f"{QBITTORRENT_URL.rstrip('/')}/api/v2/torrents/trackers",
-                params={"hash": torrent_hash},
-                cookies={"SID": sid},
-            )
+        response = await _get_qb_with_retry(
+            sid,
+            "api/v2/torrents/trackers",
+            params={"hash": torrent_hash},
+        )
 
-            # 检查认证失败
-            if response.status_code in (401, 403):
-                logger.warning("qBittorrent 会话已过期，清除缓存")
-                runtime_status.mark_error("qbittorrent", f"HTTP {response.status_code}")
-                qb_clear_session()
-                return []
+        # 检查认证失败
+        if response.status_code in (401, 403):
+            return []
 
-            trackers = response.json()
-            runtime_status.mark_success("qbittorrent")
-            return trackers
+        trackers = response.json()
+        runtime_status.mark_success("qbittorrent")
+        return trackers
     except Exception as e:
         logger.error(f"获取种子 tracker 失败: {e}")
         runtime_status.mark_error("qbittorrent", e)

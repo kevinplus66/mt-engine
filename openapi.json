@@ -1235,6 +1235,7 @@
             "type": "string",
             "maxLength": 20,
             "minLength": 1,
+            "pattern": "^\\d+$",
             "title": "Id"
           }
         },

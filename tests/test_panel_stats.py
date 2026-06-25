@@ -157,3 +157,42 @@ async def test_panel_collector_does_not_persist_default_zero_user_profile(monkey
     assert saved[0]["qb_traffic"]["uploaded"] == 10
     assert saved[0]["mteam_traffic"] is None
     assert saved[0]["user_stats"] is None
+
+
+@pytest.mark.asyncio
+async def test_panel_stats_uses_db_sample_timestamp_for_last_update(monkeypatch):
+    async def fake_get_latest_stats():
+        return {
+            "mteam": {"uploaded": 100, "downloaded": 50},
+            "qbittorrent": {
+                "uploaded": 200,
+                "downloaded": 80,
+                "upload_speed": 3,
+                "download_speed": 4,
+            },
+            "user": {
+                "share_ratio": 2.0,
+                "uploaded": 100,
+                "downloaded": 50,
+                "bonus": 7,
+                "seeding_count": 8,
+                "leeching_count": 1,
+                "user_level": "power",
+            },
+            "last_update": 1234567890,
+        }
+
+    async def fake_qb_login():
+        return None
+
+    monkeypatch.setattr(panel, "get_latest_stats", fake_get_latest_stats)
+    monkeypatch.setattr(panel, "qb_login", fake_qb_login)
+    monkeypatch.setattr(
+        panel,
+        "calculate_30min_avg_speeds",
+        lambda: {"upload": 0, "download": 0},
+    )
+
+    result = await panel.get_panel_stats()
+
+    assert result["last_update"] == 1234567890

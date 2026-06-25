@@ -35,8 +35,8 @@ class _FakeClient:
         self._calls.append({"method": "post", "url": url, "data": data, "files": files, "cookies": cookies})
         return self._responses.pop(0)
 
-    async def get(self, url, cookies=None):
-        self._calls.append({"method": "get", "url": url, "cookies": cookies})
+    async def get(self, url, params=None, cookies=None):
+        self._calls.append({"method": "get", "url": url, "params": params, "cookies": cookies})
         return self._responses.pop(0)
 
 
@@ -163,6 +163,29 @@ async def test_storage_auth_failure_clears_session_and_retries_once(monkeypatch)
     assert cleared == [True]
     assert login_calls == [True]
     assert [call["cookies"] for call in calls] == [{"SID": "stale-sid"}, {"SID": "fresh-sid"}]
+
+@pytest.mark.asyncio
+async def test_tracker_lookup_auth_failure_relogs_and_retries_once(monkeypatch):
+    calls = []
+    cleared = []
+    login_calls = []
+    trackers = [{"url": "https://tracker.m-team.cc/announce.php?passkey=abc"}]
+
+    async def fake_login(force_new=False):
+        login_calls.append(force_new)
+        return "fresh-sid"
+
+    monkeypatch.setattr(qb, "qb_clear_session", lambda: cleared.append(True))
+    monkeypatch.setattr(qb, "qb_login", fake_login)
+    monkeypatch.setattr(qb.httpx, "AsyncClient", _client_factory([_Response(401), _Response(200, trackers)], calls))
+
+    result = await qb.qb_get_torrent_trackers(MANAGED_HASH, "stale-sid")
+
+    assert result == trackers
+    assert cleared == [True]
+    assert login_calls == [True]
+    assert [call["cookies"] for call in calls] == [{"SID": "stale-sid"}, {"SID": "fresh-sid"}]
+    assert [call["params"] for call in calls] == [{"hash": MANAGED_HASH}, {"hash": MANAGED_HASH}]
 
 
 @pytest.mark.parametrize("save_path", ["", "   ", "/", "..", "/downloads/..", "/etc/downloads", "/downloads2"])

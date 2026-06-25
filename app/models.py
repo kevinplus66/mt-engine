@@ -29,7 +29,7 @@ def normalize_download_save_path(value: str) -> str:
 
 class DownloadRequest(BaseModel):
     """Request model for torrent download"""
-    id: str = Field(..., min_length=1, max_length=20)
+    id: str = Field(..., min_length=1, max_length=20, pattern=r"^\d+$")
 
     @field_validator('id')
     @classmethod
@@ -360,7 +360,7 @@ class DownloadPolicy(BaseModel):
     interval_seconds: int = Field(300, ge=60)
     save_path: str = Field(default="/downloads/mt_free_farm")
     disk_usage_threshold: int = Field(90, ge=50, le=95)  # 百分比 50-95%
-    rules: RuleConfig = Field(default_factory=RuleConfig)
+    rules: RuleConfig = Field(default_factory=lambda: RuleConfig.model_validate({}))
 
     @field_validator('save_path')
     @classmethod
@@ -387,6 +387,6 @@ class CleanupPolicy(BaseModel):
 
 class AutomationConfig(BaseModel):
     """Main pilot configuration (credentials via env vars, not stored)"""
-    download: DownloadPolicy = Field(default_factory=DownloadPolicy)
-    cleanup: CleanupPolicy = Field(default_factory=CleanupPolicy)
+    download: DownloadPolicy = Field(default_factory=lambda: DownloadPolicy.model_validate({}))
+    cleanup: CleanupPolicy = Field(default_factory=lambda: CleanupPolicy.model_validate({}))
     enable_notification: bool = True

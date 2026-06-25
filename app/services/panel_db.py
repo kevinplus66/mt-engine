@@ -3,6 +3,7 @@ PANEL 数据库服务
 """
 
 import sqlite3
+import time
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Tuple
 from pathlib import Path
@@ -249,10 +250,18 @@ async def get_latest_stats() -> Optional[Dict]:
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # 获取最新的流量统计
+        # 获取每个来源各自最新的流量统计，避免部分采样时丢掉较旧来源
         cursor.execute("""
-            SELECT * FROM traffic_stats
-            WHERE timestamp = (SELECT MAX(timestamp) FROM traffic_stats)
+            SELECT t.*
+            FROM traffic_stats t
+            JOIN (
+                SELECT source, MAX(timestamp) AS timestamp
+                FROM traffic_stats
+                GROUP BY source
+            ) latest
+              ON t.source = latest.source
+             AND t.timestamp = latest.timestamp
+            ORDER BY t.source
         """)
         traffic_rows = cursor.fetchall()
 
@@ -269,7 +278,8 @@ async def get_latest_stats() -> Optional[Dict]:
         result = {
             "qbittorrent": {},
             "mteam": {},
-            "user": {}
+            "user": {},
+            "last_update": 0,
         }
 
         for row in traffic_rows:
@@ -278,8 +288,10 @@ async def get_latest_stats() -> Optional[Dict]:
                 "uploaded": row["uploaded"],
                 "downloaded": row["downloaded"],
                 "upload_speed": row["upload_speed"],
-                "download_speed": row["download_speed"]
+                "download_speed": row["download_speed"],
+                "timestamp": row["timestamp"],
             }
+            result["last_update"] = max(result["last_update"], row["timestamp"])
 
         if user_row:
             result["user"] = {
@@ -289,8 +301,10 @@ async def get_latest_stats() -> Optional[Dict]:
                 "bonus": user_row["bonus"],
                 "seeding_count": user_row["seeding_count"],
                 "leeching_count": user_row["leeching_count"],
-                "user_level": user_row["user_level"]
+                "user_level": user_row["user_level"],
+                "timestamp": user_row["timestamp"],
             }
+            result["last_update"] = max(result["last_update"], user_row["timestamp"])
 
         return result
     except Exception as e:
@@ -318,10 +332,28 @@ def get_traffic_history(hours: int) -> List[Dict]:
     """
     conn = None
     try:
-        cutoff_timestamp = int((datetime.utcnow() - timedelta(hours=hours)).timestamp())
+        cutoff_timestamp = int(time.time()) - hours * 3600
 
         conn = get_db_connection()
         cursor = conn.cursor()
+
+        # Seed carry-forward values with the latest known sample before the range.
+        cursor.execute("""
+            SELECT t.source, t.uploaded, t.downloaded
+            FROM traffic_stats t
+            JOIN (
+                SELECT source, MAX(timestamp) AS timestamp
+                FROM traffic_stats
+                WHERE timestamp < ?
+                GROUP BY source
+            ) latest
+              ON t.source = latest.source
+             AND t.timestamp = latest.timestamp
+        """, (cutoff_timestamp,))
+        last_seen = {
+            row["source"]: {"uploaded": row["uploaded"], "downloaded": row["downloaded"]}
+            for row in cursor.fetchall()
+        }
 
         # 查询指定时间范围内的所有数据点
         cursor.execute("""
@@ -333,8 +365,9 @@ def get_traffic_history(hours: int) -> List[Dict]:
 
         rows = cursor.fetchall()
 
-        # 按时间戳组织数据
+        # 按时间戳组织数据；缺失来源沿用上一次真实累计值，避免制造归零跳变。
         data_by_timestamp = {}
+        empty = {"uploaded": 0, "downloaded": 0}
         for row in rows:
             timestamp = row["timestamp"]
             source = row["source"]
@@ -342,14 +375,15 @@ def get_traffic_history(hours: int) -> List[Dict]:
             if timestamp not in data_by_timestamp:
                 data_by_timestamp[timestamp] = {
                     "timestamp": timestamp,
-                    "mteam": {"uploaded": 0, "downloaded": 0},
-                    "qbittorrent": {"uploaded": 0, "downloaded": 0}
+                    "mteam": dict(last_seen.get("mteam", empty)),
+                    "qbittorrent": dict(last_seen.get("qbittorrent", empty)),
                 }
 
-            data_by_timestamp[timestamp][source] = {
+            last_seen[source] = {
                 "uploaded": row["uploaded"],
-                "downloaded": row["downloaded"]
+                "downloaded": row["downloaded"],
             }
+            data_by_timestamp[timestamp][source] = dict(last_seen[source])
 
         # 转换为列表并排序
         result = sorted(data_by_timestamp.values(), key=lambda x: x["timestamp"])
@@ -381,7 +415,7 @@ def get_share_ratio_history(hours: int) -> Tuple[List[Dict], Dict]:
     """
     conn = None
     try:
-        cutoff_timestamp = int((datetime.utcnow() - timedelta(hours=hours)).timestamp())
+        cutoff_timestamp = int(time.time()) - hours * 3600
 
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -405,29 +439,33 @@ def get_share_ratio_history(hours: int) -> Tuple[List[Dict], Dict]:
             for row in rows
         ]
 
-        # 计算统计信息
+        # 计算统计信息（限定在请求范围内）
         ratios = [point["share_ratio"] for point in data_points]
         current = ratios[-1] if ratios else 0
         highest = max(ratios) if ratios else 0
         lowest = min(ratios) if ratios else 0
 
-        # 计算24小时变化
-        change_24h = 0
-        timestamp_24h_ago = int((datetime.utcnow() - timedelta(hours=24)).timestamp())
-        # 找到最接近24小时前的数据点
-        past_ratio = None
-        for idx, point in enumerate(data_points):
-            if point["timestamp"] >= timestamp_24h_ago:
-                if past_ratio is None:
-                    # 使用前一个点作为24小时前的值（如果存在）
-                    if idx > 0:
-                        past_ratio = data_points[idx - 1]["share_ratio"]
-                    else:
-                        past_ratio = point["share_ratio"]
-                break
+        # 24 小时变化使用完整 24h 基线，不受请求 range=1/6/12h 限制
+        timestamp_24h_ago = int(time.time()) - 24 * 3600
+        cursor.execute("""
+            SELECT share_ratio
+            FROM user_stats
+            WHERE timestamp <= ?
+            ORDER BY timestamp DESC
+            LIMIT 1
+        """, (timestamp_24h_ago,))
+        baseline_row = cursor.fetchone()
+        if baseline_row is None:
+            cursor.execute("""
+                SELECT share_ratio
+                FROM user_stats
+                WHERE timestamp >= ?
+                ORDER BY timestamp ASC
+                LIMIT 1
+            """, (timestamp_24h_ago,))
+            baseline_row = cursor.fetchone()
 
-        if past_ratio is not None:
-            change_24h = current - past_ratio
+        change_24h = current - baseline_row["share_ratio"] if baseline_row else 0
 
         stats = {
             "current": round(current, 3),

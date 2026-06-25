@@ -1,6 +1,7 @@
-from contextlib import closing
-
+import os
 import sqlite3
+import time
+from contextlib import closing
 
 import pytest
 
@@ -132,3 +133,119 @@ async def test_save_panel_stats_batch_rolls_back_malformed_batch(temp_panel_db):
     with closing(_connect(temp_panel_db)) as conn:
         assert conn.execute("SELECT COUNT(*) FROM traffic_stats").fetchone()[0] == 0
         assert conn.execute("SELECT COUNT(*) FROM user_stats").fetchone()[0] == 0
+
+
+@pytest.mark.asyncio
+async def test_get_latest_stats_uses_latest_row_per_source(temp_panel_db):
+    with closing(_connect(temp_panel_db)) as conn:
+        conn.executemany(
+            """
+            INSERT INTO traffic_stats
+            (timestamp, source, uploaded, downloaded, upload_speed, download_speed)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            [
+                (100, "mteam", 500, 600, None, None),
+                (100, "qbittorrent", 100, 200, 1, 2),
+                (200, "qbittorrent", 150, 250, 3, 4),
+            ],
+        )
+        conn.execute(
+            """
+            INSERT INTO user_stats
+            (timestamp, share_ratio, uploaded, downloaded)
+            VALUES (?, ?, ?, ?)
+            """,
+            (150, 1.5, 500, 600),
+        )
+        conn.commit()
+
+    latest = await panel_db.get_latest_stats()
+
+    assert latest["mteam"]["uploaded"] == 500
+    assert latest["mteam"]["timestamp"] == 100
+    assert latest["qbittorrent"]["uploaded"] == 150
+    assert latest["qbittorrent"]["timestamp"] == 200
+    assert latest["user"]["timestamp"] == 150
+    assert latest["last_update"] == 200
+
+
+def test_get_traffic_history_carries_forward_partial_samples(temp_panel_db):
+    now = int(time.time())
+    before_range = now - 7200
+    first = now - 1800
+    second = now - 1200
+    with closing(_connect(temp_panel_db)) as conn:
+        conn.executemany(
+            """
+            INSERT INTO traffic_stats
+            (timestamp, source, uploaded, downloaded)
+            VALUES (?, ?, ?, ?)
+            """,
+            [
+                (before_range, "mteam", 500, 600),
+                (before_range, "qbittorrent", 100, 200),
+                (first, "qbittorrent", 150, 250),
+                (second, "mteam", 550, 650),
+            ],
+        )
+        conn.commit()
+
+    points = panel_db.get_traffic_history(1)
+
+    assert points == [
+        {
+            "timestamp": first,
+            "mteam": {"uploaded": 500, "downloaded": 600},
+            "qbittorrent": {"uploaded": 150, "downloaded": 250},
+        },
+        {
+            "timestamp": second,
+            "mteam": {"uploaded": 550, "downloaded": 650},
+            "qbittorrent": {"uploaded": 150, "downloaded": 250},
+        },
+    ]
+
+
+def test_get_share_ratio_history_uses_24h_baseline_for_short_range(temp_panel_db):
+    if not hasattr(time, "tzset"):
+        pytest.skip("time.tzset is required to exercise local timezone handling")
+
+    previous_tz = os.environ.get("TZ")
+    os.environ["TZ"] = "Asia/Shanghai"
+    time.tzset()
+    try:
+        now = int(time.time())
+        older_baseline = now - 30 * 3600
+        baseline = now - 24 * 3600
+        current = now
+        with closing(_connect(temp_panel_db)) as conn:
+            conn.executemany(
+                """
+                INSERT INTO user_stats
+                (timestamp, share_ratio, uploaded, downloaded)
+                VALUES (?, ?, ?, ?)
+                """,
+                [
+                    (older_baseline, 1.00, 100, 100),
+                    (baseline, 1.25, 125, 100),
+                    (current, 1.75, 200, 100),
+                ],
+            )
+            conn.commit()
+
+        points, stats = panel_db.get_share_ratio_history(1)
+    finally:
+        if previous_tz is None:
+            os.environ.pop("TZ", None)
+        else:
+            os.environ["TZ"] = previous_tz
+        time.tzset()
+
+    assert points == [{"timestamp": current, "share_ratio": 1.75}]
+    assert stats == {
+        "current": 1.75,
+        "highest": 1.75,
+        "lowest": 1.75,
+        "change_24h": 0.5,
+    }

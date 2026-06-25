@@ -261,6 +261,7 @@ export function TorrentMonitor() {
             <div ref={cardContainerRef} className="space-y-3">
               {pagedTorrents.map((torrent) => {
                 const hash = getPanelTorrentKey(torrent);
+                const torrentName = torrent.name || hash || "未知种子";
                 const paused = isPaused(torrent.status);
 
                 return (
@@ -268,7 +269,7 @@ export function TorrentMonitor() {
                     <div className="min-w-0 space-y-3">
                       <div>
                         <h3 className="line-clamp-2 text-sm font-medium leading-5">
-                          {torrent.name}
+                          {torrentName}
                         </h3>
                         <div className="mt-2 flex flex-wrap gap-1">
                           <UserStatusBadge status={torrent.status || ""} />
@@ -291,12 +292,12 @@ export function TorrentMonitor() {
                             variant="outline"
                             onClick={() =>
                               paused
-                                ? resume(hash, torrent.name)
-                                : pause(hash, torrent.name)
+                                ? resume(hash, torrentName)
+                                : pause(hash, torrentName)
                             }
                             disabled={processingHashes.has(hash)}
                             loading={processingHashes.has(hash)}
-                            aria-label={paused ? `恢复种子：${torrent.name}` : `暂停种子：${torrent.name}`}
+                            aria-label={paused ? `恢复种子：${torrentName}` : `暂停种子：${torrentName}`}
                           >
                             {paused ? (
                               <Play className="size-4" aria-hidden="true" />
@@ -307,9 +308,9 @@ export function TorrentMonitor() {
                           <Button
                             size="icon-sm"
                             variant="destructive-outline"
-                            onClick={() => requestDelete(hash, torrent.name)}
+                            onClick={() => requestDelete(hash, torrentName)}
                             disabled={isDeleting}
-                            aria-label={`删除种子：${torrent.name}`}
+                            aria-label={`删除种子：${torrentName}`}
                           >
                             <Trash2 className="size-4" aria-hidden="true" />
                           </Button>
@@ -377,13 +378,14 @@ export function TorrentMonitor() {
             <TableBody ref={tableBodyRef}>
               {pagedTorrents.map((torrent) => {
                 const hash = getPanelTorrentKey(torrent);
+                const torrentName = torrent.name || hash || "未知种子";
                 const paused = isPaused(torrent.status);
 
                 return (
                   <TableRow key={hash}>
                     <TableCell className="w-[360px] min-w-[360px] max-w-[56rem]">
                       <TorrentNameCell
-                        name={torrent.name}
+                        name={torrentName}
                         badges={
                           <PanelTagBadges
                             tags={torrent.tags}
@@ -411,12 +413,12 @@ export function TorrentMonitor() {
                           variant="outline"
                           onClick={() =>
                             paused
-                              ? resume(hash, torrent.name)
-                              : pause(hash, torrent.name)
+                              ? resume(hash, torrentName)
+                              : pause(hash, torrentName)
                           }
                           disabled={processingHashes.has(hash)}
                           loading={processingHashes.has(hash)}
-                          aria-label={paused ? `恢复种子：${torrent.name}` : `暂停种子：${torrent.name}`}
+                          aria-label={paused ? `恢复种子：${torrentName}` : `暂停种子：${torrentName}`}
                         >
                           {paused ? (
                             <Play className="size-4" aria-hidden="true" />
@@ -427,9 +429,9 @@ export function TorrentMonitor() {
                         <Button
                           size="icon-sm"
                           variant="destructive-outline"
-                          onClick={() => requestDelete(hash, torrent.name)}
+                          onClick={() => requestDelete(hash, torrentName)}
                           disabled={isDeleting}
-                          aria-label={`删除种子：${torrent.name}`}
+                          aria-label={`删除种子：${torrentName}`}
                         >
                           <Trash2 className="size-4" aria-hidden="true" />
                         </Button>

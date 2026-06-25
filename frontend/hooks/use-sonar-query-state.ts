@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { ModeFilter, RemainingFilter } from "@/components/sonar/dropdown-filters";
 import type { SeederFilter, SizeFilter } from "@/components/sonar/filter-pills";
@@ -87,21 +87,37 @@ export function useSonarQueryState() {
     (searchParams.get("remaining") as RemainingFilter) || "all";
   const modeFilter = (searchParams.get("mode") as ModeFilter) || "all";
   const searchParam = searchParams.get("q") || "";
-  const [searchValue, setSearchValue] = useState(searchParam);
+  const [searchValue, setSearchValueState] = useState(searchParam);
+  const hasPendingLocalSearchRef = useRef(false);
+  const lastSearchParamRef = useRef(searchParam);
+  const setSearchValue = useCallback((value: string) => {
+    hasPendingLocalSearchRef.current = true;
+    setSearchValueState(value);
+  }, []);
   const debouncedSearch = useDebounce(searchValue, 300);
 
   useEffect(() => {
-    if (debouncedSearch !== searchParam) {
+    if (
+      hasPendingLocalSearchRef.current &&
+      lastSearchParamRef.current === searchParam &&
+      debouncedSearch === searchValue &&
+      debouncedSearch !== searchParam
+    ) {
+      hasPendingLocalSearchRef.current = false;
       updateParam("q", debouncedSearch);
     }
-  }, [debouncedSearch, searchParam, updateParam]);
+  }, [debouncedSearch, searchParam, searchValue, updateParam]);
 
   useEffect(() => {
-    if (searchParam !== searchValue) setSearchValue(searchParam);
-  }, [searchParam, searchValue]);
+    if (lastSearchParamRef.current === searchParam) return;
+    lastSearchParamRef.current = searchParam;
+    hasPendingLocalSearchRef.current = false;
+    setSearchValueState(searchParam);
+  }, [searchParam]);
 
   const reset = useCallback(() => {
-    setSearchValue("");
+    hasPendingLocalSearchRef.current = false;
+    setSearchValueState("");
     setPage(DEFAULT_SONAR_PAGE);
     setPageSize(DEFAULT_SONAR_PAGE_SIZE);
     setDensity(DEFAULT_SONAR_DENSITY);

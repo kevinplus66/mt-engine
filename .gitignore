@@ -90,6 +90,7 @@ CLAUDE.md
 .codex/
 .claude/
 .agents/
+.omp/
 
 # local supervise/run artifacts
 .local-artifacts/

@@ -5,6 +5,7 @@ from urllib.parse import quote
 import pytest
 
 from app.config import BEIJING_TZ
+from app.models import MediaWallResponse
 from app.services import mteam_api
 from app.services.media_wall import (
     MediaWallService,
@@ -1465,6 +1466,68 @@ def test_media_wall_service_reports_due_only_after_refresh_interval(tmp_path):
     assert service.should_refresh(now + timedelta(hours=6, seconds=1)) is True
 
 
+@pytest.mark.parametrize("rails", [None, [{"id": "western_series", "items": None}]])
+def test_media_wall_service_sanitizes_malformed_cached_rails_as_empty(tmp_path, rails):
+    now = datetime(2026, 5, 26, 12, 0, tzinfo=BEIJING_TZ)
+    service = MediaWallService(
+        client=FakeMediaClient(),
+        snapshot_path=tmp_path / "snapshot.json",
+        metadata_path=tmp_path / "metadata.json",
+        refresh_interval_seconds=21600,
+    )
+    service.snapshot = {
+        "last_refreshed": now.isoformat(),
+        "next_refresh": (now + timedelta(seconds=21600)).isoformat(),
+        "stale": False,
+        "refresh_status": "ok",
+        "rails": rails,
+    }
+
+    snapshot = service.get_snapshot(now)
+
+    assert [rail["id"] for rail in snapshot["rails"]] == EXPECTED_HOME_RAIL_IDS
+    assert all(rail["items"] == [] for rail in snapshot["rails"])
+    assert snapshot["diagnostics"]["rails"]["western_series"]["items"] == 0
+
+
+def test_media_wall_service_drops_malformed_cached_quality_card(tmp_path):
+    now = datetime(2026, 5, 26, 12, 0, tzinfo=BEIJING_TZ)
+    service = MediaWallService(
+        client=FakeMediaClient(),
+        snapshot_path=tmp_path / "snapshot.json",
+        metadata_path=tmp_path / "metadata.json",
+        refresh_interval_seconds=21600,
+    )
+    service.snapshot = {
+        "last_refreshed": now.isoformat(),
+        "next_refresh": (now + timedelta(seconds=21600)).isoformat(),
+        "stale": False,
+        "refresh_status": "ok",
+        "rails": [
+            {
+                "id": "quality_latest",
+                "title": "高质量新片新剧",
+                "description": "",
+                "items": [
+                    {
+                        "id": "malformed-card",
+                        "media_type": "movie",
+                        "year": "2026",
+                        "torrent_name": "Malformed Film 2026 1080p BluRay H.264",
+                        "quality_tags": ["1080p", "BluRay", "H.264"],
+                        "created_date": now.isoformat(),
+                    }
+                ],
+            }
+        ],
+    }
+
+    snapshot = service.get_snapshot(now)
+
+    assert rail_items(snapshot, "quality_latest") == []
+    MediaWallResponse.model_validate(snapshot)
+
+
 def test_media_wall_service_sanitizes_removed_anime_rail_from_cached_snapshot(tmp_path):
     now = datetime(2026, 5, 26, 12, 0, tzinfo=BEIJING_TZ)
     service = MediaWallService(
@@ -1486,6 +1549,8 @@ def test_media_wall_service_sanitizes_removed_anime_rail_from_cached_snapshot(tm
                 "items": [
                     {
                         "id": "s1",
+                        "media_key": "douban:s1",
+                        "title": "Slow Horses",
                         "media_type": "series",
                         "episode": "S01E01",
                         "torrent_name": "Slow Horses S01E01 2160p WEB-DL H.265",
@@ -1531,6 +1596,7 @@ def test_media_wall_service_sanitizes_classic_duplicates_from_cached_snapshot(tm
                     {
                         "id": "h1",
                         "media_key": "douban:h1",
+                        "title": "Classic Film",
                         "media_type": "movie",
                         "year": "1988",
                         "torrent_name": "Classic Film 1988 2160p UHD BluRay REMUX HEVC",
@@ -1538,6 +1604,7 @@ def test_media_wall_service_sanitizes_classic_duplicates_from_cached_snapshot(tm
                     {
                         "id": "h1-copy",
                         "media_key": "douban:h1",
+                        "title": "Classic Film",
                         "media_type": "movie",
                         "year": "1988",
                         "torrent_name": "Classic Film 1988 2160p UHD BluRay REMUX HEVC",
@@ -1574,6 +1641,7 @@ def test_media_wall_service_sanitizes_latest_tv_broadcasts_from_cached_snapshot(
                     {
                         "id": "tv1",
                         "media_key": "title:jstv",
+                        "title": "JSTV",
                         "media_type": "series",
                         "episode": None,
                         "torrent_name": "JSTV 2026 Yadea Modern Night 20260524 HDTV 2160p H.265",
@@ -1582,6 +1650,7 @@ def test_media_wall_service_sanitizes_latest_tv_broadcasts_from_cached_snapshot(
                     {
                         "id": "s1",
                         "media_key": "douban:s1",
+                        "title": "Weekly Show",
                         "media_type": "series",
                         "episode": "S01E06",
                         "torrent_name": "Weekly Show S01E06 2160p WEB-DL H.265",
@@ -1619,6 +1688,7 @@ def test_media_wall_service_keeps_cached_series_rail_items_without_region_text(t
                     {
                         "id": "fallout",
                         "media_key": "douban:fallout",
+                        "title": "Fallout",
                         "media_type": "series",
                         "episode": "S02",
                         "year": "2025",
@@ -1658,6 +1728,7 @@ def test_media_wall_service_sanitizes_non_scripted_series_from_cached_snapshot(t
                     {
                         "id": "s1",
                         "media_key": "douban:s1",
+                        "title": "The Tang Mist",
                         "media_type": "series",
                         "episode": "S01E05",
                         "torrent_name": "The Tang Mist S01E05 2160p WEB-DL H.265",
@@ -1666,6 +1737,7 @@ def test_media_wall_service_sanitizes_non_scripted_series_from_cached_snapshot(t
                     {
                         "id": "zjtv",
                         "media_key": "title:zjtv",
+                        "title": "ZJTV",
                         "media_type": "series",
                         "episode": "S01E01",
                         "torrent_name": "ZJTV-4K Unrivaled Chinese Music 2026 S01E01 2160p 50fps UHDTV",
@@ -1703,6 +1775,7 @@ def test_media_wall_service_sanitizes_non_movie_items_from_cached_snapshot(tmp_p
                     {
                         "id": "m1",
                         "media_key": "douban:m1",
+                        "title": "Cold Storage",
                         "media_type": "movie",
                         "year": "2026",
                         "torrent_name": "Cold Storage 2026 2160p UHD BluRay HEVC",
@@ -1711,6 +1784,7 @@ def test_media_wall_service_sanitizes_non_movie_items_from_cached_snapshot(tmp_p
                     {
                         "id": "concert",
                         "media_key": "title:eason",
+                        "title": "Eason Chan FEAR and DREAMS Live",
                         "media_type": "movie",
                         "torrent_name": "Eason Chan FEAR and DREAMS Live 2023 2160p BluRay",
                         "description": "陈奕迅 FEAR and DREAMS 演唱会",
@@ -1835,12 +1909,14 @@ def test_media_wall_service_sanitizes_cached_douban_url_variant_duplicates(tmp_p
                     {
                         "id": "m1",
                         "media_key": "douban:https://www.douban.com/subject/1304465/",
+                        "title": "I Love Maria",
                         "media_type": "movie",
                         "torrent_name": "I Love Maria 1988 UHD BluRay 2160p HEVC",
                     },
                     {
                         "id": "m2",
                         "media_key": "douban:https://movie.douban.com/subject/1304465/",
+                        "title": "I Love Maria",
                         "media_type": "movie",
                         "torrent_name": "I Love Maria 1988 BluRay 1080p AVC",
                     },
@@ -2399,6 +2475,7 @@ def test_media_wall_service_maps_legacy_cached_items_into_fallback_rails(tmp_pat
                     {
                         "id": "legacy-movie",
                         "media_key": "douban:legacy-movie",
+                        "title": "Legacy Film",
                         "media_type": "movie",
                         "year": "2026",
                         "torrent_name": "Legacy Film 2026 1080p BluRay H.264",
@@ -2439,6 +2516,7 @@ def test_media_wall_service_reports_cached_fallback_1080p_as_fallback(tmp_path):
                     {
                         "id": "fallback-1080",
                         "media_key": "douban:fallback-1080",
+                        "title": "Fallback Film",
                         "media_type": "movie",
                         "year": "2026",
                         "torrent_name": "Fallback Film 2026 1080p BluRay H.264",
@@ -2480,6 +2558,7 @@ def test_media_wall_service_reports_cached_boutique_1080p_fill_as_relaxed(tmp_pa
                     {
                         "id": "boutique-1080",
                         "media_key": "douban:boutique-1080",
+                        "title": "Boutique Show",
                         "media_type": "series",
                         "episode": "S01E01",
                         "year": "2026",
@@ -2689,3 +2768,45 @@ async def test_home_media_wall_route_reads_cached_snapshot_without_refresh(monke
     assert payload["refresh_status"] == "empty"
     assert fake_service.get_calls == 1
     assert fake_service.refresh_calls == 0
+
+
+@pytest.mark.asyncio
+async def test_home_media_wall_route_sanitizes_malformed_cached_snapshot(monkeypatch, tmp_path):
+    from app.routes import home
+
+    now = datetime(2026, 5, 26, 12, 0, tzinfo=BEIJING_TZ)
+    service = MediaWallService(
+        client=object(),
+        snapshot_path=tmp_path / "snapshot.json",
+        metadata_path=tmp_path / "metadata.json",
+        refresh_interval_seconds=21600,
+    )
+    service.snapshot = {
+        "last_refreshed": now.isoformat(),
+        "next_refresh": (now + timedelta(seconds=21600)).isoformat(),
+        "stale": False,
+        "refresh_status": "ok",
+        "rails": [
+            {"id": "western_series", "items": None},
+            {
+                "id": "quality_latest",
+                "items": [
+                    {
+                        "id": "malformed-card",
+                        "media_type": "movie",
+                        "year": "2026",
+                        "torrent_name": "Malformed Film 2026 1080p BluRay H.264",
+                        "quality_tags": ["1080p", "BluRay", "H.264"],
+                        "created_date": now.isoformat(),
+                    }
+                ],
+            },
+        ],
+    }
+    monkeypatch.setattr(home, "media_wall_service", service)
+
+    payload = await home.get_home_media_wall()
+
+    assert [rail["id"] for rail in payload["rails"]] == EXPECTED_HOME_RAIL_IDS
+    assert all(rail["items"] == [] for rail in payload["rails"])
+    MediaWallResponse.model_validate(payload)

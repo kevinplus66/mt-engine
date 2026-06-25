@@ -92,6 +92,7 @@ function RadarPageContent() {
       Pick<typeof currentState, "sortField" | "sortDirection">
     > = {},
   ) => {
+    resetRadarSearch();
     await trigger(buildRadarSearchRequest({ ...currentState, ...overrides }));
   };
 
@@ -175,7 +176,7 @@ function RadarPageContent() {
         </Alert>
       )}
 
-      {data && (
+      {data && !error && (
         <TorrentTable
           torrents={data.data}
           total={data.total}

@@ -1,12 +1,21 @@
+from types import SimpleNamespace
 from datetime import datetime, timedelta
 
 import pytest
+from fastapi import HTTPException
 
 import app.state as state
+from app.models import SearchRequest
 from app.config import BEIJING_TZ
 from app.core import torrent
 from app.services import mteam_api
-from app.services.mteam_api import FreeTorrentSearchResult, MTClient
+from app.routes import radar, torrents as torrent_routes
+from app.services.mteam_api import (
+    CategoryFetchResult,
+    FreeTorrentSearchResult,
+    MTClient,
+    UserTorrentStatusResult,
+)
 from app.services.runtime_status import runtime_status
 
 
@@ -68,9 +77,22 @@ def _raw_torrent(torrent_id: str, discount: str = "FREE") -> dict:
 
 
 class _RefreshClient:
-    def __init__(self, results):
+    def __init__(
+        self,
+        results,
+        user_status_result=None,
+        categories_result=None,
+    ):
         self.results = results
         self.calls = []
+        self.user_status_result = user_status_result or UserTorrentStatusResult(
+            statuses={"seeding": {}, "leeching": {}},
+            succeeded=True,
+        )
+        self.categories_result = categories_result or CategoryFetchResult(
+            categories=[],
+            succeeded=True,
+        )
 
     async def search_free_torrents_page_one_with_status(
         self,
@@ -100,8 +122,185 @@ class _RefreshClient:
     ):
         return await self.search_free_torrents_page_one_with_status(discount_type, mode=mode)
 
+    async def fetch_user_torrent_status_with_status(self):
+        return self.user_status_result
+
+    async def fetch_user_profile(self):
+        return None
+
+    async def fetch_categories_with_status(self):
+        return self.categories_result
+
     async def fetch_categories(self):
-        return []
+        return self.categories_result.categories
+
+
+@pytest.mark.asyncio
+async def test_failed_user_status_refresh_keeps_previous_status_cache(monkeypatch):
+    previous_status = {
+        "seeding": {"seed-old": {"id": "seed-old"}},
+        "leeching": {"leech-old": {"id": "leech-old"}},
+    }
+    state.user_torrent_status = previous_status
+    previous_hour = int(torrent.time.time()) // 3600 - 1
+    state._last_user_status_refresh_hour = previous_hour
+    client = _RefreshClient(
+        {
+            ("FREE", "normal"): FreeTorrentSearchResult(
+                items=[_raw_torrent("new-normal")],
+                succeeded=True,
+                complete=True,
+                pages_fetched=1,
+                total=1,
+            ),
+            ("FREE", "adult"): FreeTorrentSearchResult(
+                items=[],
+                succeeded=True,
+                complete=True,
+                pages_fetched=1,
+                total=0,
+            ),
+        },
+        user_status_result=UserTorrentStatusResult(
+            statuses={"seeding": {}, "leeching": {}},
+            succeeded=False,
+            error="status timeout",
+        ),
+    )
+
+    monkeypatch.setattr(torrent, "mt_client", client)
+    import app.core.alerts as alerts
+
+    async def fake_check_emergency_alerts(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(alerts, "check_emergency_alerts", fake_check_emergency_alerts)
+
+    await torrent.fetch_all_free_torrents()
+
+    assert state.user_torrent_status is previous_status
+    assert state.user_torrent_status == previous_status
+    assert state._last_user_status_refresh_hour == previous_hour
+
+
+@pytest.mark.asyncio
+async def test_empty_category_refresh_keeps_previous_categories_and_retry_timestamp(monkeypatch):
+    previous_categories = [{"id": 1, "name": "Movie"}]
+    previous_refresh = datetime.now(BEIJING_TZ) - timedelta(
+        hours=torrent.CATEGORIES_CACHE_HOURS + 1
+    )
+    state.cached_data = {
+        "torrents": [{"id": "existing", "name": "Existing"}],
+        "categories": previous_categories,
+        "last_update": "2026-06-01 00:00:00",
+        "error": None,
+        "total": 1,
+    }
+    state._last_categories_refresh = previous_refresh
+    client = _RefreshClient(
+        {
+            ("FREE", "normal"): FreeTorrentSearchResult(
+                items=[_raw_torrent("new-normal")],
+                succeeded=True,
+                complete=True,
+                pages_fetched=1,
+                total=1,
+            ),
+            ("FREE", "adult"): FreeTorrentSearchResult(
+                items=[],
+                succeeded=True,
+                complete=True,
+                pages_fetched=1,
+                total=0,
+            ),
+        },
+        categories_result=CategoryFetchResult(
+            categories=[],
+            succeeded=True,
+        ),
+    )
+
+    monkeypatch.setattr(torrent, "mt_client", client)
+    import app.core.alerts as alerts
+
+    async def fake_check_emergency_alerts(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(alerts, "check_emergency_alerts", fake_check_emergency_alerts)
+
+    result = await torrent.fetch_all_free_torrents()
+
+    assert result["categories"] == previous_categories
+    assert state._last_categories_refresh == previous_refresh
+
+
+class _RouteRequest:
+    client = SimpleNamespace(host="127.0.0.1")
+
+
+@pytest.mark.parametrize(
+    ("refresh_result", "expected_detail"),
+    [
+        ({"error": "normal shard failed"}, "normal shard failed"),
+        (
+            {
+                "error": None,
+                "free_refresh_backoff_until": "2026-06-25T00:00:00+08:00",
+                "free_refresh_backoff_reason": "rate limited",
+            },
+            "rate limited",
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_api_refresh_raises_when_fetch_reports_failure_or_backoff(
+    monkeypatch, refresh_result, expected_detail
+):
+    calls = []
+
+    async def fake_fetch_all_free_torrents():
+        calls.append("fetch")
+        return refresh_result
+
+    monkeypatch.setattr(
+        torrent_routes, "fetch_all_free_torrents", fake_fetch_all_free_torrents
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        await torrent_routes.api_refresh(_RouteRequest(), lambda _ip: True)
+
+    assert exc_info.value.status_code == 502
+    assert exc_info.value.detail == expected_detail
+    assert calls == ["fetch"]
+
+
+@pytest.mark.asyncio
+async def test_api_radar_formats_missing_times_completed_as_zero(monkeypatch):
+    async def fake_search_torrents(payload, label="雷达搜索"):
+        return {
+            "data": [
+                {
+                    "id": "radar-1",
+                    "name": "Radar Torrent",
+                    "size": "1024",
+                    "status": {"timesCompleted": None},
+                }
+            ],
+            "total": 1,
+        }
+
+    monkeypatch.setattr(radar, "MT_TOKEN", "configured-token")
+    monkeypatch.setattr(
+        radar, "user_torrent_status", {"seeding": {}, "leeching": {}}
+    )
+    monkeypatch.setattr(radar.mt_client, "search_torrents", fake_search_torrents)
+
+    result = await radar.api_radar(
+        _RouteRequest(), SearchRequest(), lambda _ip: True, lambda _ip: True
+    )
+
+    assert result["success"] is True
+    assert result["data"][0]["quality_metadata"]["times_completed"] == 0
 
 
 @pytest.mark.asyncio
@@ -490,6 +689,155 @@ async def test_user_torrent_status_skips_malformed_mteam_items(monkeypatch):
     assert set(result["seeding"]) == {"seed-1", "seed-2", "seed-3"}
     assert set(result["leeching"]) == {"leech-1", "leech-2"}
     assert [request["type"] for request in http_client.requests] == ["SEEDING", "LEECHING"]
+
+
+@pytest.mark.asyncio
+async def test_empty_user_torrent_pages_clear_previous_status(monkeypatch):
+    http_client = _HTTPClient(
+        [
+            {"code": "0"},
+            {"code": "0", "data": None},
+        ]
+    )
+
+    async def fake_http_client():
+        return http_client
+
+    async def no_sleep(_delay):
+        return None
+
+    monkeypatch.setattr(mteam_api, "MT_TOKEN", "token")
+    monkeypatch.setattr(mteam_api, "MT_USER_ID", "233006")
+    monkeypatch.setattr(mteam_api, "get_http_client", fake_http_client)
+    monkeypatch.setattr(mteam_api.asyncio, "sleep", no_sleep)
+    state.user_torrent_status = {
+        "seeding": {"seed-old": {"id": "seed-old"}},
+        "leeching": {"leech-old": {"id": "leech-old"}},
+    }
+    previous_hour = int(torrent.time.time()) // 3600 - 1
+    state._last_user_status_refresh_hour = previous_hour
+
+    status_result = await MTClient(request_delay=0).fetch_user_torrent_status_with_status()
+    refresh_client = _RefreshClient(
+        {
+            ("FREE", "normal"): FreeTorrentSearchResult(
+                items=[_raw_torrent("new-normal")],
+                succeeded=True,
+                complete=True,
+                pages_fetched=1,
+                total=1,
+            ),
+            ("FREE", "adult"): FreeTorrentSearchResult(
+                items=[],
+                succeeded=True,
+                complete=True,
+                pages_fetched=1,
+                total=0,
+            ),
+        },
+        user_status_result=status_result,
+    )
+    monkeypatch.setattr(torrent, "mt_client", refresh_client)
+    import app.core.alerts as alerts
+
+    async def fake_check_emergency_alerts(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(alerts, "check_emergency_alerts", fake_check_emergency_alerts)
+
+    await torrent.fetch_all_free_torrents()
+
+    assert status_result.succeeded is True
+    assert state.user_torrent_status == {"seeding": {}, "leeching": {}}
+    assert state._last_user_status_refresh_hour != previous_hour
+    assert [request["type"] for request in http_client.requests] == ["SEEDING", "LEECHING"]
+
+    http_client = _HTTPClient(
+        [
+            {"code": "0", "data": {}},
+            {"code": "0", "data": {"data": None}},
+        ]
+    )
+    inner_empty_result = await MTClient(request_delay=0).fetch_user_torrent_status_with_status()
+
+    assert inner_empty_result.succeeded is True
+    assert inner_empty_result.statuses == {"seeding": {}, "leeching": {}}
+    assert [request["type"] for request in http_client.requests] == ["SEEDING", "LEECHING"]
+
+
+@pytest.mark.asyncio
+async def test_user_torrent_status_malformed_non_null_data_fails(monkeypatch):
+    http_client = _HTTPClient(
+        [
+            {"code": "0", "data": {"data": {"id": "not-a-list"}}},
+        ]
+    )
+
+    async def fake_http_client():
+        return http_client
+
+    async def no_sleep(_delay):
+        return None
+
+    monkeypatch.setattr(mteam_api, "MT_TOKEN", "token")
+    monkeypatch.setattr(mteam_api, "MT_USER_ID", "233006")
+    monkeypatch.setattr(mteam_api, "get_http_client", fake_http_client)
+    monkeypatch.setattr(mteam_api.asyncio, "sleep", no_sleep)
+
+    client = MTClient(request_delay=0)
+    result = await client.fetch_user_torrent_status_with_status()
+
+    assert result.succeeded is False
+    assert result.statuses == {"seeding": {}, "leeching": {}}
+    assert result.error == "获取做种中种子返回的 data 不是列表"
+    assert [request["type"] for request in http_client.requests] == ["SEEDING"]
+
+    http_client = _HTTPClient(
+        [
+            {"code": "0", "data": {"data": []}},
+            {"code": "0", "data": {"data": "not-a-list"}},
+        ]
+    )
+    result = await MTClient(request_delay=0).fetch_user_torrent_status_with_status()
+
+    assert result.succeeded is False
+    assert result.statuses == {"seeding": {}, "leeching": {}}
+    assert result.error == "获取下载中种子返回的 data 不是列表"
+    assert [request["type"] for request in http_client.requests] == ["SEEDING", "LEECHING"]
+
+
+@pytest.mark.asyncio
+async def test_user_torrent_status_preserves_no_user_and_request_failure(monkeypatch):
+    async def unexpected_http_client():
+        raise AssertionError("MT_USER_ID-less refresh must not hit M-Team")
+
+    monkeypatch.setattr(mteam_api, "MT_TOKEN", "token")
+    monkeypatch.setattr(mteam_api, "MT_USER_ID", "")
+    monkeypatch.setattr(mteam_api, "get_http_client", unexpected_http_client)
+
+    result = await MTClient(request_delay=0).fetch_user_torrent_status_with_status()
+
+    assert result.succeeded is True
+    assert result.statuses == {"seeding": {}, "leeching": {}}
+
+    http_client = _HTTPClient(
+        [
+            {"code": "1", "message": "denied", "data": {"data": []}},
+        ]
+    )
+
+    async def fake_http_client():
+        return http_client
+
+    monkeypatch.setattr(mteam_api, "MT_USER_ID", "233006")
+    monkeypatch.setattr(mteam_api, "get_http_client", fake_http_client)
+
+    result = await MTClient(request_delay=0).fetch_user_torrent_status_with_status()
+
+    assert result.succeeded is False
+    assert result.statuses == {"seeding": {}, "leeching": {}}
+    assert result.error == "denied"
+    assert [request["type"] for request in http_client.requests] == ["SEEDING"]
 
 
 @pytest.mark.asyncio

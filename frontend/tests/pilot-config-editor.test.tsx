@@ -49,8 +49,11 @@ const savedConfig: AutomationConfig = {
   enable_notification: true,
 };
 
-function setupEditor() {
-  const saveConfig = vi.fn<(config: AutomationConfig) => Promise<void>>().mockResolvedValue(undefined);
+function setupEditor(
+  saveConfig = vi
+    .fn<(config: AutomationConfig) => Promise<void>>()
+    .mockResolvedValue(undefined),
+) {
   const hook = renderHook(() =>
     usePilotConfigEditor({
       config: savedConfig,
@@ -62,7 +65,7 @@ function setupEditor() {
 }
 
 describe("usePilotConfigEditor toggle persistence", () => {
-  it("saves only the download enabled change while preserving draft download fields locally", async () => {
+  it("saves the download enabled change on top of the latest draft config", async () => {
     const { result, saveConfig } = setupEditor();
     await waitFor(() => expect(result.current.editedConfig).toEqual(savedConfig));
 
@@ -88,14 +91,15 @@ describe("usePilotConfigEditor toggle persistence", () => {
       download: {
         ...savedConfig.download,
         enabled: false,
+        save_path: "/draft-path",
       },
     });
-    expect(saveConfig.mock.calls[0]?.[0].download.save_path).toBe("/downloads");
+    expect(saveConfig.mock.calls[0]?.[0].download.save_path).toBe("/draft-path");
     expect(result.current.editedConfig?.download.enabled).toBe(false);
     expect(result.current.editedConfig?.download.save_path).toBe("/draft-path");
   });
 
-  it("saves only the cleanup enabled change while preserving draft cleanup fields locally", async () => {
+  it("saves the cleanup enabled change on top of the latest draft config", async () => {
     const { result, saveConfig } = setupEditor();
     await waitFor(() => expect(result.current.editedConfig).toEqual(savedConfig));
 
@@ -121,10 +125,145 @@ describe("usePilotConfigEditor toggle persistence", () => {
       cleanup: {
         ...savedConfig.cleanup,
         enabled: false,
+        min_share_ratio: 8,
       },
     });
-    expect(saveConfig.mock.calls[0]?.[0].cleanup.min_share_ratio).toBe(2);
+    expect(saveConfig.mock.calls[0]?.[0].cleanup.min_share_ratio).toBe(8);
     expect(result.current.editedConfig?.cleanup.enabled).toBe(false);
     expect(result.current.editedConfig?.cleanup.min_share_ratio).toBe(8);
+  });
+
+  it("uses the fixed current draft after an invalid quick save", async () => {
+    const { result, saveConfig } = setupEditor();
+    await waitFor(() => expect(result.current.editedConfig).toEqual(savedConfig));
+
+    const invalidDraft = {
+      ...savedConfig,
+      download: {
+        ...savedConfig.download,
+        save_path: "",
+      },
+    };
+
+    act(() => {
+      result.current.handleConfigChange(invalidDraft, "save-path");
+    });
+
+    await act(async () => {
+      await result.current.handleDownloadToggle(false);
+    });
+
+    expect(saveConfig).not.toHaveBeenCalled();
+    expect(result.current.validationErrors["save-path"]).toBe("保存路径不能为空");
+
+    const failedDraft = result.current.editedConfig;
+    if (!failedDraft) throw new Error("missing edited config");
+    const fixedDraft = {
+      ...failedDraft,
+      download: {
+        ...failedDraft.download,
+        save_path: "/fixed-path",
+      },
+    };
+
+    act(() => {
+      result.current.handleConfigChange(fixedDraft, "save-path");
+    });
+
+    await act(async () => {
+      await result.current.handleCleanupToggle(false);
+    });
+
+    expect(saveConfig).toHaveBeenCalledTimes(1);
+    expect(saveConfig).toHaveBeenCalledWith({
+      ...savedConfig,
+      download: {
+        ...savedConfig.download,
+        enabled: false,
+        save_path: "/fixed-path",
+      },
+      cleanup: {
+        ...savedConfig.cleanup,
+        enabled: false,
+      },
+    });
+  });
+
+  it("serializes rapid quick toggles so both persisted changes survive", async () => {
+    const saveResolvers: Array<() => void> = [];
+    const saveConfig = vi.fn<(config: AutomationConfig) => Promise<void>>(
+      () =>
+        new Promise<void>((resolve) => {
+          saveResolvers.push(resolve);
+        }),
+    );
+    const { result } = setupEditor(saveConfig);
+    await waitFor(() => expect(result.current.editedConfig).toEqual(savedConfig));
+
+    let downloadSave: Promise<void> | undefined;
+    let cleanupSave: Promise<void> | undefined;
+    act(() => {
+      downloadSave = result.current.handleDownloadToggle(false);
+      cleanupSave = result.current.handleCleanupToggle(false);
+    });
+
+    await waitFor(() => expect(saveConfig).toHaveBeenCalledTimes(1));
+    expect(saveConfig.mock.calls[0]?.[0]).toEqual({
+      ...savedConfig,
+      download: {
+        ...savedConfig.download,
+        enabled: false,
+      },
+    });
+
+    await act(async () => {
+      saveResolvers[0]?.();
+      await downloadSave;
+    });
+
+    await waitFor(() => expect(saveConfig).toHaveBeenCalledTimes(2));
+    expect(saveConfig.mock.calls[1]?.[0]).toEqual({
+      ...savedConfig,
+      download: {
+        ...savedConfig.download,
+        enabled: false,
+      },
+      cleanup: {
+        ...savedConfig.cleanup,
+        enabled: false,
+      },
+    });
+
+    let downloadRestore: Promise<void> | undefined;
+    act(() => {
+      downloadRestore = result.current.handleDownloadToggle(true);
+    });
+    expect(saveConfig).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      saveResolvers[1]?.();
+      await cleanupSave;
+    });
+
+    await waitFor(() => expect(saveConfig).toHaveBeenCalledTimes(3));
+    expect(saveConfig.mock.calls[2]?.[0]).toEqual({
+      ...savedConfig,
+      download: {
+        ...savedConfig.download,
+        enabled: true,
+      },
+      cleanup: {
+        ...savedConfig.cleanup,
+        enabled: false,
+      },
+    });
+
+    await act(async () => {
+      saveResolvers[2]?.();
+      await downloadRestore;
+    });
+
+    expect(result.current.editedConfig?.download.enabled).toBe(true);
+    expect(result.current.editedConfig?.cleanup.enabled).toBe(false);
   });
 });

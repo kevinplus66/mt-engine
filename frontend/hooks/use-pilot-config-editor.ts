@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "@/lib/toast";
 import {
   arePilotConfigsEqual,
@@ -34,19 +34,29 @@ export function usePilotConfigEditor({
     null,
   );
   const [isSaving, setIsSaving] = useState(false);
+  const savedConfigRef = useRef<AutomationConfig | null>(null);
+  const editedConfigRef = useRef<AutomationConfig | null>(null);
+  const pendingQuickSaveConfigRef = useRef<AutomationConfig | null>(null);
+  const quickSaveQueueRef = useRef(Promise.resolve());
 
   useEffect(() => {
     if (!config) return;
 
+    const previousSavedConfig = savedConfigRef.current;
     setSavedConfig(config);
+    savedConfigRef.current = config;
+    pendingQuickSaveConfigRef.current = null;
     setEditedConfig((current) => {
-      if (!current || !savedConfig || arePilotConfigsEqual(current, savedConfig)) {
-        return config;
-      }
-
-      return current;
+      const nextConfig =
+        !current ||
+        !previousSavedConfig ||
+        arePilotConfigsEqual(current, previousSavedConfig)
+          ? config
+          : current;
+      editedConfigRef.current = nextConfig;
+      return nextConfig;
     });
-  }, [config, savedConfig]);
+  }, [config]);
 
   const isConfigDirty = Boolean(
     editedConfig &&
@@ -111,6 +121,7 @@ export function usePilotConfigEditor({
     nextConfig: AutomationConfig,
     changedFieldId?: string,
   ) => {
+    editedConfigRef.current = nextConfig;
     setEditedConfig(nextConfig);
     if (!changedFieldId) return;
 
@@ -129,6 +140,7 @@ export function usePilotConfigEditor({
     try {
       await saveConfig(configToSave);
       setSavedConfig(configToSave);
+      savedConfigRef.current = configToSave;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "保存失败");
     }
@@ -142,6 +154,8 @@ export function usePilotConfigEditor({
     try {
       await saveConfig(editedConfig);
       setSavedConfig(editedConfig);
+      savedConfigRef.current = editedConfig;
+      pendingQuickSaveConfigRef.current = null;
       setValidationErrors({});
       toast.success("配置保存成功");
     } catch (error) {
@@ -152,50 +166,70 @@ export function usePilotConfigEditor({
   };
 
   const handleReset = () => {
-    const currentConfig = savedConfig ?? config;
+    const currentConfig = savedConfigRef.current ?? config;
     if (currentConfig) {
+      editedConfigRef.current = currentConfig;
       setEditedConfig(currentConfig);
+      pendingQuickSaveConfigRef.current = null;
       setValidationErrors({});
       toast.success("已重置为当前配置");
     }
   };
 
   const handleDownloadToggle = async (enabled: boolean) => {
-    const baselineConfig = savedConfig ?? config;
+    const baselineConfig =
+      editedConfigRef.current ??
+      pendingQuickSaveConfigRef.current ??
+      savedConfigRef.current ??
+      config;
     if (!baselineConfig) return;
 
     const configToSave = {
       ...baselineConfig,
       download: { ...baselineConfig.download, enabled },
     };
+    const draftConfig = editedConfigRef.current ?? baselineConfig;
+    const nextEditedConfig = {
+      ...draftConfig,
+      download: { ...draftConfig.download, enabled },
+    };
 
-    setEditedConfig((current) => {
-      const draftConfig = current ?? baselineConfig;
-      return {
-        ...draftConfig,
-        download: { ...draftConfig.download, enabled },
-      };
-    });
-    await saveConfigQuietly(configToSave);
+    pendingQuickSaveConfigRef.current = configToSave;
+    editedConfigRef.current = nextEditedConfig;
+    setEditedConfig(nextEditedConfig);
+    const queuedSave = quickSaveQueueRef.current.then(() =>
+      saveConfigQuietly(configToSave),
+    );
+    quickSaveQueueRef.current = queuedSave;
+    await queuedSave;
   };
 
   const handleCleanupToggle = async (enabled: boolean) => {
-    const baselineConfig = savedConfig ?? config;
+    const baselineConfig =
+      editedConfigRef.current ??
+      pendingQuickSaveConfigRef.current ??
+      savedConfigRef.current ??
+      config;
     if (!baselineConfig) return;
 
     const configToSave = {
       ...baselineConfig,
       cleanup: { ...baselineConfig.cleanup, enabled },
     };
+    const draftConfig = editedConfigRef.current ?? baselineConfig;
+    const nextEditedConfig = {
+      ...draftConfig,
+      cleanup: { ...draftConfig.cleanup, enabled },
+    };
 
-    setEditedConfig((current) => {
-      const draftConfig = current ?? baselineConfig;
-      return {
-        ...draftConfig,
-        cleanup: { ...draftConfig.cleanup, enabled },
-      };
-    });
-    await saveConfigQuietly(configToSave);
+    pendingQuickSaveConfigRef.current = configToSave;
+    editedConfigRef.current = nextEditedConfig;
+    setEditedConfig(nextEditedConfig);
+    const queuedSave = quickSaveQueueRef.current.then(() =>
+      saveConfigQuietly(configToSave),
+    );
+    quickSaveQueueRef.current = queuedSave;
+    await queuedSave;
   };
 
   return {

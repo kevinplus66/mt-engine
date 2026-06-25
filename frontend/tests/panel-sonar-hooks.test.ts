@@ -1,11 +1,32 @@
+import { act, renderHook } from "@testing-library/react";
+import type { KeyedMutator } from "swr";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { toast } from "@/lib/toast";
+import { deletePanelTorrents } from "@/lib/api";
 import { historyFetcher } from "../hooks/use-panel-history";
+import { usePanelTorrentActions } from "../hooks/use-panel-torrent-actions";
 import { shareRatioFetcher } from "../hooks/use-panel-share-ratio";
 import { torrentsFetcher } from "../hooks/use-panel-torrents";
 import { fetcher } from "../lib/api";
 import { CONFIG } from "../lib/constants";
+import type { PanelTorrent } from "../lib/panel-torrents";
 import { matchesSonarFilters } from "../hooks/use-sonar-torrent-view";
 import type { Torrent } from "../lib/types";
+
+vi.mock("@/lib/toast", () => ({
+  toast: {
+    error: vi.fn(),
+    success: vi.fn(),
+  },
+}));
+
+vi.mock("@/lib/api", async () => {
+  const actual = await vi.importActual<typeof import("../lib/api")>("../lib/api");
+  return {
+    ...actual,
+    deletePanelTorrents: vi.fn(),
+  };
+});
 
 const panelError = "PANEL collector unavailable";
 const originalApiBase = CONFIG.API_BASE;
@@ -28,6 +49,7 @@ function stubPanelResponse(body: unknown) {
 
 afterEach(() => {
   setApiBase(originalApiBase);
+  vi.clearAllMocks();
   vi.unstubAllGlobals();
 });
 
@@ -175,5 +197,41 @@ describe("SONAR remaining-time filters", () => {
         }),
       ).toBe(false);
     }
+  });
+});
+
+describe("PANEL torrent actions", () => {
+  it("keeps the delete dialog open and avoids success updates when delete fails", async () => {
+    vi.mocked(deletePanelTorrents).mockResolvedValue({
+      success: false,
+      deleted_count: 0,
+      failed: ["hash-1"],
+      error: "qBittorrent refused delete",
+    });
+    const mutate = vi.fn() as unknown as KeyedMutator<PanelTorrent[]>;
+    const { result } = renderHook(() =>
+      usePanelTorrentActions(undefined, mutate),
+    );
+
+    act(() => {
+      result.current.requestDelete("hash-1", "Ubuntu ISO");
+    });
+
+    await act(async () => {
+      await result.current.confirmDelete();
+    });
+
+    expect(deletePanelTorrents).toHaveBeenCalledWith({
+      hashes: ["hash-1"],
+      delete_files: true,
+    });
+    expect(toast.error).toHaveBeenCalledWith("qBittorrent refused delete");
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(mutate).not.toHaveBeenCalled();
+    expect(result.current.deleteTarget).toEqual({
+      hash: "hash-1",
+      name: "Ubuntu ISO",
+    });
+    expect(result.current.isDeleting).toBe(false);
   });
 });

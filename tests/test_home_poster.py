@@ -85,6 +85,27 @@ def test_home_poster_fetches_douban_with_referer_and_returns_image(monkeypatch):
     assert request_kwargs["headers"]["User-Agent"]
 
 
+@pytest.mark.parametrize(
+    "headers",
+    [
+        {},
+        {"content-type": "text/html; charset=utf-8"},
+    ],
+)
+def test_home_poster_returns_502_for_non_image_content_type(monkeypatch, headers):
+    fake_http = FakeHttpClient(FakeUpstreamResponse(200, b"<html>", headers))
+    stub_resolved_ips(monkeypatch, ["1.2.3.4"])
+    client = make_client(monkeypatch, fake_http)
+
+    response = client.get(
+        "/api/home/poster",
+        params={"u": "https://image.tmdb.org/t/p/w500/not-an-image.jpg"},
+    )
+
+    assert response.status_code == 502
+    assert len(fake_http.calls) == 1
+
+
 def test_home_poster_returns_502_for_redirect_response(monkeypatch):
     fake_http = FakeHttpClient(
         FakeUpstreamResponse(

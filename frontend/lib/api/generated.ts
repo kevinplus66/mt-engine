@@ -571,7 +571,7 @@ export interface components {
              * Warnings
              * @default []
              */
-            warnings: string[];
+            warnings?: string[];
         };
         /**
          * AutoDeleteToggleRequest
@@ -592,7 +592,7 @@ export interface components {
              * Enable Notification
              * @default true
              */
-            enable_notification: boolean;
+            enable_notification?: boolean;
         };
         /**
          * CacheStatus
@@ -611,17 +611,17 @@ export interface components {
              * Stale
              * @default false
              */
-            stale: boolean;
+            stale?: boolean;
             /**
              * Stale After Seconds
              * @default 0
              */
-            stale_after_seconds: number;
+            stale_after_seconds?: number;
             /**
              * Total
              * @default 0
              */
-            total: number;
+            total?: number;
             /** Error */
             error?: string | null;
             /** Last Error */
@@ -636,47 +636,47 @@ export interface components {
              * Enabled
              * @default true
              */
-            enabled: boolean;
+            enabled?: boolean;
             /**
              * Min Share Ratio
              * @default 0
              */
-            min_share_ratio: number;
+            min_share_ratio?: number;
             /**
              * Min Seed Time Hours
              * @default 1
              */
-            min_seed_time_hours: number;
+            min_seed_time_hours?: number;
             /**
              * Max Download Time Hours
              * @default 12
              */
-            max_download_time_hours: number;
+            max_download_time_hours?: number;
             /**
              * Dead Seed Minutes
              * @default 30
              */
-            dead_seed_minutes: number;
+            dead_seed_minutes?: number;
             /**
              * Dead Seed Max Ratio
              * @default 0.01
              */
-            dead_seed_max_ratio: number;
+            dead_seed_max_ratio?: number;
             /**
              * Min Current Users
              * @default 5
              */
-            min_current_users: number;
+            min_current_users?: number;
             /**
              * Min Upload Speed Kbps
              * @default 200
              */
-            min_upload_speed_kbps: number;
+            min_upload_speed_kbps?: number;
             /**
              * Elimination Ratio
              * @default 0
              */
-            elimination_ratio: number;
+            elimination_ratio?: number;
         };
         /** DeleteTorrentsRequest */
         DeleteTorrentsRequest: {
@@ -686,7 +686,7 @@ export interface components {
              * Delete Files
              * @default true
              */
-            delete_files: boolean;
+            delete_files?: boolean;
         };
         /**
          * DependencyStatusResponse
@@ -711,27 +711,27 @@ export interface components {
              * Enabled
              * @default true
              */
-            enabled: boolean;
+            enabled?: boolean;
             /**
              * Max Active Tasks
              * @default 20
              */
-            max_active_tasks: number;
+            max_active_tasks?: number;
             /**
              * Interval Seconds
              * @default 300
              */
-            interval_seconds: number;
+            interval_seconds?: number;
             /**
              * Save Path
              * @default /downloads/mt_free_farm
              */
-            save_path: string;
+            save_path?: string;
             /**
              * Disk Usage Threshold
              * @default 90
              */
-            disk_usage_threshold: number;
+            disk_usage_threshold?: number;
             rules?: components["schemas"]["RuleConfig"];
         };
         /**
@@ -766,12 +766,12 @@ export interface components {
              * Detail Url
              * @default
              */
-            detail_url: string;
+            detail_url?: string;
             /**
              * Year
              * @default
              */
-            year: string;
+            year?: string;
             /**
              * Media Type
              * @enum {string}
@@ -785,42 +785,42 @@ export interface components {
              * Rail Reason
              * @default
              */
-            rail_reason: string;
+            rail_reason?: string;
             /**
              * Created Date
              * @default
              */
-            created_date: string;
+            created_date?: string;
             /**
              * Size
              * @default 0
              */
-            size: number;
+            size?: number;
             /**
              * Size Display
              * @default
              */
-            size_display: string;
+            size_display?: string;
             /**
              * Seeders
              * @default 0
              */
-            seeders: number;
+            seeders?: number;
             /**
              * Leechers
              * @default 0
              */
-            leechers: number;
+            leechers?: number;
             /**
              * Times Completed
              * @default 0
              */
-            times_completed: number;
+            times_completed?: number;
             /**
              * Discount
              * @default NORMAL
              */
-            discount: string;
+            discount?: string;
             /** Douban */
             douban?: string | null;
             /** Imdb */
@@ -848,7 +848,7 @@ export interface components {
              * Description
              * @default
              */
-            description: string;
+            description?: string;
             /** Items */
             items?: components["schemas"]["MediaWallItem"][];
         };
@@ -865,13 +865,13 @@ export interface components {
              * Stale
              * @default true
              */
-            stale: boolean;
+            stale?: boolean;
             /**
              * Refresh Status
              * @default empty
              * @enum {string}
              */
-            refresh_status: "ok" | "empty" | "error";
+            refresh_status?: "ok" | "empty" | "error";
             /** Last Error */
             last_error?: string | null;
             /** Rails */
@@ -890,22 +890,22 @@ export interface components {
              * Upload 30Min
              * @default 0
              */
-            upload_30min: number;
+            upload_30min?: number;
             /**
              * Download 30Min
              * @default 0
              */
-            download_30min: number;
+            download_30min?: number;
             /**
              * Upload Display
              * @default 0 B/s
              */
-            upload_display: string;
+            upload_display?: string;
             /**
              * Download Display
              * @default 0 B/s
              */
-            download_display: string;
+            download_display?: string;
         };
         /**
          * PanelCollectorStatus
@@ -928,12 +928,12 @@ export interface components {
              * Stale
              * @default false
              */
-            stale: boolean;
+            stale?: boolean;
             /**
              * Stale After Seconds
              * @default 0
              */
-            stale_after_seconds: number;
+            stale_after_seconds?: number;
         };
         /**
          * PanelDeleteTorrentsResponse
@@ -946,7 +946,7 @@ export interface components {
              * Deleted Count
              * @default 0
              */
-            deleted_count: number;
+            deleted_count?: number;
             /** Failed */
             failed?: string[];
             /** Error */
@@ -966,7 +966,7 @@ export interface components {
              * Aggregation
              * @default none
              */
-            aggregation: string;
+            aggregation?: string;
             /** Data Points */
             data_points?: components["schemas"]["PanelTrafficDataPoint"][];
             /** Error */
@@ -981,12 +981,12 @@ export interface components {
              * Uploaded
              * @default 0
              */
-            uploaded: number;
+            uploaded?: number;
             /**
              * Downloaded
              * @default 0
              */
-            downloaded: number;
+            downloaded?: number;
         };
         /**
          * PanelPauseTorrentsResponse
@@ -999,7 +999,7 @@ export interface components {
              * Paused Count
              * @default 0
              */
-            paused_count: number;
+            paused_count?: number;
             /** Failed */
             failed?: string[];
             /** Error */
@@ -1016,7 +1016,7 @@ export interface components {
              * Resumed Count
              * @default 0
              */
-            resumed_count: number;
+            resumed_count?: number;
             /** Failed */
             failed?: string[];
             /** Error */
@@ -1033,7 +1033,7 @@ export interface components {
              * Share Ratio
              * @default 0
              */
-            share_ratio: number;
+            share_ratio?: number;
         };
         /**
          * PanelShareRatioResponse
@@ -1051,22 +1051,22 @@ export interface components {
              * Current
              * @default 0
              */
-            current: number;
+            current?: number;
             /**
              * Highest
              * @default 0
              */
-            highest: number;
+            highest?: number;
             /**
              * Lowest
              * @default 0
              */
-            lowest: number;
+            lowest?: number;
             /**
              * Change 24H
              * @default 0
              */
-            change_24h: number;
+            change_24h?: number;
             /** Error */
             error?: string | null;
         };
@@ -1116,17 +1116,17 @@ export interface components {
              * Score
              * @default 0
              */
-            score: number;
+            score?: number;
             /**
              * Status
              * @default
              */
-            status: string;
+            status?: string;
             /**
              * Reason
              * @default
              */
-            reason: string;
+            reason?: string;
         };
         /**
          * PanelTorrentItem
@@ -1139,74 +1139,74 @@ export interface components {
              * Hash
              * @default
              */
-            hash: string;
+            hash?: string;
             /**
              * Name
              * @default
              */
-            name: string;
+            name?: string;
             /**
              * Size
              * @default 0
              */
-            size: number;
+            size?: number;
             /**
              * Size Display
              * @default
              */
-            size_display: string;
+            size_display?: string;
             /**
              * Progress
              * @default 0
              */
-            progress: number;
+            progress?: number;
             /**
              * Status
              * @default
              */
-            status: string;
+            status?: string;
             /** Tags */
             tags?: string[];
             /**
              * Ratio
              * @default 0
              */
-            ratio: number;
+            ratio?: number;
             /**
              * Uploaded
              * @default 0
              */
-            uploaded: number;
+            uploaded?: number;
             /**
              * Downloaded
              * @default 0
              */
-            downloaded: number;
+            downloaded?: number;
             /**
              * Upload Speed
              * @default 0
              */
-            upload_speed: number;
+            upload_speed?: number;
             /**
              * Download Speed
              * @default 0
              */
-            download_speed: number;
+            download_speed?: number;
             /**
              * Seeders
              * @default 0
              */
-            seeders: number;
+            seeders?: number;
             /**
              * Leechers
              * @default 0
              */
-            leechers: number;
+            leechers?: number;
             /**
              * Added On
              * @default 0
              */
-            added_on: number;
+            added_on?: number;
             /** Eta */
             eta?: number | null;
             health?: components["schemas"]["PanelTorrentHealth"];
@@ -1228,12 +1228,12 @@ export interface components {
              * Total Count
              * @default 0
              */
-            total_count: number;
+            total_count?: number;
             /**
              * Filtered Count
              * @default 0
              */
-            filtered_count: number;
+            filtered_count?: number;
             /** Error */
             error?: string | null;
         };
@@ -1256,12 +1256,12 @@ export interface components {
              * Uploaded
              * @default 0
              */
-            uploaded: number;
+            uploaded?: number;
             /**
              * Downloaded
              * @default 0
              */
-            downloaded: number;
+            downloaded?: number;
             /** Uploaded Display */
             uploaded_display?: string | null;
             /** Downloaded Display */
@@ -1270,12 +1270,12 @@ export interface components {
              * Upload Speed
              * @default 0
              */
-            upload_speed: number;
+            upload_speed?: number;
             /**
              * Download Speed
              * @default 0
              */
-            download_speed: number;
+            download_speed?: number;
         };
         /**
          * PanelUserSummary
@@ -1286,17 +1286,17 @@ export interface components {
              * Share Ratio
              * @default 0
              */
-            share_ratio: number;
+            share_ratio?: number;
             /**
              * Uploaded
              * @default 0
              */
-            uploaded: number;
+            uploaded?: number;
             /**
              * Downloaded
              * @default 0
              */
-            downloaded: number;
+            downloaded?: number;
             /** Uploaded Display */
             uploaded_display?: string | null;
             /** Downloaded Display */
@@ -1307,12 +1307,12 @@ export interface components {
              * Seeding Count
              * @default 0
              */
-            seeding_count: number;
+            seeding_count?: number;
             /**
              * Leeching Count
              * @default 0
              */
-            leeching_count: number;
+            leeching_count?: number;
             /** User Level */
             user_level?: string | null;
         };
@@ -1335,12 +1335,12 @@ export interface components {
              * Min Size Gb
              * @default 20
              */
-            min_size_gb: number;
+            min_size_gb?: number;
             /**
              * Max Size Gb
              * @default 500
              */
-            max_size_gb: number;
+            max_size_gb?: number;
             /**
              * Discount Types
              * @default [
@@ -1348,49 +1348,49 @@ export interface components {
              *       "_2X_FREE"
              *     ]
              */
-            discount_types: string[];
+            discount_types?: string[];
             /**
              * Include Keywords
              * @default []
              */
-            include_keywords: string[];
+            include_keywords?: string[];
             /**
              * Exclude Keywords
              * @default [
              *       "AUDIOBOOK"
              *     ]
              */
-            exclude_keywords: string[];
+            exclude_keywords?: string[];
             /**
              * Max Seeders
              * @default 10
              */
-            max_seeders: number;
+            max_seeders?: number;
             /**
              * Min Leechers
              * @default 100
              */
-            min_leechers: number;
+            min_leechers?: number;
             /**
              * Weight Size
              * @default -1
              */
-            weight_size: number;
+            weight_size?: number;
             /**
              * Weight Free Time
              * @default 0.4
              */
-            weight_free_time: number;
+            weight_free_time?: number;
             /**
              * Weight Age
              * @default 0.5
              */
-            weight_age: number;
+            weight_age?: number;
             /**
              * Weight Seeders
              * @default 3
              */
-            weight_seeders: number;
+            weight_seeders?: number;
         };
         /**
          * RuntimeConfigStatus
@@ -1407,22 +1407,22 @@ export interface components {
              * Media Wall Refresh Interval Seconds
              * @default 0
              */
-            media_wall_refresh_interval_seconds: number;
+            media_wall_refresh_interval_seconds?: number;
             /**
              * Media Wall Startup Delay Seconds
              * @default 0
              */
-            media_wall_startup_delay_seconds: number;
+            media_wall_startup_delay_seconds?: number;
             /**
              * Media Wall Source Stagger Seconds
              * @default 0
              */
-            media_wall_source_stagger_seconds: number;
+            media_wall_source_stagger_seconds?: number;
             /**
              * Media Wall Douban Poster Fetches
              * @default 0
              */
-            media_wall_douban_poster_fetches: number;
+            media_wall_douban_poster_fetches?: number;
             /** Api Delay Seconds */
             api_delay_seconds: number;
             /** Qbittorrent Configured */
@@ -1441,13 +1441,13 @@ export interface components {
              * Keyword
              * @default
              */
-            keyword: string;
+            keyword?: string;
             /**
              * Mode
              * @default normal
              * @enum {string}
              */
-            mode: "normal" | "adult" | "movie" | "tvshow" | "other";
+            mode?: "normal" | "adult" | "movie" | "tvshow" | "other";
             /** Categories */
             categories?: number[];
             /** Standards */
@@ -1464,27 +1464,27 @@ export interface components {
              * Discount
              * @default
              */
-            discount: string;
+            discount?: string;
             /**
              * Sortfield
              * @default CREATED_DATE
              */
-            sortField: string;
+            sortField?: string;
             /**
              * Sortdirection
              * @default DESC
              */
-            sortDirection: string;
+            sortDirection?: string;
             /**
              * Pagenumber
              * @default 1
              */
-            pageNumber: number;
+            pageNumber?: number;
             /**
              * Pagesize
              * @default 50
              */
-            pageSize: number;
+            pageSize?: number;
         };
         /** ValidationError */
         ValidationError: {

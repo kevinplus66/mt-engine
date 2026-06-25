@@ -1,4 +1,9 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  within,
+} from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import RadarPage from "@/app/radar/page";
@@ -8,6 +13,14 @@ import {
   buildRadarSearchRequest,
   type RadarQueryState,
 } from "@/lib/radar-view";
+
+beforeEach(() => {
+  cleanup();
+});
+
+afterEach(() => {
+  cleanup();
+});
 
 const radarQueryStateMock = vi.hoisted(() => ({
   keyword: "",
@@ -216,6 +229,64 @@ describe("RADAR view sanitization", () => {
   });
 });
 
+describe("RADAR stale results", () => {
+  beforeEach(() => {
+    radarSearchMock.data = {
+      success: true,
+      data: [
+        {
+          id: "stale-result",
+          name: "Stale Result",
+        },
+      ],
+      total: 1,
+      pageNumber: 1,
+      pageSize: 50,
+    };
+    radarSearchMock.error = new Error("backend unavailable");
+    radarSearchMock.isMutating = false;
+    radarQueryStateMock.currentState = {
+      keyword: "linux",
+      mode: "normal",
+      selectedCategories: [],
+      filters: {
+        standards: [],
+        videoCodecs: [],
+        audioCodecs: [],
+        sources: [],
+        countries: [],
+        discount: "",
+      },
+      sortField: "time",
+      sortDirection: "desc",
+    };
+    radarSearchMock.trigger.mockClear();
+    radarSearchMock.trigger.mockResolvedValue(undefined);
+    radarSearchMock.reset.mockClear();
+  });
+
+  it("hides previous rows when the current search failed", () => {
+    const { container } = render(<RadarPage />);
+    const view = within(container);
+
+    expect(view.getByText("搜索失败")).toBeTruthy();
+    expect(view.queryByRole("button", { name: "sort name" })).toBeNull();
+  });
+
+  it("clears previous mutation data before a new search", () => {
+    radarSearchMock.error = null;
+    const { container } = render(<RadarPage />);
+
+    fireEvent.click(within(container).getByRole("button", { name: "搜索" }));
+
+    expect(radarSearchMock.reset).toHaveBeenCalledTimes(1);
+    expect(radarSearchMock.trigger).toHaveBeenCalledTimes(1);
+    expect(radarSearchMock.reset.mock.invocationCallOrder[0]).toBeLessThan(
+      radarSearchMock.trigger.mock.invocationCallOrder[0],
+    );
+  });
+});
+
 describe("RADAR reset", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -257,11 +328,12 @@ describe("RADAR reset", () => {
   });
 
   it("clears mutation data and cancels pending debounced searches", () => {
-    render(<RadarPage />);
+    const { container } = render(<RadarPage />);
+    const view = within(container);
 
-    fireEvent.click(screen.getByRole("button", { name: "sort name" }));
+    fireEvent.click(view.getByRole("button", { name: "sort name" }));
     expect(radarQueryStateMock.setSort).toHaveBeenCalledWith("name", "desc");
-    fireEvent.click(screen.getByRole("button", { name: "重置" }));
+    fireEvent.click(view.getByRole("button", { name: "重置" }));
     vi.advanceTimersByTime(300);
 
     expect(radarSearchMock.reset).toHaveBeenCalledTimes(1);

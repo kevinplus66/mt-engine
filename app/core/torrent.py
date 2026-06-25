@@ -6,6 +6,7 @@ import asyncio
 import random
 import time
 from datetime import datetime, timedelta
+from types import SimpleNamespace
 from typing import Dict, Any, Optional
 from app.config import (
     BEIJING_TZ, API_DELAY, REFRESH_INTERVAL, PANEL_COLLECT_INTERVAL,
@@ -178,8 +179,29 @@ async def fetch_all_free_torrents() -> Dict[str, Any]:
 
         if should_refresh_user_status:
             # 顺序获取用户状态（避免触发 M-Team API 速率限制）
-            user_status_result = await mt_client.fetch_user_torrent_status()
-            state.user_torrent_status.update(user_status_result)
+            if hasattr(mt_client, "fetch_user_torrent_status_with_status"):
+                user_status_result = await mt_client.fetch_user_torrent_status_with_status()
+            else:
+                legacy_statuses = await mt_client.fetch_user_torrent_status()
+                has_existing_status = bool(
+                    state.user_torrent_status.get("seeding")
+                    or state.user_torrent_status.get("leeching")
+                )
+                has_new_status = bool(
+                    legacy_statuses.get("seeding")
+                    or legacy_statuses.get("leeching")
+                )
+                user_status_result = SimpleNamespace(
+                    statuses=legacy_statuses,
+                    succeeded=has_new_status or not has_existing_status,
+                    error=None if has_new_status or not has_existing_status else "用户状态为空",
+                )
+            if user_status_result.succeeded:
+                state.user_torrent_status.update(user_status_result.statuses)
+            else:
+                logger.warning(
+                    f"用户种子状态刷新失败，保留上一份缓存: {user_status_result.error or '未知错误'}"
+                )
 
             await asyncio.sleep(API_DELAY + random.uniform(1, 3))
 
@@ -187,8 +209,9 @@ async def fetch_all_free_torrents() -> Dict[str, Any]:
             if user_profile_result:
                 state.user_profile.update(user_profile_result)
 
-            state._last_user_status_refresh_hour = current_hour
-            logger.info("✓ 用户状态已刷新（整点触发）")
+            if user_status_result.succeeded:
+                state._last_user_status_refresh_hour = current_hour
+                logger.info("✓ 用户状态已刷新（整点触发）")
 
             # 用户状态刷新后，间隔一段时间再开始搜索
             await asyncio.sleep(API_DELAY + random.uniform(1, 3))
@@ -247,18 +270,35 @@ async def fetch_all_free_torrents() -> Dict[str, Any]:
         all_torrents.sort(key=lambda t: t["remaining"]["hours"])
 
         # 检查分类列表是否需要刷新 (24小时)
-        should_refresh_categories = (
-            state._last_categories_refresh is None or
-            (now - state._last_categories_refresh).total_seconds() > CATEGORIES_CACHE_HOURS * 3600
-        )
+        last_categories_refresh = state._last_categories_refresh
 
-        if should_refresh_categories:
-            categories = await mt_client.fetch_categories()
-            state._last_categories_refresh = now
-            logger.info("✓ 分类列表已刷新 (24小时缓存)")
+        if (
+            last_categories_refresh is None or
+            (now - last_categories_refresh).total_seconds() > CATEGORIES_CACHE_HOURS * 3600
+        ):
+            previous_categories = state.cached_data.get("categories", [])
+            if hasattr(mt_client, "fetch_categories_with_status"):
+                category_result = await mt_client.fetch_categories_with_status()
+            else:
+                category_result = SimpleNamespace(
+                    categories=await mt_client.fetch_categories(),
+                    succeeded=True,
+                    error=None,
+                )
+            if category_result.succeeded and (
+                category_result.categories or not previous_categories
+            ):
+                categories = category_result.categories
+                state._last_categories_refresh = now
+                logger.info("✓ 分类列表已刷新 (24小时缓存)")
+            else:
+                categories = previous_categories or category_result.categories
+                logger.warning(
+                    f"分类列表刷新失败或为空，保留上一份缓存: {category_result.error or '无可用分类'}"
+                )
         else:
             categories = state.cached_data.get("categories", [])
-            elapsed_hours = int((now - state._last_categories_refresh).total_seconds() / 3600)
+            elapsed_hours = int((now - last_categories_refresh).total_seconds() / 3600)
             logger.info(f"→ 分类列表使用缓存 (已过 {elapsed_hours} 小时)")
 
         # 统计

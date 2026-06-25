@@ -30,6 +30,24 @@ class FreeTorrentSearchResult:
     error: Optional[str] = None
 
 
+@dataclass(frozen=True)
+class CategoryFetchResult:
+    """Internal status-bearing result for category refreshes."""
+
+    categories: List[Dict]
+    succeeded: bool
+    error: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class UserTorrentStatusResult:
+    """Internal status-bearing result for user torrent status refreshes."""
+
+    statuses: Dict[str, Dict]
+    succeeded: bool
+    error: Optional[str] = None
+
+
 class MTClient:
     """M-Team API 客户端，封装所有 API 调用"""
 
@@ -161,10 +179,19 @@ class MTClient:
             return str(item_id)
         return None
 
+    async def fetch_categories_with_status(self) -> CategoryFetchResult:
+        """获取种子类别列表，并显式报告刷新是否成功。"""
+        data = await self._request(MT_CATEGORY_URL, json={}, label="获取类别")
+        if isinstance(data, list):
+            return CategoryFetchResult(categories=data, succeeded=True)
+        error = self._last_error or "获取类别响应格式异常"
+        runtime_status.mark_error("mteam", error)
+        return CategoryFetchResult(categories=[], succeeded=False, error=error)
+
     async def fetch_categories(self) -> List[Dict]:
         """获取种子类别列表"""
-        data = await self._request(MT_CATEGORY_URL, json={}, label="获取类别")
-        return data if isinstance(data, list) else []
+        result = await self.fetch_categories_with_status()
+        return result.categories
 
     async def search_free_torrents(
         self,
@@ -371,12 +398,13 @@ class MTClient:
         )
         return data if isinstance(data, str) and data else None
 
-    async def fetch_user_torrent_status(self) -> Dict[str, Dict]:
-        """获取用户的做种和下载中的种子状态"""
+    async def fetch_user_torrent_status_with_status(self) -> UserTorrentStatusResult:
+        """获取用户的做种和下载中的种子状态，并显式报告刷新是否成功。"""
         from app.config import API_DELAY
 
+        empty_status: Dict[str, Dict] = {"seeding": {}, "leeching": {}}
         if not MT_USER_ID:
-            return {"seeding": {}, "leeching": {}}
+            return UserTorrentStatusResult(statuses=empty_status, succeeded=True)
 
         userid = int(MT_USER_ID)
         result: Dict[str, Dict] = {"seeding": {}, "leeching": {}}
@@ -387,13 +415,33 @@ class MTClient:
             json={"userid": userid, "type": "SEEDING", "pageNumber": 1, "pageSize": 200},
             label="获取做种中种子",
         )
-        if isinstance(seeding_data, dict):
-            for item in seeding_data.get("data") or []:
-                tid = self._extract_user_torrent_id(item)
-                if not tid:
-                    continue
-                result["seeding"][tid] = item
-            logger.info(f"获取到 {len(result['seeding'])} 个做种中种子")
+        if seeding_data is None and self._last_error is None:
+            seeding_data = {}
+        if not isinstance(seeding_data, dict):
+            error = self._last_error or "获取做种中种子响应格式异常"
+            runtime_status.mark_error("mteam", error)
+            return UserTorrentStatusResult(
+                statuses=result,
+                succeeded=False,
+                error=error,
+            )
+        seeding_items = seeding_data.get("data")
+        if seeding_items is None:
+            seeding_items = []
+        elif not isinstance(seeding_items, list):
+            error = "获取做种中种子返回的 data 不是列表"
+            runtime_status.mark_error("mteam", error)
+            return UserTorrentStatusResult(
+                statuses=result,
+                succeeded=False,
+                error=error,
+            )
+        for item in seeding_items:
+            tid = self._extract_user_torrent_id(item)
+            if not tid:
+                continue
+            result["seeding"][tid] = item
+        logger.info(f"获取到 {len(result['seeding'])} 个做种中种子")
 
         await asyncio.sleep(max(API_DELAY, 3))
 
@@ -403,15 +451,40 @@ class MTClient:
             json={"userid": userid, "type": "LEECHING", "pageNumber": 1, "pageSize": 200},
             label="获取下载中种子",
         )
-        if isinstance(leeching_data, dict):
-            for item in leeching_data.get("data") or []:
-                tid = self._extract_user_torrent_id(item)
-                if not tid:
-                    continue
-                result["leeching"][tid] = item
-            logger.info(f"获取到 {len(result['leeching'])} 个下载中种子")
+        if leeching_data is None and self._last_error is None:
+            leeching_data = {}
+        if not isinstance(leeching_data, dict):
+            error = self._last_error or "获取下载中种子响应格式异常"
+            runtime_status.mark_error("mteam", error)
+            return UserTorrentStatusResult(
+                statuses=result,
+                succeeded=False,
+                error=error,
+            )
+        leeching_items = leeching_data.get("data")
+        if leeching_items is None:
+            leeching_items = []
+        elif not isinstance(leeching_items, list):
+            error = "获取下载中种子返回的 data 不是列表"
+            runtime_status.mark_error("mteam", error)
+            return UserTorrentStatusResult(
+                statuses=result,
+                succeeded=False,
+                error=error,
+            )
+        for item in leeching_items:
+            tid = self._extract_user_torrent_id(item)
+            if not tid:
+                continue
+            result["leeching"][tid] = item
+        logger.info(f"获取到 {len(result['leeching'])} 个下载中种子")
 
-        return result
+        return UserTorrentStatusResult(statuses=result, succeeded=True)
+
+    async def fetch_user_torrent_status(self) -> Dict[str, Dict]:
+        """获取用户的做种和下载中的种子状态"""
+        result = await self.fetch_user_torrent_status_with_status()
+        return result.statuses
 
     async def fetch_user_profile(self) -> Optional[Dict[str, Any]]:
         """获取用户资料（分享率、上传、下载）"""

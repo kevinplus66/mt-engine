@@ -50,7 +50,10 @@ async def api_refresh(request: Request, check_rate_limit_func):
     if not check_rate_limit_func(client_ip):
         raise HTTPException(status_code=429, detail="Too many requests. Please wait.")
 
-    await fetch_all_free_torrents()
+    result = await fetch_all_free_torrents()
+    error = result.get("error") or result.get("free_refresh_backoff_reason")
+    if error or result.get("free_refresh_backoff_until"):
+        raise HTTPException(status_code=502, detail=error or "Refresh backoff active")
     return {"status": "ok", "message": "刷新完成"}
 
 

@@ -2,6 +2,7 @@
 
 import ipaddress
 import socket
+from typing import cast
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, HTTPException, Response
@@ -75,16 +76,21 @@ async def get_home_poster(u: str):
         raise HTTPException(status_code=502, detail="Bad Gateway")
     if not 200 <= response.status_code < 300:
         raise HTTPException(status_code=502, detail="Bad Gateway")
+    content_type = (
+        response.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+    )
+    if not content_type.startswith("image/"):
+        raise HTTPException(status_code=502, detail="Bad Gateway")
 
     return Response(
         content=response.content,
-        media_type=response.headers.get("content-type") or "image/jpeg",
+        media_type=content_type,
         headers={"Cache-Control": POSTER_CACHE_CONTROL},
     )
 
 
 def _resolve_host_ips(hostname: str) -> list[str]:
-    return [address[4][0] for address in socket.getaddrinfo(hostname, None)]
+    return [cast(str, address[4][0]) for address in socket.getaddrinfo(hostname, None)]
 
 
 def _is_blocked_ip(address: str) -> bool:
