@@ -2,7 +2,7 @@
 PANEL 路由
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from typing import Dict, Optional, Literal, List
 from datetime import datetime
 from pydantic import BaseModel
@@ -24,7 +24,6 @@ from app.services.qbittorrent import (
     qb_pause_torrents, qb_resume_torrents, qb_delete_torrents,
     qb_get_storage_info
 )
-from app.security import require_api_key
 from app.utils import format_size, format_speed_int
 
 router = APIRouter()
@@ -295,7 +294,7 @@ async def get_panel_share_ratio(range: Literal["1h", "6h", "12h", "24h", "7d", "
         }
 
 
-@router.get("/api/panel/torrents", response_model=PanelTorrentsResponse, dependencies=[Depends(require_api_key)])
+@router.get("/api/panel/torrents", response_model=PanelTorrentsResponse)
 async def get_panel_torrents(
     tag: Optional[str] = None,
     status: Optional[str] = None
@@ -344,7 +343,6 @@ async def get_panel_torrents(
 @router.post(
     "/api/panel/torrents/pause",
     response_model=PanelPauseTorrentsResponse,
-    dependencies=[Depends(require_api_key)],
 )
 async def pause_torrents(request: PauseTorrentsRequest) -> Dict:
     """批量暂停种子"""
@@ -364,7 +362,6 @@ async def pause_torrents(request: PauseTorrentsRequest) -> Dict:
 @router.post(
     "/api/panel/torrents/resume",
     response_model=PanelResumeTorrentsResponse,
-    dependencies=[Depends(require_api_key)],
 )
 async def resume_torrents(request: ResumeTorrentsRequest) -> Dict:
     """批量恢复种子"""
@@ -384,7 +381,6 @@ async def resume_torrents(request: ResumeTorrentsRequest) -> Dict:
 @router.post(
     "/api/panel/torrents/delete",
     response_model=PanelDeleteTorrentsResponse,
-    dependencies=[Depends(require_api_key)],
 )
 async def delete_torrents(request: DeleteTorrentsRequest) -> Dict:
     """批量删除种子"""

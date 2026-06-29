@@ -28,7 +28,6 @@ services:
       - ${DOWNLOADS_PATH:-/downloads}:/downloads:ro
     environment:
       - MT_TOKEN=${MT_TOKEN}
-      - MT_ENGINE_API_KEY=${MT_ENGINE_API_KEY:-}
       - MT_USER_ID=${MT_USER_ID}
       - MT_SITE_URL=${MT_SITE_URL:-https://kp.m-team.cc}
       - REFRESH_INTERVAL=${REFRESH_INTERVAL:-300}

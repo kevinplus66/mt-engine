@@ -11,7 +11,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from fastapi import Depends, FastAPI
+from fastapi import FastAPI
 from fastapi import Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -57,7 +57,6 @@ from app.routes.torrents import api_download_torrent
 from app.routes.torrents import api_refresh
 from app.routes.torrents import api_torrents
 from app.services.http_client import http_client
-from app.security import require_api_key
 from app.services.mteam_api import mt_client
 from app.services.media_wall import SOURCE_REFRESH_ORDER
 from app.services.media_wall import media_wall_service
@@ -363,19 +362,19 @@ async def get_torrents(
     return await api_torrents(discount, min_size, max_size, category, mode)
 
 
-@app.post("/api/refresh", dependencies=[Depends(require_api_key)])
+@app.post("/api/refresh")
 async def refresh(request: Request):
     """手动触发刷新"""
     return await api_refresh(request, check_rate_limit)
 
 
-@app.post("/api/download", dependencies=[Depends(require_api_key)])
+@app.post("/api/download")
 async def download_torrent(request: Request, data: DownloadRequest):
     """从 Free Hunter 下载种子"""
     return await api_download_torrent(request, data, check_rate_limit)
 
 
-@app.post("/api/auto-delete/toggle", dependencies=[Depends(require_api_key)])
+@app.post("/api/auto-delete/toggle")
 async def auto_delete_toggle(request: Request, data: AutoDeleteToggleRequest):
     """切换自动删除功能"""
     return await api_auto_delete_toggle(request, data, check_rate_limit)
@@ -400,13 +399,13 @@ async def filter_options():
     return await api_filter_options()
 
 
-@app.post("/api/radar", dependencies=[Depends(require_api_key)])
+@app.post("/api/radar")
 async def radar(request: Request, data: SearchRequest):
     """雷达搜索种子"""
     return await api_radar(request, data, check_rate_limit, radar_throttle)
 
 
-@app.post("/api/radar/download", dependencies=[Depends(require_api_key)])
+@app.post("/api/radar/download")
 async def radar_download(request: Request, data: DownloadRequest):
     """从雷达结果下载种子"""
     return await radar_download_torrent(request, data, check_rate_limit)

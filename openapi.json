@@ -55,15 +55,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "ApiKeyAuth": []
-          }
-        ]
+        }
       }
     },
     "/api/pilot/stats": {
@@ -96,26 +88,8 @@
                 "schema": {}
               }
             }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "ApiKeyAuth": []
-          }
-        ]
+        }
       }
     },
     "/api/pilot/run-download": {
@@ -131,26 +105,8 @@
                 "schema": {}
               }
             }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "ApiKeyAuth": []
-          }
-        ]
+        }
       }
     },
     "/api/pilot/run-cleanup": {
@@ -166,26 +122,8 @@
                 "schema": {}
               }
             }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "ApiKeyAuth": []
-          }
-        ]
+        }
       }
     },
     "/api/home/media-wall": {
@@ -329,14 +267,6 @@
         "summary": "Get Panel Torrents",
         "description": "\u83b7\u53d6\u79cd\u5b50\u5217\u8868\uff08\u5e26\u7b5b\u9009\uff09\n\nArgs:\n    tag: \u6807\u7b7e\u7b5b\u9009 (\"\u58f0\u5450\u505a\u79cd\" | \"\u96f7\u8fbe\u4e0b\u8f7d\" | \"PILOT\")\n    status: \u72b6\u6001\u7b5b\u9009 (\"downloading\" | \"seeding\" | \"paused\" | \"completed\")\n\nReturns:\n    {\n        \"torrents\": List[Dict],\n        \"total_count\": int,\n        \"filtered_count\": int\n    }",
         "operationId": "get_panel_torrents_api_panel_torrents_get",
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "ApiKeyAuth": []
-          }
-        ],
         "parameters": [
           {
             "name": "tag",
@@ -431,15 +361,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "ApiKeyAuth": []
-          }
-        ]
+        }
       }
     },
     "/api/panel/torrents/resume": {
@@ -478,15 +400,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "ApiKeyAuth": []
-          }
-        ]
+        }
       }
     },
     "/api/panel/torrents/delete": {
@@ -525,15 +439,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "ApiKeyAuth": []
-          }
-        ]
+        }
       }
     },
     "/api/torrents": {
@@ -658,26 +564,8 @@
                 "schema": {}
               }
             }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "ApiKeyAuth": []
-          }
-        ]
+        }
       }
     },
     "/api/download": {
@@ -714,15 +602,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "ApiKeyAuth": []
-          }
-        ]
+        }
       }
     },
     "/api/auto-delete/toggle": {
@@ -759,15 +639,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "ApiKeyAuth": []
-          }
-        ]
+        }
       }
     },
     "/api/auto-delete/status": {
@@ -855,15 +727,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "ApiKeyAuth": []
-          }
-        ]
+        }
       }
     },
     "/api/radar/download": {
@@ -900,15 +764,7 @@
               }
             }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "ApiKeyAuth": []
-          }
-        ]
+        }
       }
     },
     "/health": {
@@ -2766,19 +2622,6 @@
           "type"
         ],
         "title": "ValidationError"
-      }
-    },
-    "securitySchemes": {
-      "BearerAuth": {
-        "type": "http",
-        "description": "MT Engine API key sent as an Authorization bearer token.",
-        "scheme": "bearer"
-      },
-      "ApiKeyAuth": {
-        "type": "apiKey",
-        "description": "MT Engine API key sent in the X-MT-ENGINE-Key header.",
-        "in": "header",
-        "name": "X-MT-ENGINE-Key"
       }
     }
   }

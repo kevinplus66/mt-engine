@@ -1,7 +1,7 @@
 """
 Pilot API endpoints (领航)
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 
 from app.models import AutomationConfig
 from app.core.pilot import has_pilot_tag, is_pilot_cleanup_candidate, pilot_manager
@@ -10,11 +10,10 @@ from app.core.pilot_config_store import save_pilot_config
 from app.core.rules import RuleEngine
 from app.services.qbittorrent import qb_login, qb_get_torrents, qb_get_existing_mteam_ids
 from app.config import logger
-from app.security import require_api_key
 import app.state as state
 
 
-# Router with per-endpoint authentication
+# Router
 router = APIRouter(
     prefix="/api/pilot"
 )
@@ -31,7 +30,7 @@ async def get_config():
     return pilot_manager.config.model_dump()
 
 
-@router.post("/config", dependencies=[Depends(require_api_key)])
+@router.post("/config")
 async def update_config(config: AutomationConfig):
     """
     Update pilot configuration
@@ -76,7 +75,7 @@ async def get_stats():
     }
 
 
-@router.get("/dry-run", dependencies=[Depends(require_api_key)])
+@router.get("/dry-run")
 async def dry_run():
     """
     Simulate run - returns what would be downloaded/cleaned
@@ -192,7 +191,7 @@ async def dry_run():
     }
 
 
-@router.post("/run-download", dependencies=[Depends(require_api_key)])
+@router.post("/run-download")
 async def trigger_download():
     """
     Manually trigger download cycle
@@ -212,7 +211,7 @@ async def trigger_download():
         )
 
 
-@router.post("/run-cleanup", dependencies=[Depends(require_api_key)])
+@router.post("/run-cleanup")
 async def trigger_cleanup():
     """
     Manually trigger cleanup cycle

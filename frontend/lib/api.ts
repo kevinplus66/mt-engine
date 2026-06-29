@@ -103,40 +103,10 @@ function resolveFetcherUrl(url: string): string {
   return `${apiBase}${url}`;
 }
 
-const API_KEY_STORAGE_KEY = "mt-engine-api-key";
-const API_KEY_AUTH_ERROR = "Invalid or missing API key";
-
-function getStoredApiKey(): string | null {
-  if (typeof window === "undefined" || !window.localStorage) return null;
-
-  const apiKey = window.localStorage.getItem(API_KEY_STORAGE_KEY)?.trim();
-  return apiKey || null;
-}
-
-function promptForApiKey(): string | null {
-  if (typeof window === "undefined") return null;
-
-  const apiKey = window.prompt(
-    "请输入 MT-Engine API Key，用于保存配置或执行写入操作。"
-  )?.trim();
-  if (!apiKey) return null;
-
-  if (window.localStorage) {
-    window.localStorage.setItem(API_KEY_STORAGE_KEY, apiKey);
-  }
-  return apiKey;
-}
-
-function withJsonAndAuthHeaders(
-  init?: RequestInit,
-  apiKey?: string | null
-): RequestInit {
+function withJsonHeaders(init?: RequestInit): RequestInit {
   const headers = new Headers(init?.headers);
   if (!headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
-  }
-  if (apiKey) {
-    headers.set("X-MT-ENGINE-Key", apiKey);
   }
 
   return {
@@ -153,26 +123,10 @@ export async function fetcher<T = unknown>(
   init?: RequestInit
 ): Promise<T> {
   const requestUrl = resolveFetcherUrl(url);
-  const storedApiKey = getStoredApiKey();
-  let response = await fetch(
-    requestUrl,
-    withJsonAndAuthHeaders(init, storedApiKey)
-  );
+  const response = await fetch(requestUrl, withJsonHeaders(init));
 
   if (!response.ok) {
-    let error = await parseErrorResponse(response, requestUrl);
-    if (
-      response.status === 401 &&
-      error === API_KEY_AUTH_ERROR &&
-      typeof window !== "undefined"
-    ) {
-      const apiKey = promptForApiKey();
-      if (apiKey) {
-        response = await fetch(requestUrl, withJsonAndAuthHeaders(init, apiKey));
-        if (response.ok) return response.json();
-        error = await parseErrorResponse(response, requestUrl);
-      }
-    }
+    const error = await parseErrorResponse(response, requestUrl);
 
     throw new ApiError(
       response.status,
