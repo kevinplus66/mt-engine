@@ -88,7 +88,6 @@ MT_ENGINE_COMMIT=
 MT_ENGINE_BIND_HOST=0.0.0.0
 
 MT_TOKEN=your_api_token_here
-MT_TOKEN_FILE=
 MT_USER_ID=
 MT_SITE_URL=https://kp.m-team.cc
 
@@ -105,21 +104,21 @@ API_DELAY=3
 DEBUG=false
 
 PUSHPLUS_TOKEN=
-PUSHPLUS_TOKEN_FILE=
 
 QBITTORRENT_URL=http://<QB_HOST_IP>:8080
 QBITTORRENT_USER=
 QBITTORRENT_PASSWORD=
-QBITTORRENT_PASSWORD_FILE=
 DOWNLOADS_PATH=/volume1/downloads
 PILOT_SAVE_PATH=/downloads/mt_free_farm
 ```
 
 Docker 部署时，`QBITTORRENT_URL` 必须写 NAS 或主机在局域网中的实际 IP，不能写 `localhost`。qBittorrent 4.6.7 是已知可用版本；qBittorrent 5 通过兼容层支持，暂停/恢复接口会按版本协商。NAS 部署建议固定 qB 镜像 tag，等你明确要升级时再改。
 
-如果配置 qBittorrent，请填写你自己的 Web UI 用户名和密码；不要沿用空密码、默认密码或临时初始化密码。`MT_TOKEN`、`QBITTORRENT_PASSWORD` 和 `PUSHPLUS_TOKEN` 也支持用 `*_FILE` 从 Docker secret 或挂载文件读取；直接值和文件值同时存在时，直接值优先。
+如果配置 qBittorrent，请填写你自己的 Web UI 用户名和密码；不要沿用空密码、默认密码或临时初始化密码。部署密钥只使用直接环境变量：在 `.env` 中设置 `MT_TOKEN`、可选的 `QBITTORRENT_PASSWORD` 和可选的 `PUSHPLUS_TOKEN`；不要提交真实值。
 
-FREE 自动刷新会采样 `FREE/normal/default`、`FREE/normal/leechers_desc`、`FREE/adult/default`、`FREE/adult/leechers_desc` 四个 page-1 分片，并在 M-Team 失败后退避；需要时规则/评分可以纳入 `_2X_FREE`。PILOT 使用 MTID/M-Team-ID 标签/缓存，记录 ledger 计数，并让托管清理避开非托管种子。公网部署应保护或限流较重的 qB 列表/状态调用。
+MT-Engine 没有内置公网认证。请保持仅局域网访问，或把公网访问放在外部认证/反向代理后面。
+
+FREE 自动刷新会在刷新间隔内复用当前缓存，并在 M-Team 失败后退避，避免频繁请求。PILOT 保守维护 qB 任务身份，让托管清理避开非托管种子。
 
 媒体墙刷新仍按 source 错峰轮转，一次只刷新一个 source；M-Team source 刷新失败时继续对外提供旧缓存，并按 `MEDIA_WALL_REFRESH_FAILURE_BACKOFF_SECONDS` 冷却后再试，避免限流时反复打 API。
 
@@ -132,7 +131,7 @@ export MT_ENGINE_COMMIT="$(git rev-parse --short HEAD)"
 docker compose up -d --build
 ```
 
-首次构建会安装前端和后端依赖，并构建 Next.js 静态产物。Compose 支持 `MT_ENGINE_IMAGE` 运行预构建/离线镜像，也支持资源/日志保护覆盖：`MT_ENGINE_PIDS_LIMIT`、`MT_ENGINE_MEMORY_LIMIT`、`MT_ENGINE_MEMORY_SWAP_LIMIT`、`MT_ENGINE_LOG_MAX_SIZE`、`MT_ENGINE_LOG_MAX_FILE`。
+首次构建会安装前端和后端依赖，并构建 Next.js 静态产物。Docker 构建使用固定的 `node:22-alpine` 和 `python:3.12-slim` 基础镜像；NAS 上的 qBittorrent 镜像也建议固定 tag，等你明确要升级时再改。
 
 ### 4. 访问
 
@@ -140,7 +139,7 @@ docker compose up -d --build
 http://<NAS-IP>:5050
 ```
 
-默认 Compose 端口绑定 `0.0.0.0:5050`，适合 NAS 局域网直连访问；如果只允许主机本机访问，可在 `.env` 中设置 `MT_ENGINE_BIND_HOST=127.0.0.1`。公网访问应放到外部认证或已有反向代理后面，不要在未保护状态下裸露 5050 端口。
+默认 Compose 端口绑定 `0.0.0.0:5050`，适合 NAS 局域网直连访问；如果只允许主机本机访问，可在 `.env` 中设置 `MT_ENGINE_BIND_HOST=127.0.0.1`。MT-Engine 没有内置公网认证；请保持仅局域网访问，或把公网访问放在外部认证/反向代理后面。
 
 ### 5. 验证
 
@@ -149,7 +148,7 @@ docker compose ps
 ./scripts/verify-deploy.sh --base-url http://127.0.0.1:5050
 ```
 
-`scripts/verify-deploy.sh` 是只读验收脚本：只调用 `GET /health`、`/api/status`、`/api/home/media-wall`、`/api/auto-delete/status`、`/api/pilot/stats`，以及可选的 `--pilot-dry-run` 对应的 `/api/pilot/dry-run`。它也会检查 `/api/status` 中的 qBittorrent 状态/版本字段；如果出现 `qbittorrent_version_unknown` 或 `qbittorrent_version_unsupported` 等 qB 版本告警，需要先确认原因，或用 `--allow-warning` 显式放行。
+`scripts/verify-deploy.sh` 是只读验收脚本：只调用 `GET /health`、`/api/status`、`/api/home/media-wall`、`/api/auto-delete/status`、`/api/pilot/stats`，以及可选的 `--pilot-dry-run` 对应的 `/api/pilot/dry-run`。
 
 健康接口返回示例：
 
@@ -157,7 +156,7 @@ docker compose ps
 {"status":"ok","timestamp":"2026-05-26T01:34:01.425811+08:00","torrents_count":400}
 ```
 
-运行状态接口返回运行时版本、commit、缓存状态、依赖状态、qB app/Web API 版本和告警、以及非敏感配置，可用于部署验收：
+运行状态接口返回运行时版本、commit、缓存状态、依赖状态和非敏感配置，可用于部署验收：
 
 ```bash
 curl http://localhost:5050/api/status
@@ -168,8 +167,8 @@ curl http://localhost:5050/api/status
 
 - `/api/auto-delete/status` 中 `enabled` 为 `true` 或符合你的预期。
 - `/api/pilot/stats` 中 `is_running` 为 `true`，除非你明确关闭下载和清理策略。
-- `/api/pilot/dry-run` 能只读预览候选、磁盘预算和 PILOT ledger 计数，且不会修改 qB。
-- `/api/status` 中 `warnings` 为空，且 qBittorrent 与 M-Team 依赖均为健康。qB 4.6.x 和 qB 5.x 不应出现 `unsupported_version_warning`。
+- `/api/pilot/dry-run` 能只读预览候选和磁盘预算，且不会修改 qB。
+- `/api/status` 中 `warnings` 为空，且 qBittorrent 与 M-Team 依赖均为健康。qB 4.6 和 qB 5 会通过 qB Web API 接口族 fallback 兼容。
 - `/api/home/media-wall` 能返回 `rails`；首次部署后如果暂时为空，等待后台首刷完成即可。
 
 ## 环境变量
@@ -180,8 +179,7 @@ curl http://localhost:5050/api/status
 | `PGID` | 否 | 容器运行用户组 ID | `1000` |
 | `MT_ENGINE_COMMIT` | 否 | 构建元数据（建议填 `git rev-parse --short HEAD`） | `local` |
 | `MT_ENGINE_BIND_HOST` | 否 | Web 服务绑定地址；NAS 默认局域网可访问，仅本机访问可设为 `127.0.0.1` | `0.0.0.0` |
-| `MT_TOKEN` | 是 | M-Team API Token；也可通过 `MT_TOKEN_FILE` 提供 | - |
-| `MT_TOKEN_FILE` | 否 | 保存 M-Team API Token 的文件；直接设置 `MT_TOKEN` 时忽略 | - |
+| `MT_TOKEN` | 是 | M-Team API Token，直接设置在 `.env` 中 | - |
 | `MT_USER_ID` | 否 | M-Team 用户 ID，用于用户做种/下载状态 | - |
 | `MT_SITE_URL` | 否 | M-Team 站点地址 | `https://kp.m-team.cc` |
 | `REFRESH_INTERVAL` | 否 | SONAR 后台刷新间隔，单位秒；当前生产稳态值，不建议低于 300 | `300` |
@@ -194,28 +192,20 @@ curl http://localhost:5050/api/status
 | `MEDIA_WALL_METADATA_TTL` | 否 | 海报、年份、简介等 M-Team 媒体元数据缓存时间，单位秒 | `604800` |
 | `MEDIA_WALL_MAX_METADATA_FETCHES` | 否 | 媒体墙完整轮转周期的元数据补充预算；单个 source 刷新会使用约 1/4 预算 | `40` |
 | `MEDIA_WALL_DOUBAN_POSTER_FETCHES` | 否 | 每个媒体墙 source 刷新时最多低频抓取的豆瓣页面海报数；只在 M-Team 元数据缺海报时使用 | `3` |
-| `PUSHPLUS_TOKEN` | 否 | PushPlus 微信推送 Token；也可通过 `PUSHPLUS_TOKEN_FILE` 提供 | - |
-| `PUSHPLUS_TOKEN_FILE` | 否 | 保存 PushPlus Token 的文件；直接设置 `PUSHPLUS_TOKEN` 时忽略 | - |
+| `PUSHPLUS_TOKEN` | 否 | PushPlus 微信推送 Token | - |
 | `QBITTORRENT_URL` | 否 | qBittorrent Web UI 地址；NAS 建议固定 qB 镜像 tag，明确升级时再改 | - |
 | `QBITTORRENT_USER` | 否 | qBittorrent Web UI 用户名 | - |
-| `QBITTORRENT_PASSWORD` | 否 | qBittorrent Web UI 密码；也可通过 `QBITTORRENT_PASSWORD_FILE` 提供 | - |
-| `QBITTORRENT_PASSWORD_FILE` | 否 | 保存 qBittorrent Web UI 密码的文件；直接设置 `QBITTORRENT_PASSWORD` 时忽略 | - |
+| `QBITTORRENT_PASSWORD` | 否 | qBittorrent Web UI 密码 | - |
 | `DOWNLOADS_PATH` | 否 | 主机上的下载目录，以只读方式挂载为容器内 `/downloads`；路径缺失或不可读时 PILOT 会失败关闭 | `/downloads` |
 | `PILOT_SAVE_PATH` | 否 | PILOT 保存路径，通常是 `/downloads` 下的子目录 | `/downloads/mt_free_farm` |
 | `DEBUG` | 否 | 本地调试开关，仅适合局域网/开发环境 | `false` |
 | `MT_ENGINE_IMAGE` | 否 | Compose 运行的镜像 tag；用于预构建/离线镜像，可配合 `docker compose up -d --no-build` | `mt-engine:${MT_ENGINE_COMMIT:-local}` |
-| `MT_ENGINE_PIDS_LIMIT` | 否 | Compose 进程数保护 | `256` |
-| `MT_ENGINE_MEMORY_LIMIT` | 否 | Compose 内存保护 | `1024m` |
-| `MT_ENGINE_MEMORY_SWAP_LIMIT` | 否 | Compose 内存+swap 保护 | `1536m` |
-| `MT_ENGINE_LOG_MAX_SIZE` | 否 | Compose json-file 日志轮转大小 | `10m` |
-| `MT_ENGINE_LOG_MAX_FILE` | 否 | Compose json-file 日志轮转文件数 | `3` |
 
 ### PILOT 与安全语义补充
 
 - `/api/panel/torrents/delete` 省略 `delete_files` 时会保留已下载文件；只有请求明确设置 `delete_files: true` 才删除文件。
-- PILOT 补货前会为 `/downloads` 文件系统上的所有活跃下载预留空间；如果 `/downloads` 或配置的保存路径无法测量，会失败关闭并跳过下载。
-- RADAR 标签的 qB 任务会被自动清理否决；需要时规则/评分可以纳入 `_2X_FREE`。
-- `/api/pilot/dry-run` 能只读预览候选、磁盘预算和 PILOT ledger 计数。
+- 如果 `/downloads` 或配置的保存路径无法测量，PILOT 会失败关闭并跳过下载，不会猜测剩余空间。
+- RADAR/PILOT 托管清理会避开非托管种子。
 
 ## 本地开发
 
@@ -332,13 +322,13 @@ curl -sf http://localhost:5050/api/pilot/dry-run
 NAS_HOST="<NAS_IP>" NAS_USER="<SSH_USER>" NAS_PATH="<INSTALL_PATH>" ./scripts/deploy-nas.sh
 ```
 
-如果 NAS 无法拉取 Docker Hub 基础镜像，或希望 NAS 端完全不构建，可以在能构建目标平台的本地机器使用离线路径：
+如果 NAS 无法拉取 Docker Hub 基础镜像，或希望 NAS 端完全不构建，请先在本地机器准备 Docker 镜像归档，再交给同一个部署脚本：
 
 ```bash
-NAS_HOST="<NAS_IP>" NAS_USER="<SSH_USER>" NAS_PATH="<INSTALL_PATH>" ./scripts/deploy-nas-offline.sh
+PREBUILT_IMAGE_ARCHIVE="/path/to/mt-engine.tar" NAS_HOST="<NAS_IP>" NAS_USER="<SSH_USER>" NAS_PATH="<INSTALL_PATH>" ./scripts/deploy-nas.sh
 ```
 
-必需环境变量是 `NAS_HOST`、`NAS_USER`、`NAS_PATH`。可选覆盖包括 `DEPLOY_REF`、`MT_ENGINE_IMAGE`、`MT_ENGINE_PLATFORM`、`NODE_BASE_IMAGE`、`PYTHON_BASE_IMAGE`、`VERIFY_DEPLOY`、`VERIFY_ALLOW_WARNINGS`、`VERIFY_PILOT_DRY_RUN`。脚本会本地构建镜像、保存并上传镜像、在 NAS 上 `docker load`、快进 NAS checkout，然后用 `MT_ENGINE_IMAGE` 和 `--no-build` 启动 Compose，因此 NAS 部署期间不会拉取 Docker Hub 基础镜像。
+必需环境变量是 `NAS_HOST`、`NAS_USER`、`NAS_PATH`；`DEPLOY_REF`、`VERIFY_DEPLOY`、`VERIFY_PILOT_DRY_RUN` 仍然可选。设置 `PREBUILT_IMAGE_ARCHIVE` 时，`scripts/deploy-nas.sh` 会上传并在 NAS 上加载该归档，设置 `MT_ENGINE_IMAGE`，然后以不在 NAS 构建的方式启动 Compose。
 
 ### 标准回滚
 
