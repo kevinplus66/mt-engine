@@ -131,6 +131,12 @@ ssh "${NAS_USER}@${NAS_HOST}" \
    docker compose ps
 
    if [[ "${VERIFY_DEPLOY}" != "0" ]]; then
+     if [[ "${VERIFY_PILOT_DRY_RUN}" != "0" && -f .env ]]; then
+       set -a
+       . ./.env
+       set +a
+       export VERIFY_API_KEY="${MT_ENGINE_API_KEY:-}"
+     fi
      export VERIFY_PILOT_DRY_RUN
      bash ./scripts/verify-deploy.sh --base-url "http://127.0.0.1:5050"
    else

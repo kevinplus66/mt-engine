@@ -8,11 +8,12 @@ set -euo pipefail
 #   ./scripts/verify-deploy.sh [--base-url http://127.0.0.1:5050]
 # Optional environment:
 #   VERIFY_PILOT_DRY_RUN=1      Include /api/pilot/dry-run.
+#   VERIFY_API_KEY=<key>        API key for protected optional checks.
 #   VERIFY_TIMEOUT_SECONDS=90   Health wait timeout.
-
 BASE_URL="${VERIFY_BASE_URL:-http://127.0.0.1:5050}"
 PILOT_DRY_RUN="${VERIFY_PILOT_DRY_RUN:-0}"
 TIMEOUT_SECONDS="${VERIFY_TIMEOUT_SECONDS:-90}"
+API_KEY="${VERIFY_API_KEY:-}"
 
 print_usage() {
   cat >&2 <<'USAGE'
@@ -63,7 +64,11 @@ BASE_URL="${BASE_URL%/}"
 
 curl_json() {
   local path="$1"
-  curl -fsS --max-time 10 -H "Accept: application/json" "${BASE_URL}${path}" >/dev/null
+  local curl_args=(-fsS --max-time 10 -H "Accept: application/json")
+  if [[ -n "${API_KEY}" ]]; then
+    curl_args+=(-H "X-MT-ENGINE-Key: ${API_KEY}")
+  fi
+  curl "${curl_args[@]}" "${BASE_URL}${path}" >/dev/null
 }
 
 printf "Waiting for MT-Engine health at %s\n" "${BASE_URL}"
