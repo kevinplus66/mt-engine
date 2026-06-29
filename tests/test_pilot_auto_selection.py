@@ -68,6 +68,12 @@ async def test_run_download_cycle_selects_highest_score_when_slots_are_limited(m
         "qb_get_torrents",
         lambda _sid: _async_value([]),
     )
+    monkeypatch.setattr(pilot_core, "check_disk_space", lambda _config: True)
+    monkeypatch.setattr(
+        manager,
+        "_get_download_capacity_budget_bytes",
+        lambda _tasks: 1024**4,
+    )
     monkeypatch.setattr(manager.rule_engine, "evaluate_download", evaluate_download)
     monkeypatch.setattr(manager, "_download_torrent", fake_download_torrent)
 

@@ -3,7 +3,7 @@ qBittorrent 集成服务
 """
 
 import re
-from typing import Optional, List, Dict, Set
+from typing import Optional, List, Dict, Set, cast
 
 import httpx
 
@@ -23,18 +23,52 @@ from app.services.qbittorrent_session import (
     qb_clear_session,
     qb_is_session_valid,
     qb_login,
+    qb_session_cookies,
 )
 from app.utils import format_size
 
 
 MANAGED_TORRENT_TAGS = {"声呐做种", "雷达下载", "PILOT"}
 INFO_HASH_RE = re.compile(r"^[0-9a-fA-F]{40}$")
+MTID_TAG_PREFIX = "MTID:"
+MTID_TAG_RE = re.compile(r"^MTID:(\d+)$")
 
 
 def _split_qb_tags(tags: str) -> set[str]:
     if not isinstance(tags, str):
         return set()
     return {tag.strip() for tag in tags.split(",") if tag.strip()}
+
+
+def _normalize_mteam_id(mteam_id: Optional[str]) -> Optional[str]:
+    if mteam_id is None:
+        return None
+    normalized = str(mteam_id).strip()
+    if not normalized.isdigit():
+        return None
+    return normalized
+
+
+def _extract_mteam_id_from_tags(tags: str) -> Optional[str]:
+    if not isinstance(tags, str):
+        return None
+    for tag in (tag.strip() for tag in tags.split(",") if tag.strip()):
+        match = MTID_TAG_RE.fullmatch(tag)
+        if match:
+            return match.group(1)
+    return None
+
+
+def _tags_with_mteam_id(tags: str, mteam_id: Optional[str]) -> str:
+    normalized_id = _normalize_mteam_id(mteam_id)
+    if not normalized_id:
+        return tags
+
+    existing_tags = [tag.strip() for tag in str(tags or "").split(",") if tag.strip()]
+    mteam_tag = f"{MTID_TAG_PREFIX}{normalized_id}"
+    if mteam_tag not in existing_tags:
+        existing_tags.append(mteam_tag)
+    return ",".join(existing_tags)
 
 
 def _is_managed_torrent(torrent: Dict) -> bool:
@@ -58,6 +92,26 @@ def _normalize_info_hashes(hashes: List[str]) -> tuple[List[tuple[str, str]], Li
         valid_hashes.append((normalized_hash.lower(), hash_value))
 
     return valid_hashes, invalid_hashes
+
+
+def _pause_resume_endpoints(action: str) -> tuple[str, str]:
+    endpoints = {
+        "pause": ("api/v2/torrents/stop", "api/v2/torrents/pause"),
+        "resume": ("api/v2/torrents/start", "api/v2/torrents/resume"),
+    }
+    return endpoints[action]
+
+
+def _is_unsupported_qb_endpoint_response(response: httpx.Response) -> bool:
+    if response.status_code in (404, 405):
+        return True
+    if response.status_code != 400:
+        return False
+    text = getattr(response, "text", "").lower()
+    return any(
+        phrase in text
+        for phrase in ("unsupported endpoint", "unknown endpoint", "not found")
+    )
 
 
 async def _select_managed_hashes(
@@ -97,7 +151,7 @@ async def _post_qb_mutation_with_retry(
             url,
             data=data,
             files=files,
-            cookies={"SID": sid},
+            cookies=qb_session_cookies(sid),
         )
 
         if response.status_code not in (401, 403):
@@ -115,7 +169,7 @@ async def _post_qb_mutation_with_retry(
             url,
             data=data,
             files=files,
-            cookies={"SID": fresh_sid},
+            cookies=qb_session_cookies(fresh_sid),
         )
 
 
@@ -125,7 +179,7 @@ async def _get_qb_with_retry(sid: str, endpoint: str, params: Optional[Dict] = N
         response = await client.get(
             url,
             params=params,
-            cookies={"SID": sid},
+            cookies=qb_session_cookies(sid),
         )
 
         if response.status_code not in (401, 403):
@@ -142,7 +196,7 @@ async def _get_qb_with_retry(sid: str, endpoint: str, params: Optional[Dict] = N
         return await client.get(
             url,
             params=params,
-            cookies={"SID": fresh_sid},
+            cookies=qb_session_cookies(fresh_sid),
         )
 
 
@@ -153,6 +207,7 @@ async def _qb_batch_torrent_mutation(
     count_key: str,
     success_log: str,
     data_extra: Optional[Dict[str, str]] = None,
+    fallback_endpoint: Optional[str] = None,
 ) -> Dict:
     if not sid or not hashes:
         return {"success": False, count_key: 0, "failed": hashes or [], "error": "无效的会话或哈希"}
@@ -170,6 +225,14 @@ async def _qb_batch_torrent_mutation(
         data.update(data_extra)
 
     response = await _post_qb_mutation_with_retry(sid, endpoint, data)
+    if fallback_endpoint and _is_unsupported_qb_endpoint_response(response):
+        logger.warning(
+            "qBittorrent endpoint %s returned HTTP %s; trying %s",
+            endpoint,
+            response.status_code,
+            fallback_endpoint,
+        )
+        response = await _post_qb_mutation_with_retry(sid, fallback_endpoint, data)
     if response.status_code == 200:
         logger.info(success_log, len(selected_hashes))
         runtime_status.mark_success("qbittorrent")
@@ -203,7 +266,7 @@ async def qb_get_torrents(sid: str) -> List[Dict]:
 
         torrents = response.json()
         runtime_status.mark_success("qbittorrent")
-        return torrents
+        return cast(List[Dict], torrents)
     except Exception as e:
         logger.error(f"获取 qBittorrent 种子列表失败: {e}")
         runtime_status.mark_error("qbittorrent", e)
@@ -236,12 +299,33 @@ async def qb_get_torrent_trackers(torrent_hash: str, sid: str) -> List[Dict]:
             return []
 
         trackers = response.json()
+        if not isinstance(trackers, list):
+            logger.warning("qBittorrent 获取 tracker 返回格式异常")
+            runtime_status.mark_error("qbittorrent", "tracker response is not a list")
+            return []
+
         runtime_status.mark_success("qbittorrent")
-        return trackers
+        return cast(List[Dict], trackers)
     except Exception as e:
         logger.error(f"获取种子 tracker 失败: {e}")
         runtime_status.mark_error("qbittorrent", e)
         return []
+
+
+async def _resolve_mteam_id_for_torrent(
+    torrent: Dict,
+    sid: str,
+    trackers: Optional[List[Dict]] = None,
+) -> Optional[str]:
+    tag_mteam_id = _extract_mteam_id_from_tags(torrent.get("tags", ""))
+    if tag_mteam_id:
+        return tag_mteam_id
+
+    tracker_list = trackers
+    if tracker_list is None:
+        tracker_list = await qb_get_torrent_trackers(torrent.get("hash", ""), sid)
+
+    return extract_mteam_id_from_trackers(tracker_list)
 
 
 async def qb_pause_torrents(sid: str, hashes: List[str]) -> Dict:
@@ -256,12 +340,14 @@ async def qb_pause_torrents(sid: str, hashes: List[str]) -> Dict:
         Dict: {"success": bool, "paused_count": int, "failed": List[str]}
     """
     try:
+        endpoint, fallback_endpoint = _pause_resume_endpoints("pause")
         return await _qb_batch_torrent_mutation(
             sid,
             hashes,
-            "api/v2/torrents/stop",
+            endpoint,
             "paused_count",
             "批量暂停成功: %s 个种子",
+            fallback_endpoint=fallback_endpoint,
         )
     except Exception as e:
         error_msg = f"暂停异常: {str(e)}"
@@ -282,12 +368,14 @@ async def qb_resume_torrents(sid: str, hashes: List[str]) -> Dict:
         Dict: {"success": bool, "resumed_count": int, "failed": List[str]}
     """
     try:
+        endpoint, fallback_endpoint = _pause_resume_endpoints("resume")
         return await _qb_batch_torrent_mutation(
             sid,
             hashes,
-            "api/v2/torrents/start",
+            endpoint,
             "resumed_count",
             "批量恢复成功: %s 个种子",
+            fallback_endpoint=fallback_endpoint,
         )
     except Exception as e:
         error_msg = f"恢复异常: {str(e)}"
@@ -372,8 +460,8 @@ async def qb_get_mteam_torrents(sid: str, tag_filter: Optional[str] = None,
             trackers = await qb_get_torrent_trackers(torrent.get('hash', ''), sid)
             health = calculate_torrent_health(torrent, trackers)
 
-            # 提取 M-Team ID
-            mteam_id = extract_mteam_id_from_trackers(trackers)
+            # 提取 M-Team ID; reuse trackers fetched for health.
+            mteam_id = await _resolve_mteam_id_for_torrent(torrent, sid, trackers)
 
             # 格式化种子信息
             formatted = {
@@ -504,6 +592,10 @@ async def qb_find_torrent_by_mteam_id(
     Returns:
         Optional[str]: 找到返回种子哈希值，否则返回 None
     """
+    target_mteam_id = _normalize_mteam_id(mteam_id)
+    if not target_mteam_id:
+        return None
+
     eligible_tags = allowed_tags if allowed_tags is not None else MANAGED_TORRENT_TAGS
     torrents = await qb_get_torrents(sid)
 
@@ -519,11 +611,8 @@ async def qb_find_torrent_by_mteam_id(
             if excluded_tags is not None and tags.intersection(excluded_tags):
                 continue
 
-        # 获取该种子的 trackers
-        trackers = await qb_get_torrent_trackers(torrent_hash, sid)
-
-        tracker_mteam_id = extract_mteam_id_from_trackers(trackers)
-        if tracker_mteam_id == mteam_id:
+        torrent_mteam_id = await _resolve_mteam_id_for_torrent(torrent, sid)
+        if torrent_mteam_id == target_mteam_id:
             logger.info(
                 f"找到 M-Team 种子 {mteam_id} 对应的 qBittorrent 种子: {torrent.get('name')}"
             )
@@ -571,7 +660,12 @@ async def qb_delete_torrent(torrent_hash: str, sid: str, delete_files: bool = Fa
         return False
 
 
-async def qb_add_torrent_by_url(torrent_url: str, sid: str, tag: str = "") -> bool:
+async def qb_add_torrent_by_url(
+    torrent_url: str,
+    sid: str,
+    tag: str = "",
+    mteam_id: Optional[str] = None,
+) -> bool:
     """
     通过 URL 添加种子到 qBittorrent
 
@@ -579,7 +673,7 @@ async def qb_add_torrent_by_url(torrent_url: str, sid: str, tag: str = "") -> bo
         torrent_url: 种子下载 URL
         sid: qBittorrent 会话 ID
         tag: 种子标签（可选）
-
+        mteam_id: M-Team 种子 ID（可选，作为非授权 MTID 标签保存）
     Returns:
         bool: 添加成功返回 True
     """
@@ -588,8 +682,9 @@ async def qb_add_torrent_by_url(torrent_url: str, sid: str, tag: str = "") -> bo
 
     try:
         data = {"urls": torrent_url}
-        if tag:
-            data["tags"] = tag  # qBittorrent 支持在添加时设置标签
+        qb_tags = _tags_with_mteam_id(tag, mteam_id)
+        if qb_tags:
+            data["tags"] = qb_tags  # qBittorrent 支持在添加时设置标签
 
         response = await _post_qb_mutation_with_retry(
             sid,
@@ -603,7 +698,7 @@ async def qb_add_torrent_by_url(torrent_url: str, sid: str, tag: str = "") -> bo
 
         # qBittorrent API 返回 "Ok." 表示成功
         if is_qb_add_success(response):
-            logger.info(f"成功添加种子到 qBittorrent (标签: {tag}): {torrent_url[:50]}...")
+            logger.info(f"成功添加种子到 qBittorrent (标签: {data.get('tags', '')}): {torrent_url[:50]}...")
             runtime_status.mark_success("qbittorrent")
             return True
         else:
@@ -616,7 +711,13 @@ async def qb_add_torrent_by_url(torrent_url: str, sid: str, tag: str = "") -> bo
         return False
 
 
-async def qb_add_torrent_file(torrent_content: bytes, sid: str, tag: str = "", savepath: str = "") -> bool:
+async def qb_add_torrent_file(
+    torrent_content: bytes,
+    sid: str,
+    tag: str = "",
+    savepath: str = "",
+    mteam_id: Optional[str] = None,
+) -> bool:
     """
     通过文件内容添加种子到 qBittorrent
 
@@ -625,6 +726,7 @@ async def qb_add_torrent_file(torrent_content: bytes, sid: str, tag: str = "", s
         sid: qBittorrent 会话 ID
         tag: 种子标签（可选）
         savepath: 下载路径（可选）
+        mteam_id: M-Team 种子 ID（可选，作为非授权 MTID 标签保存）
 
     Returns:
         bool: 添加成功返回 True
@@ -645,8 +747,9 @@ async def qb_add_torrent_file(torrent_content: bytes, sid: str, tag: str = "", s
         # Construct multipart/form-data payload
         files = {'torrents': ('meta.torrent', torrent_content, 'application/x-bittorrent')}
         data: Dict[str, str] = {}
-        if tag:
-            data["tags"] = tag
+        qb_tags = _tags_with_mteam_id(tag, mteam_id)
+        if qb_tags:
+            data["tags"] = qb_tags
         if normalized_savepath:
             data["savepath"] = normalized_savepath
 
@@ -662,7 +765,7 @@ async def qb_add_torrent_file(torrent_content: bytes, sid: str, tag: str = "", s
             return False
 
         if is_qb_add_success(response):
-            logger.info(f"成功通过文件添加种子到 qBittorrent (标签: {tag})")
+            logger.info(f"成功通过文件添加种子到 qBittorrent (标签: {data.get('tags', '')})")
             runtime_status.mark_success("qbittorrent")
             return True
         else:
@@ -744,14 +847,10 @@ async def qb_get_existing_mteam_ids(sid: str) -> set:
         torrents = await qb_get_torrents(sid)
 
         for torrent in torrents:
-            torrent_hash = torrent.get("hash")
-            if not torrent_hash:
+            if not torrent.get("hash"):
                 continue
 
-            # 获取 tracker 信息
-            trackers = await qb_get_torrent_trackers(torrent_hash, sid)
-
-            mteam_id = extract_mteam_id_from_trackers(trackers)
+            mteam_id = await _resolve_mteam_id_for_torrent(torrent, sid)
             if mteam_id:
                 existing_ids.add(mteam_id)
 

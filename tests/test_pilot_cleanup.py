@@ -4,10 +4,10 @@ from typing import Optional
 import pytest
 
 from app.core import pilot as pilot_core
+from app.core import pilot_disk
 from app.core import rules as pilot_rules
 from app.models import AutomationConfig
 from app.routes import pilot as pilot_routes
-
 
 def _task(
     hash_: str,
@@ -21,6 +21,7 @@ def _task(
     added_on: Optional[float] = None,
     speed: float = 500.0,
     score: float = 1.0,
+    save_path: str = "/downloads/mt_free_farm",
 ) -> dict:
     return {
         "hash": hash_,
@@ -38,6 +39,7 @@ def _task(
         "size": 100 * 1024**3,
         "dlspeed": 0,
         "state": "downloading" if progress < 1.0 else "uploading",
+        "save_path": save_path,
     }
 
 
@@ -246,7 +248,7 @@ def test_large_free_torrent_requires_size_scaled_runway():
 
 
 @pytest.mark.asyncio
-async def test_download_cycle_relaxes_seeders_only_for_large_demand_gap(monkeypatch):
+async def test_download_cycle_rejects_high_seeder_candidate(monkeypatch):
     manager = _manager()
     manager.config.download.max_active_tasks = 2
     manager.config.download.rules.min_size_gb = 1
@@ -290,11 +292,11 @@ async def test_download_cycle_relaxes_seeders_only_for_large_demand_gap(monkeypa
 
     await manager.run_download_cycle(force=True)
 
-    assert [item[0] for item in downloaded] == ["high-seeder-demand-gap"]
+    assert downloaded == []
 
 
 @pytest.mark.asyncio
-async def test_download_cycle_relaxes_leecher_floor_but_keeps_low_seeders(monkeypatch):
+async def test_download_cycle_rejects_low_leecher_candidate(monkeypatch):
     manager = _manager()
     manager.config.download.max_active_tasks = 2
     manager.config.download.rules.min_size_gb = 1
@@ -338,11 +340,11 @@ async def test_download_cycle_relaxes_leecher_floor_but_keeps_low_seeders(monkey
 
     await manager.run_download_cycle(force=True)
 
-    assert [item[0] for item in downloaded] == ["medium-demand-low-seeder"]
+    assert downloaded == []
 
 
 @pytest.mark.asyncio
-async def test_download_cycle_rejects_saturated_high_seeder_fallback(monkeypatch):
+async def test_download_cycle_rejects_saturated_high_seeder_candidate(monkeypatch):
     manager = _manager()
     manager.config.download.max_active_tasks = 2
     manager.config.download.rules.min_size_gb = 1
@@ -437,6 +439,119 @@ async def test_download_cycle_does_not_add_torrent_beyond_disk_budget(monkeypatc
 
 
 @pytest.mark.asyncio
+async def test_missing_pilot_download_path_fails_closed_without_adding(monkeypatch):
+    manager = _manager()
+    downloaded = []
+
+    def fake_exists(path):
+        if path == "/downloads/mt_free_farm":
+            return False
+        return True
+
+    async def fail_if_called():
+        raise AssertionError("qB login must not run when disk path is missing")
+
+    async def fake_download(*args):
+        downloaded.append(args)
+        return True
+
+
+    monkeypatch.setattr(pilot_disk.os.path, "exists", fake_exists)
+    monkeypatch.setattr(manager, "_download_torrent", fake_download)
+    monkeypatch.setattr(pilot_core, "qb_login", fail_if_called)
+
+    assert pilot_disk.check_disk_space(manager.config) is False
+
+    await manager.run_download_cycle(force=True)
+    assert downloaded == []
+
+
+@pytest.mark.asyncio
+async def test_dry_run_reports_missing_download_budget_path(monkeypatch):
+    original_config = pilot_routes.pilot_manager.config
+    original_rule_engine = pilot_routes.pilot_manager.rule_engine
+    config = AutomationConfig()
+    config.download.rules.min_size_gb = 1
+    config.download.rules.max_seeders = 0
+    config.download.rules.min_leechers = 0
+    pilot_routes.pilot_manager.config = config
+    pilot_routes.pilot_manager.rule_engine = pilot_rules.RuleEngine(config)
+    torrent = {
+        "id": "candidate",
+        "name": "Candidate",
+        "size": 20 * 1024**3,
+        "discount": "FREE",
+        "discount_end_time": None,
+        "remaining": {"hours": 24},
+        "seeders": 1,
+        "leechers": 20,
+    }
+
+    def raise_missing_path(_tasks):
+        raise pilot_disk.DownloadDiskError(
+            "Download save path does not exist: /downloads/mt_free_farm"
+        )
+
+    try:
+        monkeypatch.setattr(
+            pilot_routes.state,
+            "cached_data",
+            {"torrents": [torrent], "error": None, "last_update": "fresh"},
+        )
+        monkeypatch.setattr(pilot_routes, "qb_login", lambda: _async_value("sid"))
+        monkeypatch.setattr(
+            pilot_routes,
+            "qb_get_existing_mteam_ids",
+            lambda _sid: _async_value(set()),
+        )
+        monkeypatch.setattr(pilot_routes, "qb_get_torrents", lambda _sid: _async_value([]))
+        monkeypatch.setattr(
+            pilot_routes.pilot_manager,
+            "_get_download_capacity_budget_bytes",
+            raise_missing_path,
+        )
+
+        result = await pilot_routes.dry_run()
+
+        assert result["download_candidates"] == []
+        assert result["total_download_candidates"] == 0
+        assert result["download_budget_bytes"] == 0
+        assert result["download_budget_error"] == (
+            "Download save path does not exist: /downloads/mt_free_farm"
+        )
+    finally:
+        pilot_routes.pilot_manager.config = original_config
+        pilot_routes.pilot_manager.rule_engine = original_rule_engine
+
+
+
+def test_non_pilot_incomplete_download_reduces_download_budget(monkeypatch):
+    manager = _manager()
+    manager.config.download.disk_usage_threshold = 90
+    task = _task(
+        "non-pilot-active",
+        tags="RADAR",
+        progress=0.25,
+        ratio=0,
+    )
+    task["size"] = 400
+    task["downloaded"] = 100
+
+    class Usage:
+        total = 1000
+        used = 100
+
+    monkeypatch.setattr(
+        pilot_core,
+        "get_download_disk_usage",
+        lambda _config: ("/downloads/mt_free_farm", Usage()),
+    )
+    monkeypatch.setattr(pilot_core, "_task_is_on_downloads_filesystem", lambda _task, _path: True)
+
+    assert manager._get_download_capacity_budget_bytes([task]) == 500
+
+
+@pytest.mark.asyncio
 async def test_download_cycle_does_not_pause_existing_tasks_when_projected_over_budget(monkeypatch):
     manager = _manager()
     manager.config.download.max_active_tasks = 2
@@ -527,6 +642,27 @@ def test_score_prioritizes_high_demand_over_long_free_runway():
         rules,
     )
 
+
+
+def test_score_gives_bounded_bonus_to_2x_free_over_equivalent_free():
+    config = AutomationConfig()
+    rules = config.download.rules
+    rules.min_size_gb = 1
+    free = {
+        "size": 20 * 1024**3,
+        "discount": "FREE",
+        "remaining": {"hours": 24},
+        "seeders": 5,
+        "leechers": 100,
+    }
+    two_x_free = {**free, "discount": "_2X_FREE"}
+
+    free_score = pilot_rules.calculate_score(free, rules)
+    two_x_free_score = pilot_rules.calculate_score(two_x_free, rules)
+
+    assert "_2X_FREE" in rules.discount_types
+    assert two_x_free_score > free_score
+    assert two_x_free_score - free_score == pytest.approx(pilot_rules.TWO_X_FREE_SCORE_BONUS)
 
 
 @pytest.mark.asyncio

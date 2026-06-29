@@ -254,8 +254,8 @@ async def radar_download_torrent(request: Request, data: DownloadRequest, check_
     if not torrent_content:
         return {"success": False, "error": "download_link_failed", "message": "获取种子文件失败"}
 
-    # 4. 添加种子文件 (使用"雷达下载"标签)
-    success = await qb_add_torrent_file(torrent_content, sid, tag=QB_TAG_RADAR)
+    # 4. 添加种子文件 (使用"雷达下载"标签，并保存非授权 M-Team ID 标签以避免后续 tracker 扫描)
+    success = await qb_add_torrent_file(torrent_content, sid, tag=QB_TAG_RADAR, mteam_id=data.id)
 
     if success:
         return {"success": True, "message": "已添加到下载队列"}

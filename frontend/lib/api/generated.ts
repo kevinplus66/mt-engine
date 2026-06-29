@@ -684,7 +684,7 @@ export interface components {
             hashes: string[];
             /**
              * Delete Files
-             * @default true
+             * @default false
              */
             delete_files?: boolean;
         };
@@ -1599,6 +1599,15 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     trigger_download_api_pilot_run_download_post: {
@@ -1895,11 +1904,11 @@ export interface operations {
     get_torrents_api_torrents_get: {
         parameters: {
             query?: {
-                discount?: string;
-                min_size?: number;
-                max_size?: number;
-                category?: string;
-                mode?: string;
+                discount?: string | null;
+                min_size?: number | null;
+                max_size?: number | null;
+                category?: string | null;
+                mode?: string | null;
             };
             header?: never;
             path?: never;

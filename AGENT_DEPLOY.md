@@ -4,13 +4,13 @@ This document is for an AI agent assisting a user in deploying MT-Engine on a NA
 
 ## Agent Execution Principles
 
-- First confirm the target host, install path, repository source, and whether the user already has a previous deployment.
+- First confirm the target host, install path, repository source, whether the NAS can pull Docker Hub base images, and whether the user already has a previous deployment.
 - Do not delete `.env`, `data/`, the download directory, or qBittorrent data by default.
 - Do not click or call any side-effecting action during verification: download, save config, pause, resume, delete, cleanup, manually trigger download, manually trigger cleanup, or toggle switches.
-- After deployment, you must check `/health`, `/api/status`, `/api/home/media-wall`, `/api/auto-delete/status`, and `/api/pilot/stats` with read-only endpoints.
-- If the user uses PILOT auto-download, you must confirm that auto-delete is enabled, qBittorrent is reachable, and the PILOT loop is healthy.
+- After deployment, prefer `scripts/verify-deploy.sh`; it checks only `/health`, `/api/status`, `/api/home/media-wall`, `/api/auto-delete/status`, `/api/pilot/stats`, and optionally `/api/pilot/dry-run`.
+- If the user uses PILOT auto-download, confirm that auto-delete is enabled, qBittorrent is reachable, the PILOT loop is healthy, `/downloads` is mounted, and the dry-run disk budget is sane.
 - If the deploy script, `docker compose`, or a health check fails, stop and report the error — do not attempt to reset the repository or clean up user data.
-- Compose binds to `0.0.0.0:5050` by default, suitable for direct LAN access on a NAS; non-DEBUG deployments must set `MT_ENGINE_API_KEY`, and public access must have authentication or a reverse proxy in place first.
+- Compose binds to `0.0.0.0:5050` by default, supports `MT_ENGINE_IMAGE` for prebuilt images, and requires `MT_ENGINE_API_KEY` for non-DEBUG LAN/public deployments.
 
 ## Pre-Deployment Confirmation
 
@@ -26,6 +26,7 @@ Whether a previous version is already deployed:
 Whether to enable PILOT auto-download / auto-cleanup:
 Whether to keep the existing .env, data, and download directory:
 Whether LAN or public access is needed; if so, what is the auth or reverse-proxy plan:
+Whether the NAS can pull Docker Hub base images or needs offline image loading:
 ```
 
 If repository access requires authentication, also confirm a GitHub Token or SSH key with the user. Do not retain the Token in the chat log long-term.
@@ -46,8 +47,10 @@ MT_USER_ID=
 MT_SITE_URL=https://kp.m-team.cc
 
 REFRESH_INTERVAL=300
+FREE_REFRESH_FAILURE_BACKOFF_SECONDS=1800
 PANEL_COLLECT_INTERVAL=60
 MEDIA_WALL_REFRESH_INTERVAL=21600
+MEDIA_WALL_REFRESH_FAILURE_BACKOFF_SECONDS=1800
 MEDIA_WALL_STARTUP_DELAY=420
 MEDIA_WALL_METADATA_TTL=604800
 MEDIA_WALL_MAX_METADATA_FETCHES=40
@@ -66,9 +69,9 @@ PILOT_SAVE_PATH=/downloads/mt_free_farm
 
 Notes:
 
-- `MT_TOKEN` is required; get it from the M-Team control panel / Lab / Access Token.
+- `MT_TOKEN` is required; get it from the M-Team control panel / Lab / Access Token and set it directly in `.env`.
 - `MT_ENGINE_BIND_HOST` defaults to `0.0.0.0`, suitable for direct LAN access on a NAS; if the user explicitly wants host-only access, set it to `127.0.0.1`.
-- `MT_ENGINE_API_KEY` is required for non-DEBUG deployments — use a long random value. Every endpoint that changes state **or incurs extra M-Team / qB API cost** (including saving config, manually triggering download/cleanup, pause/resume/delete, RADAR search) requires the client or reverse proxy to send `Authorization: Bearer <key>` or `X-MT-ENGINE-Key`.
+- `MT_ENGINE_API_KEY` is required for non-DEBUG deployments — use a long random value. Destructive or state-changing endpoints require the client or reverse proxy to send `Authorization: Bearer <key>` or `X-MT-ENGINE-Key`.
 - `MT_USER_ID` is optional, used to show user seeding/download status.
 - `REFRESH_INTERVAL=300` is the current production steady-state value; do not set it below `300`, and if the user already has a longer interval, do not shorten it.
 - `API_DELAY` must stay at `3` or higher; below `3` tends to trigger M-Team's dynamic rate limiting.
@@ -80,11 +83,14 @@ Notes:
 - `MEDIA_WALL_DOUBAN_POSTER_FETCHES` defaults to `3`, reading Douban subject pages at low frequency only when M-Team metadata lacks a poster; do not raise it to a large value just to chase full poster coverage.
 - `DEBUG` stays `false` for production deployments.
 - In a Docker environment, `QBITTORRENT_URL` must use the NAS or host's LAN IP, not `localhost`.
-- If configuring qBittorrent, you must use the user's own Web UI username and password; do not reuse an empty password, a default password, or a temporary setup password.
-- `DOWNLOADS_PATH` is a host path, mounted read-only into the container at `/downloads`.
+- qBittorrent 4.6.7 is known-good; qBittorrent 5 is supported by the compatibility layer. Recommend a pinned qB image tag on NAS until the user intentionally upgrades.
+- Docker builds use the hardcoded `node:22-alpine` and `python:3.12-slim` base images; keep them fixed for normal NAS deployments.
+- If configuring qBittorrent, use the user's own Web UI username and password; do not reuse an empty password, a default password, or a temporary setup password.
+- `PUSHPLUS_TOKEN` is optional and should be set directly in `.env` when used.
+- `DOWNLOADS_PATH` is a host path, mounted read-only into the container at `/downloads`; if it is missing/unreadable, PILOT fails closed and skips downloads.
 - `PILOT_SAVE_PATH` is usually a subdirectory under `/downloads`.
 - `MT_ENGINE_COMMIT` should be set to the current code's short commit hash for deployment metadata tracing (e.g. `git rev-parse --short HEAD`).
-- After deployment, also check `/health`, `/api/status`, and `/api/home/media-wall`; `/api/status` returns a summary of version, commit, cache, dependencies, and non-sensitive config.
+- After deployment, check `/health`, `/api/status`, `/api/home/media-wall`, `/api/auto-delete/status`, and `/api/pilot/stats`; `/api/pilot/dry-run` is an optional read-only check.
 
 ## Docker Mirror Reminder
 
@@ -136,13 +142,8 @@ EOF
 export MT_ENGINE_COMMIT="$(git rev-parse --short HEAD)"
 docker compose up -d --build
 
-# 5. Verify
-docker compose ps
-curl http://localhost:5050/health
-curl http://localhost:5050/api/status
-curl http://localhost:5050/api/home/media-wall
-curl http://localhost:5050/api/auto-delete/status
-curl http://localhost:5050/api/pilot/stats
+# 5. Verify read-only acceptance
+./scripts/verify-deploy.sh --base-url http://127.0.0.1:5050
 ```
 
 After a successful deployment, tell the user that Compose allows LAN access by default:
@@ -161,7 +162,15 @@ If the NAS cannot access GitHub non-interactively, prefer deploying via git bund
 NAS_HOST="<NAS_IP>" NAS_USER="<SSH_USER>" NAS_PATH="<INSTALL_PATH>" ./scripts/deploy-nas.sh
 ```
 
-The script uploads a bundle of the current `HEAD`, performs a fast-forward merge on the NAS, runs `docker compose up -d --build`, and checks `/health` and `/api/status`. If the target repository cannot fast-forward, the script fails and does not rewrite `.env`, `data/`, or the download directory.
+The script uploads a bundle of the current `HEAD`, performs a fast-forward merge on the NAS, runs `docker compose up -d --build`, and checks the read-only acceptance endpoints. If the target repository cannot fast-forward, the script fails and does not rewrite `.env`, `data/`, or the download directory.
+
+If the NAS cannot pull Docker Hub base images or should not build images, create a Docker image archive on a local machine and pass it to the same script:
+
+```bash
+PREBUILT_IMAGE_ARCHIVE="/path/to/mt-engine.tar" NAS_HOST="<NAS_IP>" NAS_USER="<SSH_USER>" NAS_PATH="<INSTALL_PATH>" ./scripts/deploy-nas.sh
+```
+
+With `PREBUILT_IMAGE_ARCHIVE`, `scripts/deploy-nas.sh` uploads and loads the archive on the NAS, sets `MT_ENGINE_IMAGE`, and starts Compose without building on the NAS.
 
 To deploy a specific branch or commit, set `DEPLOY_REF`:
 
@@ -169,19 +178,14 @@ To deploy a specific branch or commit, set `DEPLOY_REF`:
 NAS_HOST="<NAS_IP>" NAS_USER="<SSH_USER>" NAS_PATH="<INSTALL_PATH>" DEPLOY_REF=main ./scripts/deploy-nas.sh
 ```
 
-If the NAS can already access GitHub directly, you can also run on the NAS:
+If the NAS can already access GitHub and Docker Hub directly, you can also run on the NAS:
 
 ```bash
 cd [install path]
 git pull --ff-only
 export MT_ENGINE_COMMIT="$(git rev-parse --short HEAD)"
 docker compose up -d --build
-docker compose ps
-curl http://localhost:5050/health
-curl http://localhost:5050/api/status
-curl http://localhost:5050/api/home/media-wall
-curl http://localhost:5050/api/auto-delete/status
-curl http://localhost:5050/api/pilot/stats
+./scripts/verify-deploy.sh --base-url http://127.0.0.1:5050
 ```
 
 After updating, check:
@@ -205,38 +209,24 @@ If `REFRESH_INTERVAL` is below `300`, raise it back to `300` or higher; if `API_
 
 ## Post-Deployment Read-Only Acceptance
 
-After deployment, first look at health and the config summary:
+After deployment, use the verifier:
 
 ```bash
-curl -sf http://localhost:5050/health
-curl -sf http://localhost:5050/api/status
-curl -sf http://localhost:5050/api/home/media-wall
-curl -sf http://localhost:5050/api/auto-delete/status
-curl -sf http://localhost:5050/api/pilot/stats
+./scripts/verify-deploy.sh --base-url http://127.0.0.1:5050
 ```
+
+The verifier executes curl checks against only read-only GET endpoints: `/health`, `/api/status`, `/api/home/media-wall`, `/api/auto-delete/status`, `/api/pilot/stats`, and optionally `/api/pilot/dry-run` with `--pilot-dry-run`.
 
 Acceptance focus:
 
 - In `/api/status`, `dependencies.qbittorrent.ok` and `dependencies.mteam.ok` should be `true`.
-- In `/api/status`, `warnings` should normally be empty; if you see `free_cache_stale`, `qbittorrent_unhealthy`, `mteam_unhealthy`, `free_refresh_backoff`, or `panel_collector_stale`, explain the cause before deciding whether to declare the deployment successful.
-- In `/api/status`, `config.refresh_interval_seconds` should be ≥ `300`, `config.api_delay_seconds` should be ≥ `3`, `config.media_wall_refresh_interval_seconds` should be ≥ `21600`, and `config.media_wall_douban_poster_fetches` should stay small. `FREE_REFRESH_FAILURE_BACKOFF_SECONDS` and `MEDIA_WALL_REFRESH_FAILURE_BACKOFF_SECONDS` need to be checked against `.env` itself.
-- `/api/home/media-wall` should return `rails`; the current rail id order should be `western_series`, `foreign_movies`, `asian_series`, `chinese_series`, `classic_restorations`. If it is empty right after the first deploy, the background staggered first refresh has not finished yet; wait for `MEDIA_WALL_STARTUP_DELAY`, after which each source fills in gradually at a pace of `MEDIA_WALL_REFRESH_INTERVAL / 4`.
+- In `/api/status`, `warnings` should normally be empty; explain any warning before declaring the deployment successful.
+- `/api/home/media-wall` should return `rails`; if it is empty right after the first deploy, the background staggered first refresh has not finished yet.
 - In `/api/auto-delete/status`, `enabled` should match the user's expectation; if the user relies on PILOT auto-download, keeping it `true` is recommended.
-- In `/api/pilot/stats`, `is_running` should be `true`; it may also temporarily return `false` right after startup, before the loop heartbeat is established, or once the heartbeat is stale — do not declare failure based on a single instantaneous value.
+- In `/api/pilot/stats`, `is_running` should be `true`; it may briefly be `false` right after startup before the heartbeat is established.
+- `/api/pilot/dry-run` can be used as a read-only view of candidates and disk budget; it should not be used as proof that mutation endpoints are safe to call.
 
-If the user is worried that PILOT keeps downloading after the FREE window ends, you can additionally do a read-only check of the qB task mapping:
-
-```bash
-curl -sf 'http://localhost:5050/api/panel/torrents?tag=PILOT'
-```
-
-Confirm that the returned PILOT tasks resolve an `mteam_id`. Do not call `/api/pilot/run-download`, `/api/pilot/run-cleanup`, `/api/panel/torrents/delete`, `/api/panel/torrents/pause`, `/api/panel/torrents/resume`, or `/api/auto-delete/toggle` unless the user explicitly authorizes it on the spot.
-
-For a read-only view of the current PILOT candidates and disk budget, you can additionally check:
-
-```bash
-curl -sf http://localhost:5050/api/pilot/dry-run
-```
+Do not call `/api/pilot/run-download`, `/api/pilot/run-cleanup`, `/api/panel/torrents/delete`, `/api/panel/torrents/pause`, `/api/panel/torrents/resume`, or `/api/auto-delete/toggle` unless the user explicitly authorizes it on the spot. If deletion is authorized, omitting `delete_files` preserves files; only `delete_files: true` removes downloaded data. RADAR/PILOT managed cleanup avoids unmanaged torrents, and PILOT fails closed if `/downloads` or the configured save path cannot be measured.
 
 ## Upgrading or Reinstalling an Older Version
 
@@ -289,15 +279,16 @@ Do not delete user data by default.
 | Problem | Action |
 | --- | --- |
 | clone fails | Check the repository URL, GitHub Token, or SSH key |
-| image pull fails | Check the NAS network and Docker mirror |
+| image pull/base build fails on NAS | Use `PREBUILT_IMAGE_ARCHIVE=/path/to/mt-engine.tar scripts/deploy-nas.sh` from a local builder, or check the NAS network and Docker mirror |
+| qBittorrent compatibility concern | qB 4.6 and qB 5 are supported by fallback between qB Web API endpoint families; pin the qB image tag on NAS until intentionally upgrading |
 | port in use | `lsof -nP -iTCP:5050 -sTCP:LISTEN` or `netstat -tlnp \| grep 5050` |
 | container fails to start | `docker compose logs -f` |
 | `.env` not taking effect | Confirm `docker compose` is run from the repository root |
-| `MT_TOKEN` invalid | Regenerate the M-Team Token, then restart the container |
+| `MT_TOKEN` invalid | Regenerate the M-Team Token, set `MT_TOKEN` directly in `.env`, then restart the container |
 | M-Team requests too frequent | Confirm `API_DELAY=3` or higher; the program raises values below `3` up to `3` |
 | qBittorrent unreachable | Confirm `QBITTORRENT_URL` uses a LAN IP, not `localhost` |
 | PILOT auto-delete status uncertain | Read-only check `/api/auto-delete/status`, `/api/pilot/stats`, and `/api/panel/torrents?tag=PILOT` |
-| permission error | Check `PUID`/`PGID` against `data/` ownership |
+| permission or disk-budget error | Check `PUID`/`PGID`, `data/` ownership, and that `DOWNLOADS_PATH` exists/readable on the host |
 | frontend page 404 | Re-run `docker compose up -d --build` |
 
 ## Agent Notes

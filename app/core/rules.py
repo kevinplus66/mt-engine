@@ -52,6 +52,8 @@ def get_free_hours_remaining(torrent: dict) -> Optional[float]:
     remaining = torrent.get("remaining")
     if isinstance(remaining, dict):
         hours = remaining.get("hours")
+        if hours is None:
+            return None
         try:
             return float(hours)
         except (TypeError, ValueError):
@@ -70,6 +72,8 @@ def calculate_required_free_hours(size_gb: float) -> float:
     # normal 20-100GB targets are starved.
     estimated_download_hours = size_gb / 120
     return max(ALERT_THRESHOLD_MINUTES / 60, estimated_download_hours + 0.5)
+
+TWO_X_FREE_SCORE_BONUS = 0.15
 
 
 def _swarm_counts(task: dict) -> Tuple[Optional[int], Optional[int]]:
@@ -160,6 +164,12 @@ def calculate_score(torrent: dict, config: RuleConfig) -> float:
         config.weight_age * scores['age'] +
         config.weight_seeders * scores['upload_window']
     )
+
+    # 2x free is strictly better than ordinary FREE for otherwise equivalent
+    # candidates, but the fixed cap is intentionally smaller than the demand,
+    # scarcity, age, and runway ranges so it cannot swamp the core farming signal.
+    if torrent.get("discount") == "_2X_FREE":
+        total += TWO_X_FREE_SCORE_BONUS
 
     return round(total, 4)
 
@@ -271,7 +281,7 @@ class RuleEngine:
             hours_since_added = (time.time() - added_time) / 3600
             download_speed = task.get("dlspeed") or task.get("download_speed") or 0
             seeders, leechers = _swarm_counts(task)
-            current_users = None if seeders is None else seeders + leechers
+            current_users = None if seeders is None or leechers is None else seeders + leechers
             dead_seed_hours = cleanup.dead_seed_minutes / 60
 
             if (
@@ -309,7 +319,7 @@ class RuleEngine:
         if cleanup.min_current_users > 0:
             # Treat negative qB scrape values as unknown, not as zero users.
             seeders, leechers = _swarm_counts(task)
-            if seeders is not None:
+            if seeders is not None and leechers is not None:
                 current_users = seeders + leechers
                 if current_users < cleanup.min_current_users:
                     return (True, f"Low users: {current_users} < {cleanup.min_current_users}")

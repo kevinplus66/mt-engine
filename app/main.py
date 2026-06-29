@@ -323,7 +323,7 @@ async def normalize_trailing_slash(request: Request, call_next):
     """Remove trailing slash from panel path to ensure consistent routing"""
     if request.url.path == "/panel/":
         # 构造新的 scope，将路径改为 /panel
-        scope = request.scope.copy()
+        scope = dict(request.scope)
         scope["path"] = "/panel"
         request = Request(scope, request.receive)
     return await call_next(request)
@@ -353,11 +353,11 @@ app.include_router(panel_router)
 # ============ 种子 API ============
 @app.get("/api/torrents")
 async def get_torrents(
-    discount: str = None,
-    min_size: int = None,
-    max_size: int = None,
-    category: str = None,
-    mode: str = None
+    discount: Optional[str] = None,
+    min_size: Optional[int] = None,
+    max_size: Optional[int] = None,
+    category: Optional[str] = None,
+    mode: Optional[str] = None
 ):
     """获取种子列表"""
     return await api_torrents(discount, min_size, max_size, category, mode)

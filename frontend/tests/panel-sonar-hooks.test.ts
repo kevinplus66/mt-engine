@@ -201,7 +201,7 @@ describe("SONAR remaining-time filters", () => {
 });
 
 describe("PANEL torrent actions", () => {
-  it("keeps the delete dialog open and avoids success updates when delete fails", async () => {
+  it("sends explicit delete_files true and keeps the dialog open when delete fails", async () => {
     vi.mocked(deletePanelTorrents).mockResolvedValue({
       success: false,
       deleted_count: 0,

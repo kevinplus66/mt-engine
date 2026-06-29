@@ -3,6 +3,7 @@
 
 services:
   mt-engine:
+    image: "${MT_ENGINE_IMAGE:-mt-engine:${MT_ENGINE_COMMIT:-local}}"
     build:
       context: .
       args:
@@ -11,6 +12,14 @@ services:
     # 使用 .env 中的 PUID/PGID，解决 NAS 权限问题
     user: "${PUID:-1000}:${PGID:-1000}"
     restart: unless-stopped
+    pids_limit: 256
+    mem_limit: 1024m
+    memswap_limit: 1536m
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
     # NAS 默认需要局域网直连；公网访问请先配置认证和反向代理
     ports:
       - "${MT_ENGINE_BIND_HOST:-0.0.0.0}:5050:5050"

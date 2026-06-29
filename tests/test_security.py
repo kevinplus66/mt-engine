@@ -73,6 +73,27 @@ def test_mutating_api_routes_require_api_key_dependency():
         assert _route_requires_api_key(route), route.path
 
 
+def test_heavy_read_only_qb_routes_require_api_key_dependency():
+    protected_paths = {"/api/pilot/dry-run", "/api/panel/torrents"}
+    routes_by_path = {
+        route.path: route
+        for route in main.app.routes
+        if isinstance(route, APIRoute) and route.path in protected_paths
+    }
+
+    assert set(routes_by_path) == protected_paths
+    for route in routes_by_path.values():
+        assert _route_requires_api_key(route), route.path
+
+
+def test_heavy_read_only_qb_requests_reject_missing_api_key(monkeypatch):
+    monkeypatch.setattr(config, "DEBUG", False)
+    monkeypatch.setenv("MT_ENGINE_API_KEY", "correct-key")
+
+    assert client.get("/api/pilot/dry-run").status_code == 401
+    assert client.get("/api/panel/torrents").status_code == 401
+
+
 def test_openapi_security_contract_for_protected_mutators():
     main.app.openapi_schema = None
     schema = main.app.openapi()
@@ -156,6 +177,58 @@ def test_bearer_or_header_api_key_reaches_endpoint_behavior(monkeypatch):
     assert header_body["resumed_count"] == 0
     assert header_body["failed"] == ["abc"]
     assert "error" in header_body
+
+
+def test_panel_delete_defaults_to_preserving_files_when_delete_files_omitted(monkeypatch):
+    calls = []
+
+    async def fake_qb_login():
+        return "sid"
+
+    async def fake_qb_delete_torrents(sid, hashes, delete_files=True):
+        calls.append({"sid": sid, "hashes": hashes, "delete_files": delete_files})
+        return {"success": True, "deleted_count": len(hashes), "failed": []}
+
+    monkeypatch.setattr(config, "DEBUG", False)
+    monkeypatch.setenv("MT_ENGINE_API_KEY", "correct-key")
+    monkeypatch.setattr(panel_routes, "qb_login", fake_qb_login)
+    monkeypatch.setattr(panel_routes, "qb_delete_torrents", fake_qb_delete_torrents)
+
+    response = _post(
+        "/api/panel/torrents/delete",
+        {"hashes": ["hash-1"]},
+        headers={"X-MT-ENGINE-Key": "correct-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["success"] is True
+    assert calls == [{"sid": "sid", "hashes": ["hash-1"], "delete_files": False}]
+
+
+def test_panel_delete_explicit_true_still_deletes_files(monkeypatch):
+    calls = []
+
+    async def fake_qb_login():
+        return "sid"
+
+    async def fake_qb_delete_torrents(sid, hashes, delete_files=True):
+        calls.append({"sid": sid, "hashes": hashes, "delete_files": delete_files})
+        return {"success": True, "deleted_count": len(hashes), "failed": []}
+
+    monkeypatch.setattr(config, "DEBUG", False)
+    monkeypatch.setenv("MT_ENGINE_API_KEY", "correct-key")
+    monkeypatch.setattr(panel_routes, "qb_login", fake_qb_login)
+    monkeypatch.setattr(panel_routes, "qb_delete_torrents", fake_qb_delete_torrents)
+
+    response = _post(
+        "/api/panel/torrents/delete",
+        {"hashes": ["hash-1"], "delete_files": True},
+        headers={"Authorization": "Bearer correct-key"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["success"] is True
+    assert calls == [{"sid": "sid", "hashes": ["hash-1"], "delete_files": True}]
 
 
 def test_safe_frontend_file_serves_from_frontend_root(monkeypatch, tmp_path):

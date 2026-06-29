@@ -2,6 +2,7 @@
 # 自包含构建，适合分享部署
 
 # ============ Stage 1: Build Next.js Frontend ============
+
 FROM node:22-alpine AS frontend-builder
 
 WORKDIR /frontend
@@ -27,6 +28,7 @@ WORKDIR /app
 
 ARG MT_ENGINE_COMMIT=unknown
 ENV MT_ENGINE_COMMIT=${MT_ENGINE_COMMIT}
+LABEL org.opencontainers.image.revision="${MT_ENGINE_COMMIT}"
 
 # Install Python dependencies
 COPY requirements.txt .
@@ -40,6 +42,7 @@ COPY CHANGELOG.md ./CHANGELOG.md
 
 # Copy frontend static files from builder stage
 COPY --from=frontend-builder /frontend/out ./frontend/
+RUN chmod -R a+rX /app/app /app/frontend /app/CHANGELOG.md
 
 # Create data directory
 RUN mkdir -p /app/data

@@ -4,7 +4,8 @@ Pilot API endpoints (领航)
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.models import AutomationConfig
-from app.core.pilot import has_pilot_tag, pilot_manager
+from app.core.pilot import has_pilot_tag, is_pilot_cleanup_candidate, pilot_manager
+from app.core.pilot_disk import DownloadDiskError
 from app.core.pilot_config_store import save_pilot_config
 from app.core.rules import RuleEngine
 from app.services.qbittorrent import qb_login, qb_get_torrents, qb_get_existing_mteam_ids
@@ -75,7 +76,7 @@ async def get_stats():
     }
 
 
-@router.get("/dry-run")
+@router.get("/dry-run", dependencies=[Depends(require_api_key)])
 async def dry_run():
     """
     Simulate run - returns what would be downloaded/cleaned
@@ -91,18 +92,16 @@ async def dry_run():
     sid = await qb_login()
     existing_mteam_ids = await qb_get_existing_mteam_ids(sid) if sid else set()
     tasks = await qb_get_torrents(sid) if sid else []
-    auto_tasks = [t for t in tasks if has_pilot_tag(t.get('tags', ''))]
-    available_slots = max(
-        0,
-        pilot_manager.config.download.max_active_tasks - len(auto_tasks),
-    )
-    download_budget_bytes = max(0, pilot_manager._get_download_capacity_budget_bytes(auto_tasks))
+    cleanup_tasks = [t for t in tasks if is_pilot_cleanup_candidate(t, pilot_manager.config)]
+    download_budget_error = None
+    try:
+        download_budget_bytes = max(0, pilot_manager._get_download_capacity_budget_bytes(tasks))
+    except DownloadDiskError as e:
+        download_budget_error = str(e)
+        download_budget_bytes = 0
     torrent_sizes = {str(t.get('id', '')): int(t.get('size') or 0) for t in torrents}
 
-
-
     skipped_existing = 0
-    candidate_ids = set()
     for t in torrents:
         tid = t.get('id', '')
         if tid in pilot_manager.pending_downloads:
@@ -122,68 +121,6 @@ async def dry_run():
                 "score": score,
                 "reason": reason
             })
-            candidate_ids.add(tid)
-
-    for relaxed_min_leechers in (50, 30):
-        if len(download_candidates) >= available_slots:
-            break
-        if relaxed_min_leechers >= pilot_manager.config.download.rules.min_leechers:
-            continue
-
-        for t in torrents:
-            tid = t.get('id', '')
-            if (
-                tid in candidate_ids
-                or tid in pilot_manager.pending_downloads
-                or tid in existing_mteam_ids
-            ):
-                continue
-            should_dl, score, reason = pilot_manager.rule_engine.evaluate_download(
-                t,
-                min_leechers_override=relaxed_min_leechers,
-            )
-            if should_dl:
-                download_candidates.append({
-                    "id": tid,
-                    "name": t.get('name', ''),
-                    "size_gb": round(t.get('size', 0) / (1000**3), 2),
-                    "score": score,
-                    "reason": reason,
-                    "relaxed": f"leechers:{relaxed_min_leechers}",
-                })
-                candidate_ids.add(tid)
-
-    if len(download_candidates) < available_slots:
-        relaxed_min_leechers = min(pilot_manager.config.download.rules.min_leechers, 50)
-        for t in torrents:
-            tid = t.get('id', '')
-            if (
-                tid in candidate_ids
-                or tid in pilot_manager.pending_downloads
-                or tid in existing_mteam_ids
-            ):
-                continue
-            seeders = t.get("seeders", 0)
-            leechers = t.get("leechers", 0)
-            if leechers < relaxed_min_leechers:
-                continue
-            if seeders > 0 and leechers / seeders < 2:
-                continue
-            should_dl, score, reason = pilot_manager.rule_engine.evaluate_download(
-                t,
-                relax_seeders=True,
-                min_leechers_override=relaxed_min_leechers,
-            )
-            if should_dl:
-                download_candidates.append({
-                    "id": tid,
-                    "name": t.get('name', ''),
-                    "size_gb": round(t.get('size', 0) / (1000**3), 2),
-                    "score": score,
-                    "reason": reason,
-                    "relaxed": f"demand-gap:{relaxed_min_leechers}",
-                })
-                candidate_ids.add(tid)
 
     # Sort by score and apply the same disk-budget reservation used by real downloads.
     download_candidates.sort(key=lambda x: x['score'], reverse=True)
@@ -192,7 +129,9 @@ async def dry_run():
     skipped_budget = 0
     for candidate in download_candidates:
         torrent_size = torrent_sizes.get(str(candidate["id"]), 0)
-        if torrent_size <= 0 or reserved_bytes + torrent_size <= download_budget_bytes:
+        if download_budget_error is None and (
+            torrent_size <= 0 or reserved_bytes + torrent_size <= download_budget_bytes
+        ):
             budgeted_download_candidates.append(candidate)
             reserved_bytes += torrent_size
         else:
@@ -205,7 +144,7 @@ async def dry_run():
     cleanup_candidates = []
     remaining_cleanup_tasks = []
 
-    for task in auto_tasks:
+    for task in cleanup_tasks:
         should_delete, reason = pilot_manager.rule_engine.evaluate_cleanup(task)
         if should_delete:
             cleanup_candidates.append({
@@ -246,6 +185,7 @@ async def dry_run():
         "total_download_candidates": len(download_candidates),
         "download_budget_bytes": download_budget_bytes,
         "skipped_budget": skipped_budget,
+        "download_budget_error": download_budget_error,
         "cleanup_candidates": cleanup_candidates,
         "total_cleanup_candidates": len(cleanup_candidates),
         "skipped_existing": skipped_existing,  # 新增：显示跳过的已存在种子数

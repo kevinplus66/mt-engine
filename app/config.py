@@ -52,7 +52,6 @@ def safe_int(value: str, default: int, min_val: int = 0, max_val: int = 99999999
     except (ValueError, TypeError):
         return default
 
-
 # ============ M-Team API 配置 ============
 MT_API_BASE = "https://api.m-team.io/api"
 MT_SEARCH_URL = f"{MT_API_BASE}/torrent/search"

@@ -96,8 +96,26 @@
                 "schema": {}
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ]
       }
     },
     "/api/pilot/run-download": {
@@ -311,6 +329,14 @@
         "summary": "Get Panel Torrents",
         "description": "\u83b7\u53d6\u79cd\u5b50\u5217\u8868\uff08\u5e26\u7b5b\u9009\uff09\n\nArgs:\n    tag: \u6807\u7b7e\u7b5b\u9009 (\"\u58f0\u5450\u505a\u79cd\" | \"\u96f7\u8fbe\u4e0b\u8f7d\" | \"PILOT\")\n    status: \u72b6\u6001\u7b5b\u9009 (\"downloading\" | \"seeding\" | \"paused\" | \"completed\")\n\nReturns:\n    {\n        \"torrents\": List[Dict],\n        \"total_count\": int,\n        \"filtered_count\": int\n    }",
         "operationId": "get_panel_torrents_api_panel_torrents_get",
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "ApiKeyAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "tag",
@@ -521,7 +547,14 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "title": "Discount"
             }
           },
@@ -530,7 +563,14 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "integer",
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "title": "Min Size"
             }
           },
@@ -539,7 +579,14 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "integer",
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "title": "Max Size"
             }
           },
@@ -548,7 +595,14 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "title": "Category"
             }
           },
@@ -557,7 +611,14 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "title": "Mode"
             }
           }
@@ -1139,7 +1200,7 @@
           "delete_files": {
             "type": "boolean",
             "title": "Delete Files",
-            "default": true
+            "default": false
           }
         },
         "type": "object",

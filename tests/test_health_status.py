@@ -85,11 +85,12 @@ def test_status_reports_runtime_cache_dependencies_and_config():
     assert body["panel_collector"]["last_started"] == panel_heartbeat
     assert body["panel_collector"]["last_success"] == panel_heartbeat
     assert body["panel_collector"]["next_refresh"].endswith("+08:00")
-    assert body["dependencies"]["qbittorrent"]["name"] == "qbittorrent"
-    assert body["dependencies"]["qbittorrent"]["ok"] is True
-    assert datetime.fromisoformat(
-        body["dependencies"]["qbittorrent"]["last_success"]
-    ).tzinfo == config.BEIJING_TZ
+    qb_status = body["dependencies"]["qbittorrent"]
+    assert set(qb_status) == {"name", "ok", "last_success", "last_error"}
+    assert qb_status["name"] == "qbittorrent"
+    assert qb_status["ok"] is True
+    assert qb_status["last_error"] is None
+    assert datetime.fromisoformat(qb_status["last_success"]).tzinfo == config.BEIJING_TZ
     assert body["dependencies"]["mteam"]["ok"] is False
     assert body["dependencies"]["mteam"]["last_success"] is None
     assert body["dependencies"]["mteam"]["last_error"] is None

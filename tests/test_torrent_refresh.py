@@ -366,7 +366,7 @@ async def test_failed_required_normal_shard_keeps_previous_cache_and_runs_expiry
     ]
 
 @pytest.mark.asyncio
-async def test_failed_adult_shard_is_optional_and_normal_cache_still_updates(monkeypatch):
+async def test_failed_optional_shards_do_not_backoff_when_normal_cache_updates(monkeypatch):
     client = _RefreshClient(
         {
             ("FREE", "normal"): FreeTorrentSearchResult(
@@ -382,6 +382,13 @@ async def test_failed_adult_shard_is_optional_and_normal_cache_still_updates(mon
                 complete=False,
                 pages_fetched=0,
                 error="adult shard failed",
+            ),
+            ("_2X_FREE", "normal", "LEECHERS", "DESC"): FreeTorrentSearchResult(
+                items=[],
+                succeeded=False,
+                complete=False,
+                pages_fetched=0,
+                error="2x shard failed",
             ),
         }
     )
@@ -409,6 +416,7 @@ async def test_failed_adult_shard_is_optional_and_normal_cache_still_updates(mon
         ("FREE", "normal", "LEECHERS", "DESC"),
         ("FREE", "adult", None, None),
         ("FREE", "adult", "LEECHERS", "DESC"),
+        ("_2X_FREE", "normal", "LEECHERS", "DESC"),
     ]
     assert len(emergency_calls) == 1
     called_torrents, expiry_only, membership_complete = emergency_calls[0]
@@ -449,6 +457,13 @@ async def test_page_one_free_search_updates_cache_and_checks_emergencies(monkeyp
                 pages_fetched=1,
                 total=0,
             ),
+            ("_2X_FREE", "normal", "LEECHERS", "DESC"): FreeTorrentSearchResult(
+                items=[_raw_torrent("twox-demand", "_2X_FREE")],
+                succeeded=True,
+                complete=False,
+                pages_fetched=1,
+                total=5,
+            ),
         }
     )
     emergency_calls = []
@@ -471,12 +486,14 @@ async def test_page_one_free_search_updates_cache_and_checks_emergencies(monkeyp
         ("FREE", "normal", "LEECHERS", "DESC"),
         ("FREE", "adult", None, None),
         ("FREE", "adult", "LEECHERS", "DESC"),
+        ("_2X_FREE", "normal", "LEECHERS", "DESC"),
     ]
     assert [item["id"] for item in state.cached_data["torrents"]] == [
         "page-1",
         "page-2",
         "demand-1",
         "adult-1",
+        "twox-demand",
     ]
     assert state.cached_data["error"] is None
     assert state.cached_data["coverage"] == "page1+leechers_desc"
@@ -493,14 +510,24 @@ async def test_page_one_free_search_updates_cache_and_checks_emergencies(monkeyp
         "FREE/normal/leechers_desc",
         "FREE/adult/default",
         "FREE/adult/leechers_desc",
+        "_2X_FREE/normal/leechers_desc",
     }
-    assert state.cached_data["total"] == 4
+    assert state.cached_data["free_refresh_shards"]["_2X_FREE/normal/leechers_desc"] == {
+        "total": 5,
+        "pages_fetched": 1,
+        "complete": False,
+        "items": 1,
+    }
+    assert state.cached_data["total"] == 5
+    assert state.cached_data["free_count"] == 4
+    assert state.cached_data["free_2x_count"] == 1
     assert len(emergency_calls) == 1
     assert [item["id"] for item in emergency_calls[0][0]] == [
         "page-1",
         "page-2",
         "demand-1",
         "adult-1",
+        "twox-demand",
     ]
     assert emergency_calls[0][1:] == (False, False)
 
@@ -514,6 +541,7 @@ async def test_page_one_free_search_updates_cache_and_checks_emergencies(monkeyp
         ("FREE", "normal", "LEECHERS", "DESC"),
         ("FREE", "adult", None, None),
         ("FREE", "adult", "LEECHERS", "DESC"),
+        ("_2X_FREE", "normal", "LEECHERS", "DESC"),
     ]
     assert len(emergency_calls) == 1
 
@@ -620,6 +648,7 @@ async def test_fresh_cache_with_error_refreshes_instead_of_reusing(monkeypatch):
         ("FREE", "normal", "LEECHERS", "DESC"),
         ("FREE", "adult", None, None),
         ("FREE", "adult", "LEECHERS", "DESC"),
+        ("_2X_FREE", "normal", "LEECHERS", "DESC"),
     ]
     assert [item["id"] for item in state.cached_data["torrents"]] == [
         "new-normal",

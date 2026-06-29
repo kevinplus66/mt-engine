@@ -6,7 +6,7 @@ import pytest
 from app.core import pilot as pilot_core
 from app.core import rules as pilot_rules
 from app.models import AutomationConfig
-
+from app.constants import QB_TAG_RADAR
 
 def _task(
     hash_: str,
@@ -20,6 +20,7 @@ def _task(
     added_on: Optional[float] = None,
     dlspeed: int = 0,
     state: Optional[str] = None,
+    save_path: str = "/downloads/mt_free_farm",
 ) -> dict:
     return {
         "hash": hash_,
@@ -33,6 +34,7 @@ def _task(
         "added_on": time.time() if added_on is None else added_on,
         "dlspeed": dlspeed,
         "state": state if state is not None else ("downloading" if progress < 1.0 else "uploading"),
+        "save_path": save_path,
     }
 
 
@@ -50,7 +52,7 @@ def _manager() -> pilot_core.PilotManager:
 
 @pytest.mark.asyncio
 async def test_run_cleanup_cycle_auto_deletes_only_eligible_pilot_task(monkeypatch):
-    eligible_pilot = _task("eligible-pilot", tags="RADAR, PILOT")
+    eligible_pilot = _task("eligible-pilot", tags="PILOT")
     non_pilot = _task("non-pilot", tags="RADAR")
     protected_pilot = _task("protected-pilot", tags="PILOT", ratio=0.5)
     deleted = []
@@ -66,6 +68,7 @@ async def test_run_cleanup_cycle_auto_deletes_only_eligible_pilot_task(monkeypat
         assert delete_files is True
         deleted.append((torrent_hash, sid, delete_files))
         return True
+
 
     manager = _manager()
     should_delete_eligible, eligible_reason = manager.rule_engine.evaluate_cleanup(eligible_pilot)
@@ -86,6 +89,39 @@ async def test_run_cleanup_cycle_auto_deletes_only_eligible_pilot_task(monkeypat
 
     assert deleted == [("eligible-pilot", "sid", True)]
     assert manager.total_cleanups == 1
+
+
+
+
+@pytest.mark.asyncio
+async def test_cleanup_cycle_vetoes_radar_pilot_mixed_tag(monkeypatch):
+    radar_pilot = _task("radar-pilot", tags=f"{QB_TAG_RADAR}, PILOT")
+    pure_pilot = _task("pure-pilot", tags="PILOT")
+    deleted = []
+
+    async def fake_delete_torrent(torrent_hash, sid, delete_files=False):
+        deleted.append((torrent_hash, sid, delete_files))
+        return True
+
+    async def fake_login():
+        return "sid"
+
+    async def fake_get_torrents(sid):
+        assert sid == "sid"
+        return [radar_pilot, pure_pilot]
+
+
+    manager = _manager()
+
+    monkeypatch.setattr(pilot_core, "qb_login", fake_login)
+    monkeypatch.setattr(pilot_core, "qb_get_torrents", fake_get_torrents)
+    monkeypatch.setattr(pilot_core, "qb_delete_torrent", fake_delete_torrent)
+
+    await manager.run_cleanup_cycle(force=True)
+
+    assert pilot_core.is_pilot_cleanup_candidate(radar_pilot, manager.config) is False
+    assert pilot_core.is_pilot_cleanup_candidate(pure_pilot, manager.config) is True
+    assert deleted == [("pure-pilot", "sid", True)]
 
 
 @pytest.mark.asyncio

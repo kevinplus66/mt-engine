@@ -224,13 +224,16 @@ async def fetch_all_free_torrents() -> Dict[str, Any]:
 
         # 搜索 FREE 的普通区、成人区；保留 M-Team 默认 page 1，再补一个
         # leechers-desc page 1，避免只看默认排序时错过高需求候选。
-        # 仅 normal/default 为 required：成人区临时故障不应丢弃普通区数据
-        # 并触发 30 分钟退避。
+        # _2X_FREE 只补 normal/leechers-desc 这一个低频 shard：让 2xFree
+        # 进入候选集，但不扩成 full crawl 或成人区额外搜索。
+        # 仅 FREE normal/default 为 required：可选 shard 临时故障不应丢弃
+        # 普通区数据并触发 30 分钟退避。
         search_tasks = [
             ("FREE", "normal", "default", None, None, True),
             ("FREE", "normal", "leechers_desc", "LEECHERS", "DESC", False),
             ("FREE", "adult", "default", None, None, False),
             ("FREE", "adult", "leechers_desc", "LEECHERS", "DESC", False),
+            ("_2X_FREE", "normal", "leechers_desc", "LEECHERS", "DESC", False),
         ]
 
         for discount_type, mode, variant, sort_field, sort_direction, required in search_tasks:
@@ -257,7 +260,7 @@ async def fetch_all_free_torrents() -> Dict[str, Any]:
                     await _run_expiry_only_emergency_checks(state.cached_data.get("torrents") or [])
                     return state.cached_data
 
-                logger.warning(f"{shard} 可选需求排序搜索失败，继续使用默认 FREE 缓存: {error}")
+                logger.warning(f"{shard} 可选免费搜索失败，继续使用已成功 shard: {error}")
                 continue
 
             for item in search_result.items:

@@ -3,7 +3,7 @@ Pilot manager - download/cleanup cycles and background loop (领航)
 """
 import asyncio
 import os
-import shutil
+import posixpath
 import time
 from typing import Set, Optional
 from app.models import AutomationConfig
@@ -13,24 +13,93 @@ from app.core.pilot_config_store import (
     load_pilot_config,
 )
 from app.core.pilot_cleanup import PilotCleanupTracker
-from app.core.pilot_disk import check_disk_space, get_disk_usage_percent
+from app.core.pilot_disk import (
+    DownloadDiskError,
+    check_disk_space,
+    get_disk_usage_percent,
+    get_download_disk_usage,
+)
 from app.core.rules import RuleEngine
 from app.services.qbittorrent import (
     qb_login, qb_add_torrent_file, qb_get_torrents,
     qb_delete_torrent, download_torrent_file, qb_get_existing_mteam_ids,
 )
 from app.config import logger, DEBUG
+from app.constants import QB_TAG_RADAR
 import app.state as state
 
 
 PILOT_TAG = "PILOT"
 
 
-def has_pilot_tag(tags: object) -> bool:
-    """Return True only when the comma-delimited qB tag list contains PILOT exactly."""
+def has_qb_tag(tags: object, expected: str) -> bool:
+    """Return True when the comma-delimited qB tag list contains expected exactly."""
     if not isinstance(tags, str):
         return False
-    return any(tag.strip() == PILOT_TAG for tag in tags.split(","))
+    return any(tag.strip() == expected for tag in tags.split(","))
+
+
+def has_pilot_tag(tags: object) -> bool:
+    """Return True only when the comma-delimited qB tag list contains PILOT exactly."""
+    return has_qb_tag(tags, PILOT_TAG)
+
+
+def _normalize_qb_path(path: object) -> Optional[str]:
+    if not isinstance(path, str):
+        return None
+    path = path.strip()
+    if not path:
+        return None
+    normalized = posixpath.normpath(path)
+    if not normalized.startswith("/"):
+        return None
+    return normalized
+
+
+def _path_is_under(path: object, parent: str) -> bool:
+    normalized_path = _normalize_qb_path(path)
+    normalized_parent = _normalize_qb_path(parent)
+    if normalized_path is None or normalized_parent is None:
+        return False
+    return normalized_path == normalized_parent or normalized_path.startswith(f"{normalized_parent}/")
+
+
+def _task_paths(task: dict) -> tuple[str, ...]:
+    paths = []
+    for key in ("save_path", "savePath", "content_path", "contentPath"):
+        normalized = _normalize_qb_path(task.get(key))
+        if normalized is not None:
+            paths.append(normalized)
+    return tuple(paths)
+
+
+def _task_is_on_downloads_filesystem(task: dict, budget_path: str) -> bool:
+    """Return True for qB tasks whose save/content path reserves bytes on /downloads."""
+    budget_device = os.stat(budget_path).st_dev
+    for path in _task_paths(task):
+        if not _path_is_under(path, "/downloads"):
+            continue
+
+        probe_path = path
+        while probe_path != "/" and not os.path.exists(probe_path):
+            probe_path = posixpath.dirname(probe_path)
+
+        try:
+            if os.stat(probe_path).st_dev == budget_device:
+                return True
+        except OSError:
+            return True
+    return False
+
+
+def is_pilot_cleanup_candidate(task: dict, config: AutomationConfig) -> bool:
+    """Return True only for destructive PILOT cleanup tasks isolated under PILOT save_path."""
+    tags = task.get("tags", "")
+    if not has_pilot_tag(tags):
+        return False
+    if has_qb_tag(tags, QB_TAG_RADAR):
+        return False
+    return any(_path_is_under(path, config.download.save_path) for path in _task_paths(task))
 
 
 def _torrent_size_bytes(torrent: dict) -> int:
@@ -73,9 +142,6 @@ class PilotManager:
         self._download_cycle_lock: Optional[asyncio.Lock] = None
         self._cleanup_cycle_lock: Optional[asyncio.Lock] = None
 
-        # Cache for existing M-Team IDs in qBittorrent
-        self._existing_ids_cache: Set[str] = set()
-        self._cache_updated: float = 0
 
         # Statistics tracking
         self.total_downloads = 0
@@ -101,18 +167,15 @@ class PilotManager:
             self._cleanup_cycle_lock = asyncio.Lock()
         return self._cleanup_cycle_lock
 
-    def _get_download_capacity_budget_bytes(self, auto_tasks: list[dict]) -> int:
+    def _get_download_capacity_budget_bytes(self, tasks: list[dict]) -> int:
         """Return bytes still safe to allocate before hitting disk threshold."""
-        save_path = self.config.download.save_path
-        if not os.path.exists(save_path):
-            save_path = "."
-
-        usage = shutil.disk_usage(save_path)
+        save_path, usage = get_download_disk_usage(self.config)
         capacity = int(usage.total * self.config.download.disk_usage_threshold / 100)
         active_remaining = sum(
             _torrent_remaining_bytes(task)
-            for task in auto_tasks
+            for task in tasks
             if _is_incomplete_active_download(task)
+            and _task_is_on_downloads_filesystem(task, save_path)
         )
         return capacity - usage.used - active_remaining
 
@@ -142,32 +205,9 @@ class PilotManager:
         return (time.time() - self.last_loop_heartbeat) <= grace_seconds
 
     async def _get_existing_mteam_ids(self, sid: str) -> Set[str]:
-        """
-        Get existing M-Team IDs in qBittorrent (with 60s cache)
+        """Get current M-Team IDs in qBittorrent."""
+        return await qb_get_existing_mteam_ids(sid)
 
-        Args:
-            sid: qBittorrent session ID
-
-        Returns:
-            Set[str]: Set of M-Team torrent IDs already in qBittorrent
-        """
-        now = time.time()
-        cache_ttl = 60  # 60 seconds cache
-
-        # Return cached data if still valid
-        if now - self._cache_updated < cache_ttl:
-            return self._existing_ids_cache
-
-        # Refresh cache
-        self._existing_ids_cache = await qb_get_existing_mteam_ids(sid)
-        self._cache_updated = now
-        logger.debug(f"Refreshed existing IDs cache: {len(self._existing_ids_cache)} torrents")
-
-        return self._existing_ids_cache
-
-    def _invalidate_cache(self):
-        """Invalidate the existing IDs cache"""
-        self._cache_updated = 0
 
     def get_disk_usage_percent(self) -> Optional[float]:
         """Get current disk usage percentage."""
@@ -210,12 +250,15 @@ class PilotManager:
             # Get existing M-Team IDs to avoid duplicates
             existing_mteam_ids = await self._get_existing_mteam_ids(sid)
 
-            # Check available slots before scoring so starvation fallback can fill them.
+            # Check available slots before scoring and budgeting.
             current_tasks = await qb_get_torrents(sid)
             auto_tasks = [t for t in current_tasks if has_pilot_tag(t.get('tags', ''))]
 
-
-            download_budget_bytes = self._get_download_capacity_budget_bytes(auto_tasks)
+            try:
+                download_budget_bytes = self._get_download_capacity_budget_bytes(current_tasks)
+            except DownloadDiskError as e:
+                logger.info("Download cycle skipped: %s", e)
+                return
             if download_budget_bytes <= 0:
                 logger.info(
                     "Download cycle skipped: projected download usage is above %s%% threshold",
@@ -232,7 +275,6 @@ class PilotManager:
 
             # Filter and score candidates
             candidates = []
-            candidate_ids = set()
             skipped_existing = 0
             for t in torrents:
                 tid = t.get('id', '')
@@ -253,88 +295,7 @@ class PilotManager:
 
                 should_dl, score, reason = self.rule_engine.evaluate_download(t)
                 if should_dl:
-                    candidates.append((score, t))
-                    candidate_ids.add(tid)
-
-            for relaxed_min_leechers in (50, 30):
-                if len(candidates) >= available_slots:
-                    break
-                if relaxed_min_leechers >= self.config.download.rules.min_leechers:
-                    continue
-
-                relaxed_added = 0
-                for t in torrents:
-                    tid = t.get('id', '')
-                    if (
-                        tid in candidate_ids
-                        or tid in self.pending_downloads
-                        or tid in existing_mteam_ids
-                    ):
-                        continue
-
-                    remaining = t.get("remaining", {})
-                    if isinstance(remaining, dict) and remaining.get("hours", 0) <= 0:
-                        continue
-
-                    should_dl, score, reason = self.rule_engine.evaluate_download(
-                        t,
-                        min_leechers_override=relaxed_min_leechers,
-                    )
-                    if should_dl:
-                        candidates.append((score, t))
-                        candidate_ids.add(tid)
-                        relaxed_added += 1
-
-                if relaxed_added:
-                    logger.info(
-                        "Download starvation fallback: added %s low-seeder candidates "
-                        "(min_leechers=%s, slots=%s)",
-                        relaxed_added,
-                        relaxed_min_leechers,
-                        available_slots,
-                    )
-
-            if len(candidates) < available_slots:
-                relaxed_min_leechers = min(self.config.download.rules.min_leechers, 50)
-                relaxed_added = 0
-                for t in torrents:
-                    tid = t.get('id', '')
-                    if (
-                        tid in candidate_ids
-                        or tid in self.pending_downloads
-                        or tid in existing_mteam_ids
-                    ):
-                        continue
-
-                    remaining = t.get("remaining", {})
-                    if isinstance(remaining, dict) and remaining.get("hours", 0) <= 0:
-                        continue
-
-                    seeders = t.get("seeders", 0)
-                    leechers = t.get("leechers", 0)
-                    if leechers < relaxed_min_leechers:
-                        continue
-                    if seeders > 0 and leechers / seeders < 2:
-                        continue
-
-                    should_dl, score, reason = self.rule_engine.evaluate_download(
-                        t,
-                        relax_seeders=True,
-                        min_leechers_override=relaxed_min_leechers,
-                    )
-                    if should_dl:
-                        candidates.append((score, t))
-                        candidate_ids.add(tid)
-                        relaxed_added += 1
-
-                if relaxed_added:
-                    logger.info(
-                        "Download starvation fallback: added %s demand-gap candidates "
-                        "(min_leechers=%s, slots=%s)",
-                        relaxed_added,
-                        relaxed_min_leechers,
-                        available_slots,
-                    )
+                    candidates.append((score, t, reason))
 
             if skipped_existing > 0:
                 logger.debug(f"Skipped {skipped_existing} torrents already in qBittorrent")
@@ -354,7 +315,7 @@ class PilotManager:
             # Download top candidates without overcommitting disk capacity.
             downloaded_count = 0
             reserved_bytes = 0
-            for score, torrent in candidates:
+            for score, torrent, reason in candidates:
                 if downloaded_count >= available_slots:
                     break
 
@@ -375,11 +336,14 @@ class PilotManager:
                 tid = torrent['id']
                 self.pending_downloads.add(tid)
                 try:
-                    success = await self._download_torrent(torrent, sid, score)
+                    success = await self._download_torrent(
+                        {**torrent, "_pilot_decision_reason": reason},
+                        sid,
+                        score,
+                    )
                     if success:
                         downloaded_count += 1
                         reserved_bytes += torrent_size
-                        self._invalidate_cache()  # Invalidate cache after successful download
                 finally:
                     self.pending_downloads.discard(tid)
 
@@ -413,7 +377,8 @@ class PilotManager:
             content,
             sid,
             tag="PILOT",
-            savepath=self.config.download.save_path
+            savepath=self.config.download.save_path,
+            mteam_id=tid,
         )
 
         if success:
@@ -441,7 +406,7 @@ class PilotManager:
                 return
 
             tasks = await qb_get_torrents(sid)
-            auto_tasks = [t for t in tasks if has_pilot_tag(t.get('tags', ''))]
+            auto_tasks = [t for t in tasks if is_pilot_cleanup_candidate(t, self.config)]
 
             if not auto_tasks:
                 logger.debug("No PILOT tasks to clean up")
@@ -559,6 +524,9 @@ class PilotManager:
         """
         hash_ = task.get('hash', '')
         name = task.get('name', hash_)[:50]
+        if not is_pilot_cleanup_candidate(task, self.config):
+            logger.warning("Cleanup vetoed for %s: task is not isolated PILOT content", name)
+            return False
         success = await qb_delete_torrent(hash_, sid, delete_files=True)
         if success:
             logger.info(f"🗑️  Deleted: {name} - {reason}")

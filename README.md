@@ -113,13 +113,13 @@ DOWNLOADS_PATH=/volume1/downloads
 PILOT_SAVE_PATH=/downloads/mt_free_farm
 ```
 
-For Docker deployments, `QBITTORRENT_URL` must use the actual LAN IP of your NAS or host — not `localhost`.
+For Docker deployments, `QBITTORRENT_URL` must use the actual LAN IP of your NAS or host — not `localhost`. qBittorrent 4.6.7 is known-good; qBittorrent 5 is supported through the compatibility layer that negotiates the pause/resume endpoint family. For NAS deployments, pin your qBittorrent image tag until you intentionally upgrade.
 
-If you configure qBittorrent, use your own Web UI username and password; do not reuse an empty password, a default password, or a temporary setup password.
+If you configure qBittorrent, use your own Web UI username and password; do not reuse an empty password, a default password, or a temporary setup password. Deployment secrets are direct environment variables: set `MT_TOKEN`, `MT_ENGINE_API_KEY`, optional `QBITTORRENT_PASSWORD`, and optional `PUSHPLUS_TOKEN` in `.env`; do not commit real values.
 
-For non-DEBUG deployments you must set `MT_ENGINE_API_KEY`. Every endpoint that changes state **or that incurs extra M-Team / qB API cost** (for example: saving config, manually triggering download/cleanup, pause/resume/delete, RADAR search) requires the client or a protected reverse proxy to send `Authorization: Bearer <key>` or `X-MT-ENGINE-Key`. Read-only acceptance endpoints do not require it.
+For non-DEBUG deployments you must set `MT_ENGINE_API_KEY`. Destructive or state-changing endpoints require the client or a protected reverse proxy to send `Authorization: Bearer <key>` or `X-MT-ENGINE-Key`; the bundled web UI prompts for this key on the first protected action and stores it in browser local storage. Read-only acceptance endpoints do not require it.
 
-To avoid M-Team rate limiting, FREE auto-refresh samples four page-1 shards sequentially: `FREE/normal/default`, `FREE/normal/leechers_desc`, `FREE/adult/default`, `FREE/adult/leechers_desc`. Repeated manual or PILOT triggers within a refresh interval reuse the current cache instead of re-requesting M-Team; after an M-Team failure it backs off per `FREE_REFRESH_FAILURE_BACKOFF_SECONDS`. Auto-refresh itself does not actively query the `_2X_FREE` channel, but if M-Team's FREE results carry a `_2X_FREE` discount, PILOT still recognizes it per its rules.
+To avoid M-Team rate limiting, FREE auto-refresh reuses the current cache during a refresh interval and backs off after M-Team failures. PILOT keeps qB task identity conservative so managed cleanup avoids unmanaged torrents.
 
 Media-wall refresh still rotates sources on a stagger, refreshing only one source at a time; when an M-Team source refresh fails it keeps serving the old cache and retries after a `MEDIA_WALL_REFRESH_FAILURE_BACKOFF_SECONDS` cooldown to avoid hammering the API while rate-limited.
 
@@ -127,10 +127,12 @@ Media-wall refresh still rotates sources on a stagger, refreshing only one sourc
 
 ```bash
 export MT_ENGINE_COMMIT="$(git rev-parse --short HEAD)"
+# Optional: use a prebuilt or NAS-loaded image instead of the default mt-engine:<commit>
+# export MT_ENGINE_IMAGE="mt-engine:${MT_ENGINE_COMMIT}"
 docker compose up -d --build
 ```
 
-The first build installs the front-end and back-end dependencies and builds the Next.js static output.
+The first build installs the front-end and back-end dependencies and builds the Next.js static output. Docker builds use the hardcoded `node:22-alpine` and `python:3.12-slim` base images; keep qBittorrent on a pinned NAS image tag until you intentionally upgrade it.
 
 ### 4. Access
 
@@ -144,12 +146,10 @@ By default Compose binds the port to `0.0.0.0:5050`, suitable for direct LAN acc
 
 ```bash
 docker compose ps
-curl -sf http://localhost:5050/health
-curl -sf http://localhost:5050/api/status
-curl -sf http://localhost:5050/api/home/media-wall
-curl -sf http://localhost:5050/api/auto-delete/status
-curl -sf http://localhost:5050/api/pilot/stats
+./scripts/verify-deploy.sh --base-url http://127.0.0.1:5050
 ```
+
+`scripts/verify-deploy.sh` is read-only: it only calls `GET /health`, `/api/status`, `/api/home/media-wall`, `/api/auto-delete/status`, `/api/pilot/stats`, and optionally `/api/pilot/dry-run` with `--pilot-dry-run`.
 
 Example health response:
 
@@ -163,12 +163,13 @@ The status endpoint returns runtime version, commit, cache state, dependency sta
 curl http://localhost:5050/api/status
 ```
 
+
 If you use PILOT auto-download, also confirm:
 
 - `enabled` in `/api/auto-delete/status` is `true` or matches your expectation.
 - `is_running` in `/api/pilot/stats` is `true`, unless you have explicitly disabled the download and cleanup strategy.
-- `/api/pilot/dry-run` returns download candidates, cleanup candidates, and the current disk budget; if `download_candidates=0` and `skipped_budget>0`, the disk budget is blocking restocking — the candidate pool is not empty.
-- `warnings` in `/api/status` is empty, and both the qBittorrent and M-Team dependencies are healthy.
+- `/api/pilot/dry-run` returns a read-only preview of candidates and disk budget without mutating qB.
+- `warnings` in `/api/status` is empty, and both the qBittorrent and M-Team dependencies are healthy. qB 4.6 and qB 5 are supported by fallback between qB Web API endpoint families.
 - `/api/home/media-wall` returns `rails`; if it is briefly empty right after the first deploy, just wait for the first background refresh to finish.
 
 ## Environment Variables
@@ -179,8 +180,8 @@ If you use PILOT auto-download, also confirm:
 | `PGID` | No | Container run group ID | `1000` |
 | `MT_ENGINE_COMMIT` | No | Build metadata (recommended: `git rev-parse --short HEAD`) | `local` |
 | `MT_ENGINE_BIND_HOST` | No | Web service bind address; LAN-accessible by default on NAS, set to `127.0.0.1` for host-only access | `0.0.0.0` |
-| `MT_TOKEN` | Yes | M-Team API Token | - |
-| `MT_ENGINE_API_KEY` | Yes (non-DEBUG) | Protects endpoints that change state **or incur extra M-Team / qB API cost** (including saving config, manually triggering download/cleanup, pause/resume/delete, RADAR search); the client or reverse proxy sends `Authorization: Bearer <key>` or `X-MT-ENGINE-Key` | - |
+| `MT_TOKEN` | Yes | M-Team API Token, set directly in `.env` | - |
+| `MT_ENGINE_API_KEY` | Yes (non-DEBUG) | Protects destructive or state-changing endpoints; the client or reverse proxy sends `Authorization: Bearer <key>` or `X-MT-ENGINE-Key` | - |
 | `MT_USER_ID` | No | M-Team User ID, used for user seeding/download status | - |
 | `MT_SITE_URL` | No | M-Team site URL | `https://kp.m-team.cc` |
 | `REFRESH_INTERVAL` | No | SONAR background refresh interval, in seconds; this is the current production steady-state value, not recommended below 300 | `300` |
@@ -194,19 +195,19 @@ If you use PILOT auto-download, also confirm:
 | `MEDIA_WALL_MAX_METADATA_FETCHES` | No | Metadata backfill budget per full rotation cycle; a single source refresh uses about 1/4 of the budget | `40` |
 | `MEDIA_WALL_DOUBAN_POSTER_FETCHES` | No | Max number of Douban-page posters fetched at low frequency per media-wall source refresh; used only when M-Team metadata lacks a poster | `3` |
 | `PUSHPLUS_TOKEN` | No | PushPlus WeChat push Token | - |
-| `QBITTORRENT_URL` | No | qBittorrent Web UI URL | - |
+| `QBITTORRENT_URL` | No | qBittorrent Web UI URL; use a pinned qB image tag on NAS until intentionally upgrading | - |
 | `QBITTORRENT_USER` | No | qBittorrent Web UI username | - |
 | `QBITTORRENT_PASSWORD` | No | qBittorrent Web UI password | - |
-| `DOWNLOADS_PATH` | No | Download directory on the host, mounted as `/downloads` in the container | `/downloads` |
+| `DOWNLOADS_PATH` | No | Download directory on the host, mounted read-only as `/downloads` in the container; PILOT fails closed if this path is missing or unreadable | `/downloads` |
 | `PILOT_SAVE_PATH` | No | PILOT save path, usually a subdirectory under `/downloads` | `/downloads/mt_free_farm` |
 | `DEBUG` | No | Local debug switch; when `true` it skips `MT_ENGINE_API_KEY` auth — suitable only for LAN/development environments | `false` |
+| `MT_ENGINE_IMAGE` | No | Compose image tag to run; useful for prebuilt/offline images with `docker compose up -d --no-build` | `mt-engine:${MT_ENGINE_COMMIT:-local}` |
 
-### PILOT Runtime Semantics
+### PILOT and Safety Semantics
 
-- `disk_usage_threshold` does not look only at "current disk usage". Before downloading, it budgets against **current usage + remaining size of in-progress downloads + size of tasks about to be added this round**, to avoid the task queue filling the disk.
-- `elimination_ratio` defaults to `0`, meaning by default it does not "eliminate the bottom X% by score".
-- `/api/pilot/dry-run` now previews all of: download candidates, Phase 1 direct cleanup candidates, Phase 2 low-speed cleanup candidates, and the current disk budget.
-- Large FREE torrents require a longer remaining FREE time; they are not gated solely by the fixed 10-minute threshold.
+- Omitting `delete_files` on `/api/panel/torrents/delete` preserves downloaded files; files are removed only when the request explicitly sets `delete_files: true`.
+- If `/downloads` or the configured save path cannot be measured, PILOT fails closed and skips downloads instead of guessing available space.
+- RADAR/PILOT managed cleanup avoids unmanaged torrents.
 
 ## Local Development
 
@@ -322,6 +323,14 @@ If the NAS cannot access GitHub non-interactively, you can deploy from your loca
 ```bash
 NAS_HOST="<NAS_IP>" NAS_USER="<SSH_USER>" NAS_PATH="<INSTALL_PATH>" ./scripts/deploy-nas.sh
 ```
+
+If the NAS cannot pull Docker Hub base images or should not build at all, create a Docker image archive on a local machine, then pass it to the same deploy script:
+
+```bash
+PREBUILT_IMAGE_ARCHIVE="/path/to/mt-engine.tar" NAS_HOST="<NAS_IP>" NAS_USER="<SSH_USER>" NAS_PATH="<INSTALL_PATH>" ./scripts/deploy-nas.sh
+```
+
+Required env vars are `NAS_HOST`, `NAS_USER`, and `NAS_PATH`; `DEPLOY_REF`, `VERIFY_DEPLOY`, and `VERIFY_PILOT_DRY_RUN` stay optional. With `PREBUILT_IMAGE_ARCHIVE`, `scripts/deploy-nas.sh` uploads and loads the archive on the NAS, sets `MT_ENGINE_IMAGE`, and starts Compose without building on the NAS.
 
 ### Standard rollback
 

@@ -38,7 +38,7 @@ class ResumeTorrentsRequest(BaseModel):
 
 class DeleteTorrentsRequest(BaseModel):
     hashes: List[str]
-    delete_files: bool = True
+    delete_files: bool = False
 
 
 @router.get("/api/panel/stats", response_model=PanelStatsResponse)
@@ -295,7 +295,7 @@ async def get_panel_share_ratio(range: Literal["1h", "6h", "12h", "24h", "7d", "
         }
 
 
-@router.get("/api/panel/torrents", response_model=PanelTorrentsResponse)
+@router.get("/api/panel/torrents", response_model=PanelTorrentsResponse, dependencies=[Depends(require_api_key)])
 async def get_panel_torrents(
     tag: Optional[str] = None,
     status: Optional[str] = None
