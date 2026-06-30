@@ -167,17 +167,35 @@ class PilotManager:
             self._cleanup_cycle_lock = asyncio.Lock()
         return self._cleanup_cycle_lock
 
-    def _get_download_capacity_budget_bytes(self, tasks: list[dict]) -> int:
-        """Return bytes still safe to allocate before hitting disk threshold."""
+    def get_download_projection(self, tasks: list[dict]) -> dict:
+        """Return current/projected /downloads usage and bytes safe to allocate."""
         save_path, usage = get_download_disk_usage(self.config)
-        capacity = int(usage.total * self.config.download.disk_usage_threshold / 100)
+        threshold_percent = self.config.download.disk_usage_threshold
         active_remaining = sum(
             _torrent_remaining_bytes(task)
             for task in tasks
             if _is_incomplete_active_download(task)
             and _task_is_on_downloads_filesystem(task, save_path)
         )
-        return capacity - usage.used - active_remaining
+        current_percent = (usage.used / usage.total) * 100
+        projected_percent = ((usage.used + active_remaining) / usage.total) * 100
+        download_budget_bytes = (
+            int(usage.total * threshold_percent / 100)
+            - usage.used
+            - active_remaining
+        )
+        return {
+            "disk_usage_percent": current_percent,
+            "current_disk_usage_percent": current_percent,
+            "projected_disk_usage_percent": projected_percent,
+            "active_download_remaining_bytes": active_remaining,
+            "download_budget_bytes": download_budget_bytes,
+            "disk_usage_threshold_percent": threshold_percent,
+        }
+
+    def _get_download_capacity_budget_bytes(self, tasks: list[dict]) -> int:
+        """Return bytes still safe to allocate before hitting disk threshold."""
+        return int(self.get_download_projection(tasks)["download_budget_bytes"])
 
 
     def mark_loop_heartbeat(self, error: Optional[str] = None):

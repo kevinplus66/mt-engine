@@ -60,6 +60,18 @@ async def get_stats():
     tasks = await qb_get_torrents(sid) if sid else []
     auto_tasks = [t for t in tasks if has_pilot_tag(t.get('tags', ''))]
 
+    try:
+        disk_projection = pilot_manager.get_download_projection(tasks)
+    except DownloadDiskError:
+        disk_projection = {
+            "disk_usage_percent": None,
+            "current_disk_usage_percent": None,
+            "projected_disk_usage_percent": None,
+            "active_download_remaining_bytes": 0,
+            "download_budget_bytes": 0,
+            "disk_usage_threshold_percent": pilot_manager.config.download.disk_usage_threshold,
+        }
+
     return {
         "active_tasks": len(auto_tasks),
         "pending_downloads": len(pilot_manager.pending_downloads),
@@ -68,7 +80,7 @@ async def get_stats():
         "interval_seconds": pilot_manager.config.download.interval_seconds,
         "total_downloads": pilot_manager.total_downloads,
         "total_cleanups": pilot_manager.total_cleanups,
-        "disk_usage_percent": pilot_manager.get_disk_usage_percent(),
+        **disk_projection,
         "last_run": pilot_manager.last_run,
         "next_run": pilot_manager.next_run,
         "is_running": pilot_manager.is_running_healthy(),
@@ -94,10 +106,19 @@ async def dry_run():
     cleanup_tasks = [t for t in tasks if is_pilot_cleanup_candidate(t, pilot_manager.config)]
     download_budget_error = None
     try:
-        download_budget_bytes = max(0, pilot_manager._get_download_capacity_budget_bytes(tasks))
+        disk_projection = pilot_manager.get_download_projection(tasks)
+        download_budget_bytes = max(0, int(disk_projection["download_budget_bytes"]))
     except DownloadDiskError as e:
         download_budget_error = str(e)
         download_budget_bytes = 0
+        disk_projection = {
+            "disk_usage_percent": None,
+            "current_disk_usage_percent": None,
+            "projected_disk_usage_percent": None,
+            "active_download_remaining_bytes": 0,
+            "download_budget_bytes": 0,
+            "disk_usage_threshold_percent": pilot_manager.config.download.disk_usage_threshold,
+        }
     torrent_sizes = {str(t.get('id', '')): int(t.get('size') or 0) for t in torrents}
 
     skipped_existing = 0
@@ -182,6 +203,7 @@ async def dry_run():
     return {
         "download_candidates": download_candidates[:20],  # Top 20
         "total_download_candidates": len(download_candidates),
+        **disk_projection,
         "download_budget_bytes": download_budget_bytes,
         "skipped_budget": skipped_budget,
         "download_budget_error": download_budget_error,

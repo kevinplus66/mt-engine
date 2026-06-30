@@ -97,10 +97,15 @@ async function installReadOnlyFixtures(page: Page) {
       "/api/pilot/stats": {
         total_downloads: 0,
         total_cleanups: 0,
-        active_tasks: 0,
+        active_tasks: 3,
         pending_downloads: 0,
         is_running: true,
         disk_usage_percent: 42,
+        current_disk_usage_percent: 42,
+        projected_disk_usage_percent: 68.5,
+        active_download_remaining_bytes: 280000000000,
+        download_budget_bytes: 215000000000,
+        disk_usage_threshold_percent: 90,
       },
       "/api/filter-options": {
         categories: [],

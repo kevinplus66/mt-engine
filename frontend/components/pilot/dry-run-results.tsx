@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/common/section-card";
+import { formatBytes } from "@/lib/formatters";
 import type { DryRunResult } from "@/lib/types";
 
 interface DryRunResultsProps {
@@ -12,6 +13,19 @@ interface DryRunResultsProps {
 }
 
 export function DryRunResults({ result, onClose }: DryRunResultsProps) {
+  const downloadBudgetBytes = result.download_budget_bytes;
+  const activeDownloadRemainingBytes = result.active_download_remaining_bytes;
+  const hasDownloadBudgetBytes =
+    typeof downloadBudgetBytes === "number" &&
+    Number.isFinite(downloadBudgetBytes);
+  const hasActiveDownloadRemainingBytes =
+    typeof activeDownloadRemainingBytes === "number" &&
+    Number.isFinite(activeDownloadRemainingBytes);
+  const isBudgetGated =
+    result.download_candidates.length === 0 && (result.skipped_budget ?? 0) > 0;
+  const hasDownloadBudgetDetails =
+    hasDownloadBudgetBytes || hasActiveDownloadRemainingBytes;
+
   return (
     <SectionCard
       title="模拟运行结果"
@@ -35,8 +49,22 @@ export function DryRunResults({ result, onClose }: DryRunResultsProps) {
             {result.total_download_candidates}
           </Badge>
         </div>
+        {hasDownloadBudgetDetails ? (
+          <div className="flex flex-wrap gap-x-3 gap-y-1 text-muted-foreground text-xs">
+            {hasDownloadBudgetBytes ? (
+              <span>剩余预算 {formatBytes(downloadBudgetBytes)}</span>
+            ) : null}
+            {hasActiveDownloadRemainingBytes ? (
+              <span>未完成预留 {formatBytes(activeDownloadRemainingBytes)}</span>
+            ) : null}
+          </div>
+        ) : null}
         {result.download_candidates.length === 0 ? (
-          <p className="text-muted-foreground text-sm">没有符合条件的种子</p>
+          <p className="text-muted-foreground text-sm">
+            {isBudgetGated
+              ? "下载预算已耗尽或不足，跳过符合条件的种子"
+              : "没有符合条件的种子"}
+          </p>
         ) : (
           <div className="space-y-2">
             {result.download_candidates.map((candidate, idx) => (

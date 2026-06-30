@@ -10,11 +10,27 @@ import { Badge } from "@/components/ui/badge";
 import { Download, Trash2, Clock, Activity, HardDrive } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { formatCompactDateTime } from "@/lib/formatters";
+import { formatBytes, formatCompactDateTime } from "@/lib/formatters";
 import type { PilotStats } from "@/lib/types";
 
 interface StatsBarProps {
   stats: PilotStats;
+}
+
+function formatPercent(value?: number | null) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? `${value.toFixed(1)}%`
+    : "N/A";
+}
+
+function isFiniteNumber(value?: number | null): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function formatBudget(bytes: number) {
+  return bytes < 0
+    ? `超出 ${formatBytes(Math.abs(bytes))}`
+    : `剩余预算 ${formatBytes(bytes)}`;
 }
 
 function StatCard({
@@ -56,10 +72,19 @@ export function StatsBar({ stats }: StatsBarProps) {
 
   const totalDownloads = stats.total_downloads ?? 0;
   const totalCleanups = stats.total_cleanups ?? 0;
-  const diskUsage =
-    stats.disk_usage_percent !== undefined && stats.disk_usage_percent !== null
-      ? `${stats.disk_usage_percent.toFixed(1)}%`
-      : "N/A";
+  const projectedDiskUsagePercent =
+    stats.projected_disk_usage_percent === undefined
+      ? stats.disk_usage_percent
+      : stats.projected_disk_usage_percent;
+  const currentDiskUsagePercent =
+    stats.current_disk_usage_percent === undefined
+      ? stats.disk_usage_percent
+      : stats.current_disk_usage_percent;
+  const hasDiskUsageHelper =
+    isFiniteNumber(currentDiskUsagePercent) ||
+    isFiniteNumber(stats.active_download_remaining_bytes) ||
+    isFiniteNumber(stats.disk_usage_threshold_percent) ||
+    isFiniteNumber(stats.download_budget_bytes);
 
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -103,7 +128,29 @@ export function StatsBar({ stats }: StatsBarProps) {
         valueClassName=""
       />
 
-      <StatCard label="磁盘使用率" value={diskUsage} icon={HardDrive} />
+      <StatCard
+        label="预计占用"
+        value={formatPercent(projectedDiskUsagePercent)}
+        icon={HardDrive}
+        helper={
+          hasDiskUsageHelper ? (
+            <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
+              {isFiniteNumber(currentDiskUsagePercent) ? (
+                <span>实际 {formatPercent(currentDiskUsagePercent)}</span>
+              ) : null}
+              {isFiniteNumber(stats.active_download_remaining_bytes) ? (
+                <span>未完成预留 {formatBytes(stats.active_download_remaining_bytes)}</span>
+              ) : null}
+              {isFiniteNumber(stats.disk_usage_threshold_percent) ? (
+                <span>阈值 {formatPercent(stats.disk_usage_threshold_percent)}</span>
+              ) : null}
+              {isFiniteNumber(stats.download_budget_bytes) ? (
+                <span>{formatBudget(stats.download_budget_bytes)}</span>
+              ) : null}
+            </span>
+          ) : undefined
+        }
+      />
 
       <StatCard
         label="运行时间"

@@ -126,7 +126,12 @@ export interface PilotStats {
   last_run?: string;
   next_run?: string;
   is_running: boolean;
-  disk_usage_percent?: number;
+  disk_usage_percent?: number | null;
+  current_disk_usage_percent?: number | null;
+  projected_disk_usage_percent?: number | null;
+  active_download_remaining_bytes?: number | null;
+  download_budget_bytes?: number | null;
+  disk_usage_threshold_percent?: number | null;
 }
 
 export interface DryRunResult {
@@ -138,6 +143,13 @@ export interface DryRunResult {
     reason: string;
   }>;
   total_download_candidates: number;
+  skipped_budget?: number;
+  disk_usage_percent?: number | null;
+  current_disk_usage_percent?: number | null;
+  projected_disk_usage_percent?: number | null;
+  active_download_remaining_bytes?: number | null;
+  download_budget_bytes?: number | null;
+  disk_usage_threshold_percent?: number | null;
   cleanup_candidates: Array<{
     name: string;
     hash: string;

@@ -47,9 +47,9 @@ def _manager() -> pilot_core.PilotManager:
     manager = pilot_core.PilotManager()
     manager.config = AutomationConfig()
     manager.rule_engine = pilot_rules.RuleEngine(manager.config)
-    manager.cleanup_tracker.cleanup_upload_history = lambda _active_hashes: None
+    manager.cleanup_tracker.cleanup_upload_history = lambda active_hashes: None
     manager.cleanup_tracker.get_sliding_window_speed = (
-        lambda task, window_minutes=30: task["speed"]
+        lambda task, window_minutes=30, *, record=True: float(task["speed"])
     )
     manager.cleanup_tracker.calculate_cleanup_score = (
         lambda task, avg_speed_kbps: task["score"]
@@ -89,7 +89,18 @@ async def test_notpilot_tag_does_not_count_or_delete(monkeypatch):
 
     monkeypatch.setattr(pilot_routes, "qb_login", lambda: _async_value("sid"))
     monkeypatch.setattr(pilot_routes, "qb_get_torrents", lambda _sid: _async_value([task]))
-    monkeypatch.setattr(pilot_routes.pilot_manager, "get_disk_usage_percent", lambda: 0)
+    monkeypatch.setattr(
+        pilot_routes.pilot_manager,
+        "get_download_projection",
+        lambda _tasks: {
+            "disk_usage_percent": 0,
+            "current_disk_usage_percent": 0,
+            "projected_disk_usage_percent": 0,
+            "active_download_remaining_bytes": 0,
+            "download_budget_bytes": 0,
+            "disk_usage_threshold_percent": pilot_routes.pilot_manager.config.download.disk_usage_threshold,
+        },
+    )
 
     stats = await pilot_routes.get_stats()
 
@@ -507,7 +518,7 @@ async def test_dry_run_reports_missing_download_budget_path(monkeypatch):
         monkeypatch.setattr(pilot_routes, "qb_get_torrents", lambda _sid: _async_value([]))
         monkeypatch.setattr(
             pilot_routes.pilot_manager,
-            "_get_download_capacity_budget_bytes",
+            "get_download_projection",
             raise_missing_path,
         )
 
@@ -516,6 +527,8 @@ async def test_dry_run_reports_missing_download_budget_path(monkeypatch):
         assert result["download_candidates"] == []
         assert result["total_download_candidates"] == 0
         assert result["download_budget_bytes"] == 0
+        assert result["current_disk_usage_percent"] is None
+        assert result["projected_disk_usage_percent"] is None
         assert result["download_budget_error"] == (
             "Download save path does not exist: /downloads/mt_free_farm"
         )
@@ -523,6 +536,64 @@ async def test_dry_run_reports_missing_download_budget_path(monkeypatch):
         pilot_routes.pilot_manager.config = original_config
         pilot_routes.pilot_manager.rule_engine = original_rule_engine
 
+
+
+@pytest.mark.asyncio
+async def test_dry_run_reports_projected_download_usage(monkeypatch):
+    monkeypatch.setattr(
+        pilot_routes.state,
+        "cached_data",
+        {"torrents": [], "error": None, "last_update": "fresh"},
+    )
+    monkeypatch.setattr(pilot_routes, "qb_login", lambda: _async_value("sid"))
+    monkeypatch.setattr(
+        pilot_routes,
+        "qb_get_existing_mteam_ids",
+        lambda _sid: _async_value(set()),
+    )
+    task = _task(
+        "non-pilot-active",
+        tags="RADAR",
+        progress=0.25,
+        ratio=0,
+    )
+    task["size"] = 400
+    task["downloaded"] = 100
+
+    class Usage:
+        total = 1000
+        used = 100
+
+    monkeypatch.setattr(
+        pilot_routes,
+        "qb_get_torrents",
+        lambda _sid: _async_value([task]),
+    )
+    monkeypatch.setattr(
+        pilot_routes.pilot_manager.config.download,
+        "disk_usage_threshold",
+        90,
+    )
+    monkeypatch.setattr(
+        pilot_core,
+        "get_download_disk_usage",
+        lambda _config: ("/downloads/mt_free_farm", Usage()),
+    )
+    monkeypatch.setattr(
+        pilot_core,
+        "_task_is_on_downloads_filesystem",
+        lambda _task, _path: True,
+    )
+
+    result = await pilot_routes.dry_run()
+
+    assert result["download_budget_bytes"] == 500
+    assert result["current_disk_usage_percent"] == 10
+    assert result["disk_usage_percent"] == 10
+    assert result["projected_disk_usage_percent"] == 40
+    assert result["active_download_remaining_bytes"] == 300
+    assert result["disk_usage_threshold_percent"] == 90
+    assert result["download_budget_error"] is None
 
 
 def test_non_pilot_incomplete_download_reduces_download_budget(monkeypatch):
@@ -546,9 +617,68 @@ def test_non_pilot_incomplete_download_reduces_download_budget(monkeypatch):
         "get_download_disk_usage",
         lambda _config: ("/downloads/mt_free_farm", Usage()),
     )
-    monkeypatch.setattr(pilot_core, "_task_is_on_downloads_filesystem", lambda _task, _path: True)
+    monkeypatch.setattr(
+        pilot_core,
+        "_task_is_on_downloads_filesystem",
+        lambda _task, _path: True,
+    )
 
+    projection = manager.get_download_projection([task])
+
+    assert projection["current_disk_usage_percent"] == 10
+    assert projection["disk_usage_percent"] == 10
+    assert projection["projected_disk_usage_percent"] == 40
+    assert projection["active_download_remaining_bytes"] == 300
+    assert projection["download_budget_bytes"] == 500
+    assert projection["disk_usage_threshold_percent"] == 90
     assert manager._get_download_capacity_budget_bytes([task]) == 500
+
+
+@pytest.mark.asyncio
+async def test_stats_reports_current_and_projected_download_usage(monkeypatch):
+    monkeypatch.setattr(pilot_routes, "qb_login", lambda: _async_value("sid"))
+    task = _task(
+        "non-pilot-active",
+        tags="RADAR",
+        progress=0.25,
+        ratio=0,
+    )
+    task["size"] = 400
+    task["downloaded"] = 100
+
+    class Usage:
+        total = 1000
+        used = 100
+
+    monkeypatch.setattr(
+        pilot_routes,
+        "qb_get_torrents",
+        lambda _sid: _async_value([task]),
+    )
+    monkeypatch.setattr(
+        pilot_routes.pilot_manager.config.download,
+        "disk_usage_threshold",
+        90,
+    )
+    monkeypatch.setattr(
+        pilot_core,
+        "get_download_disk_usage",
+        lambda _config: ("/downloads/mt_free_farm", Usage()),
+    )
+    monkeypatch.setattr(
+        pilot_core,
+        "_task_is_on_downloads_filesystem",
+        lambda _task, _path: True,
+    )
+
+    stats = await pilot_routes.get_stats()
+
+    assert stats["disk_usage_percent"] == 10
+    assert stats["current_disk_usage_percent"] == 10
+    assert stats["projected_disk_usage_percent"] == 40
+    assert stats["active_download_remaining_bytes"] == 300
+    assert stats["download_budget_bytes"] == 500
+    assert stats["disk_usage_threshold_percent"] == 90
 
 
 @pytest.mark.asyncio
