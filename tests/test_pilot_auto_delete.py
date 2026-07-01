@@ -52,7 +52,7 @@ def _manager() -> pilot_core.PilotManager:
 
 @pytest.mark.asyncio
 async def test_run_cleanup_cycle_auto_deletes_only_eligible_pilot_task(monkeypatch):
-    eligible_pilot = _task("eligible-pilot", tags="PILOT")
+    eligible_pilot = _task("eligible-pilot", tags="PILOT, MTID:12345")
     non_pilot = _task("non-pilot", tags="RADAR")
     protected_pilot = _task("protected-pilot", tags="PILOT", ratio=0.5)
     deleted = []
@@ -71,14 +71,15 @@ async def test_run_cleanup_cycle_auto_deletes_only_eligible_pilot_task(monkeypat
 
 
     manager = _manager()
+    manager.config.cleanup.recently_cleaned_cooldown_hours = 24
     should_delete_eligible, eligible_reason = manager.rule_engine.evaluate_cleanup(eligible_pilot)
     should_delete_non_pilot, non_pilot_reason = manager.rule_engine.evaluate_cleanup(non_pilot)
     should_delete_protected, protected_reason = manager.rule_engine.evaluate_cleanup(protected_pilot)
     assert should_delete_eligible is True
     assert should_delete_non_pilot is True
     assert should_delete_protected is False
-    assert eligible_reason.startswith("Low users")
-    assert non_pilot_reason.startswith("Low users")
+    assert eligible_reason.startswith("Low activity")
+    assert non_pilot_reason.startswith("Low activity")
     assert protected_reason.startswith("Protected")
 
     monkeypatch.setattr(pilot_core, "qb_login", fake_login)
@@ -89,6 +90,7 @@ async def test_run_cleanup_cycle_auto_deletes_only_eligible_pilot_task(monkeypat
 
     assert deleted == [("eligible-pilot", "sid", True)]
     assert manager.total_cleanups == 1
+    assert manager.is_recently_cleaned_mteam_id("12345")
 
 
 

@@ -889,6 +889,11 @@
             "type": "boolean",
             "title": "Enable Notification",
             "default": true
+          },
+          "cleanup_before_download": {
+            "type": "boolean",
+            "title": "Cleanup Before Download",
+            "default": false
           }
         },
         "type": "object",
@@ -1031,6 +1036,28 @@
             "minimum": 0.0,
             "title": "Min Upload Speed Kbps",
             "default": 200
+          },
+          "require_low_upload_speed_for_activity_cleanup": {
+            "type": "boolean",
+            "title": "Require Low Upload Speed For Activity Cleanup",
+            "default": false
+          },
+          "use_connected_peers_for_activity": {
+            "type": "boolean",
+            "title": "Use Connected Peers For Activity",
+            "default": false
+          },
+          "allow_ratio_safe_early_cleanup": {
+            "type": "boolean",
+            "title": "Allow Ratio Safe Early Cleanup",
+            "default": false
+          },
+          "recently_cleaned_cooldown_hours": {
+            "type": "integer",
+            "maximum": 168.0,
+            "minimum": 0.0,
+            "title": "Recently Cleaned Cooldown Hours",
+            "default": 0
           },
           "elimination_ratio": {
             "type": "integer",
@@ -2390,6 +2417,18 @@
             "minimum": 0.0,
             "title": "Min Leechers",
             "default": 100
+          },
+          "prefer_scarce_upload_window": {
+            "type": "boolean",
+            "title": "Prefer Scarce Upload Window",
+            "default": false
+          },
+          "min_upload_window_score": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Min Upload Window Score",
+            "default": 0.0
           },
           "weight_size": {
             "type": "number",

@@ -76,6 +76,31 @@ def calculate_required_free_hours(size_gb: float) -> float:
 TWO_X_FREE_SCORE_BONUS = 0.15
 
 
+def calculate_upload_window_score(
+    seeders: int,
+    leechers: int,
+    *,
+    prefer_scarce: bool = False,
+) -> float:
+    if not prefer_scarce:
+        leecher_score = min(leechers, 200) / 200
+        scarcity_score = 1 / (1 + max(seeders, 0) / 10)
+        demand_gap_score = min(max(leechers - seeders, 0), 200) / 200
+        return (
+            0.45 * leecher_score
+            + 0.35 * scarcity_score
+            + 0.20 * demand_gap_score
+        )
+
+    leecher_score = min(leechers, 200) / 200
+    scarcity_score = 1 / (1 + max(seeders, 0) / 50)
+    leecher_ratio_score = min(leechers / max(seeders, 1), 4) / 4
+    return (
+        0.75 * leecher_score * scarcity_score
+        + 0.25 * leecher_ratio_score
+    )
+
+
 def _swarm_counts(task: dict) -> Tuple[Optional[int], Optional[int]]:
     """Return tracker seed/leech counts, treating negative qB values as unknown."""
     seeders = task.get('num_complete')
@@ -87,6 +112,54 @@ def _swarm_counts(task: dict) -> Tuple[Optional[int], Optional[int]]:
     if seeders < 0 or leechers < 0:
         return None, None
     return seeders, leechers
+
+
+def _connected_user_count(task: dict) -> Optional[int]:
+    """Return currently connected peer count, treating negative qB values as unknown."""
+    seeders = task.get("num_seeds")
+    leechers = task.get("num_leechs")
+    if seeders is None or leechers is None:
+        return None
+    seeders = int(seeders)
+    leechers = int(leechers)
+    if seeders < 0 or leechers < 0:
+        return None
+    return seeders + leechers
+
+
+def _upload_speed_kbps(task: dict) -> float:
+    return float(task.get("upspeed") or task.get("upload_speed") or 0) / 1024
+
+
+def _low_activity_reason(task: dict, cleanup) -> Optional[str]:
+    if cleanup.min_current_users <= 0:
+        return None
+
+    if cleanup.use_connected_peers_for_activity:
+        current_users = _connected_user_count(task)
+        user_label = "connected users"
+    else:
+        seeders, leechers = _swarm_counts(task)
+        if seeders is None or leechers is None:
+            return None
+        current_users = seeders + leechers
+        user_label = "tracker users"
+
+    if current_users is None:
+        return None
+
+    upload_speed_kbps = _upload_speed_kbps(task)
+    low_speed = not cleanup.require_low_upload_speed_for_activity_cleanup or (
+        cleanup.min_upload_speed_kbps <= 0
+        or upload_speed_kbps < cleanup.min_upload_speed_kbps
+    )
+    if current_users < cleanup.min_current_users and low_speed:
+        return (
+            f"{user_label}={current_users} < {cleanup.min_current_users}, "
+            f"upspeed={upload_speed_kbps:.1f} KB/s"
+        )
+    return None
+
 
 def calculate_days_since(created_date: str) -> float:
     """
@@ -133,13 +206,10 @@ def calculate_score(torrent: dict, config: RuleConfig) -> float:
     # Calculate time-based metrics
     days_since_upload = calculate_days_since(created_date)
 
-    leecher_score = min(leechers, 200) / 200
-    scarcity_score = 1 / (1 + max(seeders, 0) / 10)
-    demand_gap_score = min(max(leechers - seeders, 0), 200) / 200
-    upload_window_score = (
-        0.45 * leecher_score
-        + 0.35 * scarcity_score
-        + 0.20 * demand_gap_score
+    upload_window_score = calculate_upload_window_score(
+        seeders,
+        leechers,
+        prefer_scarce=config.prefer_scarce_upload_window,
     )
 
     if free_hours_remaining is None:
@@ -232,6 +302,8 @@ class RuleEngine:
 
         # 3. Seeders/Leechers filtering
         seeders = torrent.get('seeders', 0)
+        if seeders <= 0:
+            return (False, 0, "Seeders 0 <= 0")
         if rules.max_seeders > 0 and seeders > rules.max_seeders and not relax_seeders:
             return (False, 0, f"Seeders {seeders} > max {rules.max_seeders}")
 
@@ -243,6 +315,21 @@ class RuleEngine:
         )
         if min_leechers > 0 and leechers < min_leechers:
             return (False, 0, f"Leechers {leechers} < min {min_leechers}")
+
+        upload_window_score = calculate_upload_window_score(
+            seeders,
+            leechers,
+            prefer_scarce=rules.prefer_scarce_upload_window,
+        )
+        if (
+            rules.min_upload_window_score > 0
+            and upload_window_score < rules.min_upload_window_score
+        ):
+            return (
+                False,
+                0,
+                f"Upload window {upload_window_score:.3f} < min {rules.min_upload_window_score:.3f}",
+            )
 
         # 4. Keyword filtering
         name = torrent.get('name', '')
@@ -306,6 +393,9 @@ class RuleEngine:
 
         # Priority 2: H&R protection
         if seeding_time_hours < cleanup.min_seed_time_hours:
+            low_activity = _low_activity_reason(task, cleanup)
+            if cleanup.allow_ratio_safe_early_cleanup and ratio >= 1.0 and low_activity:
+                return (True, f"Safe low activity: ratio {ratio:.2f} >= 1.00, {low_activity}")
             return (False, f"H&R: {seeding_time_hours:.2f}h < {cleanup.min_seed_time_hours}h")
 
         # Priority 3: Ratio protection (seeds below target are protected)
@@ -316,13 +406,9 @@ class RuleEngine:
             return (True, f"Broken seed state: {task_state}")
 
         # Priority 4: Current users check (from qBittorrent tracker data)
-        if cleanup.min_current_users > 0:
-            # Treat negative qB scrape values as unknown, not as zero users.
-            seeders, leechers = _swarm_counts(task)
-            if seeders is not None and leechers is not None:
-                current_users = seeders + leechers
-                if current_users < cleanup.min_current_users:
-                    return (True, f"Low users: {current_users} < {cleanup.min_current_users}")
+        low_activity = _low_activity_reason(task, cleanup)
+        if low_activity:
+            return (True, f"Low activity: {low_activity}")
 
         # Pass to Phase 2 (bottom performers elimination)
         return (False, "Eligible for Phase 2")

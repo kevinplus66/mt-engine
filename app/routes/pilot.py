@@ -127,6 +127,9 @@ async def dry_run():
         if tid in pilot_manager.pending_downloads:
             continue
 
+        if pilot_manager.is_recently_cleaned_mteam_id(tid):
+            continue
+
         # Skip if already exists in qBittorrent
         if tid in existing_mteam_ids:
             skipped_existing += 1

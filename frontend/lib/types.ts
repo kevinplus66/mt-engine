@@ -77,6 +77,8 @@ export interface RuleConfig {
   // 高级过滤
   max_seeders: number;
   min_leechers: number;
+  prefer_scarce_upload_window: boolean;
+  min_upload_window_score: number;
 
   // 评分权重
   weight_size: number;
@@ -107,6 +109,10 @@ export interface CleanupPolicy {
   // 底部淘汰
   min_current_users: number;
   min_upload_speed_kbps: number;
+  require_low_upload_speed_for_activity_cleanup: boolean;
+  use_connected_peers_for_activity: boolean;
+  allow_ratio_safe_early_cleanup: boolean;
+  recently_cleaned_cooldown_hours: number;
   elimination_ratio: number;
 }
 
@@ -114,6 +120,7 @@ export interface AutomationConfig {
   download: DownloadPolicy;
   cleanup: CleanupPolicy;
   enable_notification: boolean;
+  cleanup_before_download: boolean;
 }
 
 // ============ Pilot 统计类型 ============

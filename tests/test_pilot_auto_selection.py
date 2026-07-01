@@ -86,5 +86,79 @@ async def test_run_download_cycle_selects_highest_score_when_slots_are_limited(m
     assert manager.pending_downloads == set()
 
 
+@pytest.mark.asyncio
+async def test_run_download_cycle_skips_recently_cleaned_mteam_id(monkeypatch):
+    selected_ids = []
+
+    manager = pilot_core.PilotManager()
+    manager.config = AutomationConfig()
+    manager.config.download.max_active_tasks = 1
+    manager.config.cleanup.recently_cleaned_cooldown_hours = 24
+    manager.recently_cleaned_mteam_ids["recent"] = pilot_core.time.time()
+
+    async def fake_download_torrent(torrent, sid, score):
+        selected_ids.append(torrent["id"])
+        return True
+
+    monkeypatch.setitem(state.cached_data, "torrents", [_free_torrent("recent")])
+    monkeypatch.setitem(
+        state.cached_data,
+        "last_update",
+        datetime.now(BEIJING_TZ).strftime("%Y-%m-%d %H:%M:%S"),
+    )
+    monkeypatch.setitem(state.cached_data, "error", None)
+    monkeypatch.setattr(pilot_core, "qb_login", lambda: _async_value("sid"))
+    monkeypatch.setattr(pilot_core, "qb_get_existing_mteam_ids", lambda _sid: _async_value(set()))
+    monkeypatch.setattr(pilot_core, "qb_get_torrents", lambda _sid: _async_value([]))
+    monkeypatch.setattr(pilot_core, "check_disk_space", lambda _config: True)
+    monkeypatch.setattr(manager, "_get_download_capacity_budget_bytes", lambda _tasks: 1024**4)
+    monkeypatch.setattr(manager, "_download_torrent", fake_download_torrent)
+
+    await manager.run_download_cycle(force=True)
+
+    assert selected_ids == []
+    assert manager.pending_downloads == set()
+
+
+@pytest.mark.asyncio
+async def test_pilot_cycle_defaults_to_download_before_cleanup(monkeypatch):
+    calls = []
+
+    class FakeManager:
+        config = AutomationConfig()
+
+        async def run_download_cycle(self):
+            calls.append("download")
+
+        async def run_cleanup_cycle(self):
+            calls.append("cleanup")
+
+    monkeypatch.setattr(pilot_core, "pilot_manager", FakeManager())
+
+    await pilot_core.run_pilot_cycle_once()
+
+    assert calls == ["download", "cleanup"]
+
+
+@pytest.mark.asyncio
+async def test_pilot_cycle_can_cleanup_before_download(monkeypatch):
+    calls = []
+
+    class FakeManager:
+        config = AutomationConfig(cleanup_before_download=True)
+
+        async def run_download_cycle(self):
+            calls.append("download")
+
+        async def run_cleanup_cycle(self):
+            calls.append("cleanup")
+
+    monkeypatch.setattr(pilot_core, "pilot_manager", FakeManager())
+
+    await pilot_core.run_pilot_cycle_once()
+
+    assert calls == ["cleanup", "download"]
+
+
 async def _async_value(value):
     return value

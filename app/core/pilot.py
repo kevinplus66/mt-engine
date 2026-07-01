@@ -23,6 +23,7 @@ from app.core.rules import RuleEngine
 from app.services.qbittorrent import (
     qb_login, qb_add_torrent_file, qb_get_torrents,
     qb_delete_torrent, download_torrent_file, qb_get_existing_mteam_ids,
+    _extract_mteam_id_from_tags,
 )
 from app.config import logger, DEBUG
 from app.constants import QB_TAG_RADAR
@@ -138,6 +139,7 @@ class PilotManager:
         self.config: AutomationConfig = load_pilot_config()
         self.rule_engine = RuleEngine(self.config)
         self.pending_downloads: Set[str] = set()  # Prevent duplicate downloads
+        self.recently_cleaned_mteam_ids: dict[str, float] = {}
         self.cleanup_tracker = PilotCleanupTracker()
         self._download_cycle_lock: Optional[asyncio.Lock] = None
         self._cleanup_cycle_lock: Optional[asyncio.Lock] = None
@@ -226,6 +228,29 @@ class PilotManager:
         """Get current M-Team IDs in qBittorrent."""
         return await qb_get_existing_mteam_ids(sid)
 
+    def _prune_recently_cleaned_mteam_ids(self) -> None:
+        cooldown_seconds = self.config.cleanup.recently_cleaned_cooldown_hours * 3600
+        if cooldown_seconds <= 0:
+            self.recently_cleaned_mteam_ids.clear()
+            return
+
+        now = time.time()
+        expired = [
+            mteam_id
+            for mteam_id, cleaned_at in self.recently_cleaned_mteam_ids.items()
+            if now - cleaned_at >= cooldown_seconds
+        ]
+        for mteam_id in expired:
+            self.recently_cleaned_mteam_ids.pop(mteam_id, None)
+
+    def is_recently_cleaned_mteam_id(self, mteam_id: object) -> bool:
+        if not mteam_id:
+            return False
+        if self.config.cleanup.recently_cleaned_cooldown_hours <= 0:
+            return False
+        self._prune_recently_cleaned_mteam_ids()
+        return str(mteam_id) in self.recently_cleaned_mteam_ids
+
 
     def get_disk_usage_percent(self) -> Optional[float]:
         """Get current disk usage percentage."""
@@ -304,6 +329,10 @@ class PilotManager:
 
                 # Skip if already pending
                 if tid in self.pending_downloads:
+                    continue
+
+                if self.is_recently_cleaned_mteam_id(tid):
+                    logger.debug("Skipping %s: recently cleaned", tid)
                     continue
 
                 # Skip if already exists in qBittorrent
@@ -546,6 +575,10 @@ class PilotManager:
             logger.warning("Cleanup vetoed for %s: task is not isolated PILOT content", name)
             return False
         success = await qb_delete_torrent(hash_, sid, delete_files=True)
+        if success and self.config.cleanup.recently_cleaned_cooldown_hours > 0:
+            mteam_id = _extract_mteam_id_from_tags(task.get("tags", ""))
+            if mteam_id:
+                self.recently_cleaned_mteam_ids[mteam_id] = time.time()
         if success:
             logger.info(f"🗑️  Deleted: {name} - {reason}")
         return success
@@ -568,6 +601,15 @@ def calculate_torrent_score(torrent: dict) -> float:
 pilot_manager = PilotManager()
 
 
+async def run_pilot_cycle_once():
+    if pilot_manager.config.cleanup_before_download:
+        await pilot_manager.run_cleanup_cycle()
+        await pilot_manager.run_download_cycle()
+    else:
+        await pilot_manager.run_download_cycle()
+        await pilot_manager.run_cleanup_cycle()
+
+
 async def pilot_loop():
     """Independent background loop task"""
     logger.info("Pilot loop started")
@@ -577,8 +619,7 @@ async def pilot_loop():
     while True:
         cycle_error: Optional[str] = None
         try:
-            await pilot_manager.run_download_cycle()
-            await pilot_manager.run_cleanup_cycle()
+            await run_pilot_cycle_once()
         except Exception as e:
             cycle_error = str(e)
             logger.error(f"Pilot cycle error: {e}", exc_info=True)

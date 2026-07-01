@@ -593,6 +593,11 @@ export interface components {
              * @default true
              */
             enable_notification?: boolean;
+            /**
+             * Cleanup Before Download
+             * @default false
+             */
+            cleanup_before_download?: boolean;
         };
         /**
          * CacheStatus
@@ -672,6 +677,26 @@ export interface components {
              * @default 200
              */
             min_upload_speed_kbps?: number;
+            /**
+             * Require Low Upload Speed For Activity Cleanup
+             * @default false
+             */
+            require_low_upload_speed_for_activity_cleanup?: boolean;
+            /**
+             * Use Connected Peers For Activity
+             * @default false
+             */
+            use_connected_peers_for_activity?: boolean;
+            /**
+             * Allow Ratio Safe Early Cleanup
+             * @default false
+             */
+            allow_ratio_safe_early_cleanup?: boolean;
+            /**
+             * Recently Cleaned Cooldown Hours
+             * @default 0
+             */
+            recently_cleaned_cooldown_hours?: number;
             /**
              * Elimination Ratio
              * @default 0
@@ -1371,6 +1396,16 @@ export interface components {
              * @default 100
              */
             min_leechers?: number;
+            /**
+             * Prefer Scarce Upload Window
+             * @default false
+             */
+            prefer_scarce_upload_window?: boolean;
+            /**
+             * Min Upload Window Score
+             * @default 0
+             */
+            min_upload_window_score?: number;
             /**
              * Weight Size
              * @default -1

@@ -16,6 +16,8 @@ const productionPilotConfig = {
       exclude_keywords: ["AUDIOBOOK"],
       max_seeders: 10,
       min_leechers: 100,
+      prefer_scarce_upload_window: false,
+      min_upload_window_score: 0,
       weight_size: -1,
       weight_free_time: 2,
       weight_age: 0.5,
@@ -31,9 +33,14 @@ const productionPilotConfig = {
     dead_seed_max_ratio: 0.01,
     min_current_users: 5,
     min_upload_speed_kbps: 200,
+    require_low_upload_speed_for_activity_cleanup: false,
+    use_connected_peers_for_activity: false,
+    allow_ratio_safe_early_cleanup: false,
+    recently_cleaned_cooldown_hours: 0,
     elimination_ratio: 0,
   },
   enable_notification: true,
+  cleanup_before_download: false,
 };
 
 describe("pilotConfigSchema", () => {

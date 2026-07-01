@@ -29,6 +29,8 @@ const savedConfig: AutomationConfig = {
       exclude_keywords: ["cam"],
       max_seeders: 20,
       min_leechers: 0,
+      prefer_scarce_upload_window: false,
+      min_upload_window_score: 0,
       weight_size: 1,
       weight_free_time: 2,
       weight_age: -1,
@@ -44,9 +46,14 @@ const savedConfig: AutomationConfig = {
     dead_seed_max_ratio: 0.2,
     min_current_users: 1,
     min_upload_speed_kbps: 16,
+    require_low_upload_speed_for_activity_cleanup: false,
+    use_connected_peers_for_activity: false,
+    allow_ratio_safe_early_cleanup: false,
+    recently_cleaned_cooldown_hours: 0,
     elimination_ratio: 10,
   },
   enable_notification: true,
+  cleanup_before_download: false,
 };
 
 function setupEditor(

@@ -154,6 +154,75 @@ def test_permanent_free_torrent_without_end_time_can_still_be_candidate():
     assert reason.startswith("Score:")
 
 
+def test_zero_seeder_torrent_is_not_download_candidate():
+    config = AutomationConfig()
+    config.download.rules.min_size_gb = 1
+    config.download.rules.max_seeders = 0
+    config.download.rules.min_leechers = 0
+    engine = pilot_rules.RuleEngine(config)
+    torrent = {
+        "id": "dead-free",
+        "name": "Dead Free",
+        "size": 10 * 1024**3,
+        "discount": "FREE",
+        "discount_end_time": None,
+        "seeders": 0,
+        "leechers": 100,
+    }
+
+    should_download, _score, reason = engine.evaluate_download(torrent)
+
+    assert should_download is False
+    assert reason == "Seeders 0 <= 0"
+
+
+def test_upload_window_score_prefers_scarce_demand_over_crowded_pool():
+    config = AutomationConfig()
+    rules = config.download.rules
+    rules.min_size_gb = 1
+    rules.max_seeders = 0
+    rules.min_leechers = 0
+    rules.weight_size = 0
+    rules.weight_free_time = 0
+    rules.weight_age = 0
+    rules.prefer_scarce_upload_window = True
+
+    base = {
+        "size": 20 * 1024**3,
+        "discount": "FREE",
+        "discount_end_time": None,
+        "created_date": "2026-07-01 00:00:00",
+    }
+    scarce = {**base, "seeders": 5, "leechers": 60}
+    crowded = {**base, "seeders": 300, "leechers": 300}
+
+    assert pilot_rules.calculate_score(scarce, rules) > pilot_rules.calculate_score(crowded, rules)
+
+
+def test_low_upload_window_torrent_is_not_download_candidate():
+    config = AutomationConfig()
+    config.download.rules.min_size_gb = 1
+    config.download.rules.min_leechers = 30
+    config.download.rules.max_seeders = 200
+    config.download.rules.prefer_scarce_upload_window = True
+    config.download.rules.min_upload_window_score = 0.08
+    engine = pilot_rules.RuleEngine(config)
+    torrent = {
+        "id": "low-window",
+        "name": "Low Window",
+        "size": 46 * 1024**3,
+        "discount": "FREE",
+        "discount_end_time": None,
+        "seeders": 152,
+        "leechers": 58,
+    }
+
+    should_download, _score, reason = engine.evaluate_download(torrent)
+
+    assert should_download is False
+    assert "Upload window" in reason
+
+
 def test_low_user_below_ratio_target_is_protected():
     config = AutomationConfig()
     config.cleanup.min_seed_time_hours = 0
@@ -168,6 +237,147 @@ def test_low_user_below_ratio_target_is_protected():
     assert should_delete is False
     assert reason.startswith("Protected: ratio")
 
+
+def test_ratio_safe_low_activity_seed_can_bypass_hnr_protection():
+    config = AutomationConfig()
+    config.cleanup.min_seed_time_hours = 4
+    config.cleanup.min_current_users = 5
+    config.cleanup.min_upload_speed_kbps = 200
+    config.cleanup.require_low_upload_speed_for_activity_cleanup = True
+    config.cleanup.use_connected_peers_for_activity = True
+    config.cleanup.allow_ratio_safe_early_cleanup = True
+    engine = pilot_rules.RuleEngine(config)
+    task = _task(
+        "ratio-safe-low-activity",
+        seeding_time=30 * 60,
+        ratio=1.1,
+        seeders=200,
+        leechers=200,
+    )
+    task["num_seeds"] = 0
+    task["num_leechs"] = 2
+    task["upspeed"] = 10 * 1024
+
+    should_delete, reason = engine.evaluate_cleanup(task)
+
+    assert should_delete is True
+    assert reason.startswith("Safe low activity")
+
+
+def test_ratio_safe_low_activity_seed_keeps_hnr_by_default():
+    config = AutomationConfig()
+    config.cleanup.min_seed_time_hours = 4
+    config.cleanup.min_current_users = 5
+    config.cleanup.min_upload_speed_kbps = 200
+    config.cleanup.use_connected_peers_for_activity = True
+    engine = pilot_rules.RuleEngine(config)
+    task = _task(
+        "ratio-safe-low-activity",
+        seeding_time=30 * 60,
+        ratio=1.1,
+        seeders=200,
+        leechers=200,
+    )
+    task["num_seeds"] = 0
+    task["num_leechs"] = 2
+    task["upspeed"] = 10 * 1024
+
+    should_delete, reason = engine.evaluate_cleanup(task)
+
+    assert should_delete is False
+    assert reason.startswith("H&R:")
+
+
+def test_low_ratio_low_activity_seed_still_keeps_hnr_protection():
+    config = AutomationConfig()
+    config.cleanup.min_seed_time_hours = 4
+    config.cleanup.min_current_users = 5
+    config.cleanup.min_upload_speed_kbps = 200
+    engine = pilot_rules.RuleEngine(config)
+    task = _task(
+        "low-ratio-low-activity",
+        seeding_time=30 * 60,
+        ratio=0.9,
+        seeders=200,
+        leechers=200,
+    )
+    task["num_seeds"] = 0
+    task["num_leechs"] = 2
+    task["upspeed"] = 10 * 1024
+
+    should_delete, reason = engine.evaluate_cleanup(task)
+
+    assert should_delete is False
+    assert reason.startswith("H&R:")
+
+
+def test_low_connected_users_do_not_delete_fast_uploader():
+    config = AutomationConfig()
+    config.cleanup.min_seed_time_hours = 0
+    config.cleanup.min_current_users = 5
+    config.cleanup.min_upload_speed_kbps = 200
+    config.cleanup.require_low_upload_speed_for_activity_cleanup = True
+    config.cleanup.use_connected_peers_for_activity = True
+    engine = pilot_rules.RuleEngine(config)
+    task = _task(
+        "fast-low-connected",
+        seeding_time=5 * 3600,
+        ratio=1.1,
+        seeders=200,
+        leechers=200,
+    )
+    task["num_seeds"] = 0
+    task["num_leechs"] = 2
+    task["upspeed"] = 2 * 1024 * 1024
+
+    should_delete, reason = engine.evaluate_cleanup(task)
+
+    assert should_delete is False
+    assert reason == "Eligible for Phase 2"
+
+
+def test_low_tracker_users_delete_by_default_even_when_uploading_fast():
+    config = AutomationConfig()
+    config.cleanup.min_seed_time_hours = 0
+    config.cleanup.min_current_users = 5
+    config.cleanup.min_upload_speed_kbps = 200
+    engine = pilot_rules.RuleEngine(config)
+    task = _task(
+        "low-tracker-fast",
+        seeding_time=5 * 3600,
+        ratio=1.1,
+        seeders=1,
+        leechers=1,
+    )
+    task["upspeed"] = 2 * 1024 * 1024
+
+    should_delete, reason = engine.evaluate_cleanup(task)
+
+    assert should_delete is True
+    assert reason.startswith("Low activity: tracker users=2")
+
+
+def test_low_connected_users_are_ignored_by_default():
+    config = AutomationConfig()
+    config.cleanup.min_seed_time_hours = 0
+    config.cleanup.min_current_users = 5
+    config.cleanup.min_upload_speed_kbps = 200
+    engine = pilot_rules.RuleEngine(config)
+    task = _task(
+        "low-connected-high-tracker",
+        seeding_time=5 * 3600,
+        ratio=1.1,
+        seeders=200,
+        leechers=200,
+    )
+    task["num_seeds"] = 0
+    task["num_leechs"] = 2
+    task["upspeed"] = 10 * 1024
+
+    should_delete, reason = engine.evaluate_cleanup(task)
+
+    assert should_delete is False
+    assert reason == "Eligible for Phase 2"
 
 
 def test_active_download_past_max_time_is_not_zombie_deleted():

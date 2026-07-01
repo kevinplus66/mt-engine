@@ -9,6 +9,8 @@ const ruleConfigSchema = z.object({
   exclude_keywords: z.array(z.string()),
   max_seeders: z.number().int().min(0),
   min_leechers: z.number().int().min(0),
+  prefer_scarce_upload_window: z.boolean(),
+  min_upload_window_score: z.number().min(0).max(1),
   weight_size: z.number().min(-10).max(10),
   weight_free_time: z.number().min(-10).max(10),
   weight_age: z.number().min(-10).max(10),
@@ -35,6 +37,10 @@ const cleanupPolicySchema = z.object({
   dead_seed_max_ratio: z.number().min(0),
   min_current_users: z.number().int().min(0),
   min_upload_speed_kbps: z.number().int().min(0),
+  require_low_upload_speed_for_activity_cleanup: z.boolean(),
+  use_connected_peers_for_activity: z.boolean(),
+  allow_ratio_safe_early_cleanup: z.boolean(),
+  recently_cleaned_cooldown_hours: z.number().int().min(0).max(168),
   elimination_ratio: z.number().int().min(0).max(50),
 });
 
@@ -42,6 +48,7 @@ export const pilotConfigSchema = z.object({
   download: downloadPolicySchema,
   cleanup: cleanupPolicySchema,
   enable_notification: z.boolean(),
+  cleanup_before_download: z.boolean(),
 });
 
 export type PilotConfig = z.infer<typeof pilotConfigSchema>;

@@ -344,6 +344,8 @@ class RuleConfig(BaseModel):
     # Advanced filtering (0 = no limit)
     max_seeders: int = Field(10, ge=0)  # Maximum seeders allowed
     min_leechers: int = Field(100, ge=0)  # Minimum leechers required
+    prefer_scarce_upload_window: bool = False
+    min_upload_window_score: float = Field(0.0, ge=0, le=1)  # 0 = disabled
 
     # Scoring weights (bounded to prevent extreme values)
     # Negative weight_size = prefer larger files
@@ -382,6 +384,10 @@ class CleanupPolicy(BaseModel):
     # Bottom performers elimination
     min_current_users: int = Field(5, ge=0)  # Delete if seeders + leechers < this (from qB tracker)
     min_upload_speed_kbps: int = Field(200, ge=0)  # Min average upload speed (KB/s)
+    require_low_upload_speed_for_activity_cleanup: bool = False
+    use_connected_peers_for_activity: bool = False
+    allow_ratio_safe_early_cleanup: bool = False
+    recently_cleaned_cooldown_hours: int = Field(0, ge=0, le=168)
     elimination_ratio: int = Field(0, ge=0, le=50)  # Eliminate lowest 0% by score (disabled by default)
 
 
@@ -390,3 +396,4 @@ class AutomationConfig(BaseModel):
     download: DownloadPolicy = Field(default_factory=lambda: DownloadPolicy.model_validate({}))
     cleanup: CleanupPolicy = Field(default_factory=lambda: CleanupPolicy.model_validate({}))
     enable_notification: bool = True
+    cleanup_before_download: bool = False
